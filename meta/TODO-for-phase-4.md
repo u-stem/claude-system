@@ -37,3 +37,57 @@
 - [ ] `adapters/claude-code/user-level/CLAUDE.md`(Phase 3 で作成)のメモリセクションから新 ADR へリンクを張る
 - [ ] `adapters/claude-code/user-level/settings.json` テンプレートで `enabledPlugins` に `episodic-memory@superpowers-marketplace` が含まれていることを確認
 - [ ] このファイル `meta/TODO-for-phase-4.md` 自体を削除する(Phase 4 終了時)
+
+## 言語別コーディングスタイルの能力単位化
+
+Phase 2 の `practices/coding-style-conventions.md` は「言語非依存の抽象部分」のみを記述した(命名、ファイル粒度、エラー本文の 3 要素、Why コメント、過剰装飾の禁止、デッドコード削除、抑制の最終手段化)。
+旧資産にあった**特定言語の構文ガイド**は適応層の能力単位として Phase 4 で整備する。
+
+### 対象
+
+- **TypeScript**
+  - ES Modules、分割代入、型注釈、`async/await` の使い分け
+  - default export より named export 優先
+  - `any` 型の乱用禁止、型抑制の最終手段化
+  - 整形・静的解析・型検査の標準コマンド(言語固有の具体ツール)
+- **Python**
+  - 型ヒント、f-string、リスト内包表記
+  - 整形・静的解析・型検査の標準コマンド
+- **Rust**
+  - 静的解析準拠、`Result`/`Option` の使い分け、`unwrap()` 禁止
+  - 整形・静的解析の標準コマンド
+- **Go**
+  - 整形ツール準拠、エラーハンドリング必須、インターフェースは使用側で定義
+  - 整形・静的解析の標準コマンド
+
+### 取り込み方針
+
+- 言語別に独立した能力単位として配置
+- 各能力単位は段階的開示の入口(短い説明)と詳細(具体規則・コマンド)を分ける
+- 共通する抽象規則(命名、ファイル粒度、エラー本文、Why コメント等)は `practices/coding-style-conventions.md` に既出のため重複を作らない。能力単位側はそれを参照する
+- 各能力単位から `practices/coding-style-conventions.md` へのリンクを貼る
+
+### チェックリスト
+
+- [ ] TypeScript 用の能力単位を作成
+- [ ] Python 用の能力単位を作成
+- [ ] Rust 用の能力単位を作成
+- [ ] Go 用の能力単位を作成
+- [ ] 各能力単位から `practices/coding-style-conventions.md` への参照を貼る
+
+## テスト戦略の言語別具体化
+
+Phase 2 の `practices/testing-strategy.md` は TDD サイクル + 振る舞いベース命名 + 1 アサーション 1 テスト + Arrange-Act-Assert + 境界選択(unit/integration/e2e) + テストデータ規約 + 禁止パターンを抽象化した。
+特定言語のテストフレームワーク選定・実行コマンド・モック手法は Phase 4 の能力単位として扱う。
+
+### 対象
+
+- 各言語のテストフレームワーク選定基準
+- テストランナー実行コマンドの統一インタフェース(言語自動判別)
+- モック・スタブ・フィクスチャの言語別書き方
+
+### チェックリスト
+
+- [ ] テスト実行能力単位の設計(言語自動判別)
+- [ ] 各言語向けの能力単位を整備
+- [ ] 各能力単位から `practices/testing-strategy.md` への参照を貼る
