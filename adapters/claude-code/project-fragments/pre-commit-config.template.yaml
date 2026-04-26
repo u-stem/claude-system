@@ -1,0 +1,94 @@
+# pre-commit hook の共通基盤テンプレート
+#
+# 配布方針:
+# - 各 project-templates/<name>/.pre-commit-config.yaml で本ファイルの内容を**コピー**して使用
+#   (.pre-commit-config.yaml 自体は include をサポートしないため、参照ではなくコピー)
+# - プロジェクト側は本テンプレートに**追記**する形で言語別 hook(typecheck / lint)を加える
+# - gitleaks の rev は VERSION 更新時に追従する(現状 v8.30.1 系)
+#
+# 利用者向け:
+# - インストール: `brew install pre-commit` または `uv tool install pre-commit`
+# - 有効化: プロジェクトルートで `pre-commit install`
+# - 全ファイル走査: `pre-commit run --all-files`
+#
+# 関連:
+# - ~/ws/claude-system/practices/secrets-handling.md — 機密情報の取り扱い
+# - ~/ws/claude-system/practices/supply-chain-hygiene.md — 依存パッケージ規律
+# - ~/ws/claude-system/adapters/claude-code/user-level/skills/security-audit/SKILL.md
+
+repos:
+  # === 共通: 機密情報検出 ===
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+        # プロジェクト個別の allowlist は .gitleaks.toml で設定する
+
+  # === 共通: 一般的な健全性チェック ===
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-merge-conflict       # コンフリクトマーカーの検出
+      - id: check-added-large-files     # 大きいファイルのコミット阻止
+        args: ['--maxkb=1024']
+      - id: check-yaml                  # YAML 構文
+      - id: check-json                  # JSON 構文
+      - id: check-toml                  # TOML 構文
+      - id: end-of-file-fixer           # ファイル末尾改行
+      - id: trailing-whitespace         # 行末空白
+      - id: mixed-line-ending           # 改行コード統一
+        args: ['--fix=lf']
+      - id: detect-private-key          # 秘密鍵の検出(gitleaks の補完)
+
+  # === 言語固有 hook はプロジェクト側でこのファイルに追記する ===
+  #
+  # 例(TypeScript / Bun):
+  # - repo: local
+  #   hooks:
+  #     - id: typecheck
+  #       name: TypeScript typecheck
+  #       entry: bun run typecheck
+  #       language: system
+  #       pass_filenames: false
+  #       types: [ts, tsx]
+  #     - id: lint
+  #       name: Lint
+  #       entry: bun run lint
+  #       language: system
+  #       pass_filenames: false
+  #
+  # 例(Python / uv + ruff):
+  # - repo: https://github.com/astral-sh/ruff-pre-commit
+  #   rev: v0.x.x
+  #   hooks:
+  #     - id: ruff
+  #       args: [--fix]
+  #     - id: ruff-format
+  #
+  # 例(Rust):
+  # - repo: local
+  #   hooks:
+  #     - id: rustfmt
+  #       name: rustfmt
+  #       entry: cargo fmt --all -- --check
+  #       language: system
+  #       pass_filenames: false
+  #     - id: clippy
+  #       name: clippy
+  #       entry: cargo clippy --all-targets --all-features -- -D warnings
+  #       language: system
+  #       pass_filenames: false
+  #
+  # 例(Go):
+  # - repo: local
+  #   hooks:
+  #     - id: gofmt
+  #       name: gofmt
+  #       entry: gofmt -l .
+  #       language: system
+  #       pass_filenames: false
+  #     - id: govet
+  #       name: go vet
+  #       entry: go vet ./...
+  #       language: system
+  #       pass_filenames: false
