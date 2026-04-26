@@ -1,0 +1,40 @@
+{
+  "//": "Declarative MCP server template for tools/setup-mcp.sh. Memory MCP intentionally absent (ADR 0003). Servers with requires_secret=true are skipped by setup-mcp.sh; add them manually with secrets injected (ADR 0001 / 0002).",
+  "servers": [
+    {
+      "name": "sequential-thinking",
+      "command": "bunx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking@2025.12.18"],
+      "env_keys": [],
+      "requires_secret": false,
+      "description": "Stepwise reasoning helper (no secrets)"
+    },
+    {
+      "name": "playwright",
+      "command": "bunx",
+      "args": ["-y", "@playwright/mcp@0.0.70"],
+      "env_keys": [],
+      "requires_secret": false,
+      "description": "Browser automation / E2E (no secrets)"
+    },
+    {
+      "name": "chrome-devtools",
+      "command": "npx",
+      "args": ["chrome-devtools-mcp@0.20.3"],
+      "env_keys": [],
+      "requires_secret": false,
+      "description": "Chrome DevTools protocol bridge (no secrets)"
+    },
+    {
+      "//": "github MCP needs GITHUB_PERSONAL_ACCESS_TOKEN — ADD MANUALLY:",
+      "//1": "  claude mcp add -e GITHUB_PERSONAL_ACCESS_TOKEN=<token> github -- docker run -i --rm -e GITHUB_PERSONAL_ACCESS_TOKEN ghcr.io/github/github-mcp-server",
+      "//2": "Token source: https://github.com/settings/tokens",
+      "name": "github",
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "-e", "GITHUB_PERSONAL_ACCESS_TOKEN", "ghcr.io/github/github-mcp-server"],
+      "env_keys": ["GITHUB_PERSONAL_ACCESS_TOKEN"],
+      "requires_secret": true,
+      "description": "GitHub operations (PRs, issues). REQUIRES SECRET — skipped by setup-mcp.sh."
+    }
+  ]
+}
