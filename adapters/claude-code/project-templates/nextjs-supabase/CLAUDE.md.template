@@ -1,0 +1,87 @@
+# {{PROJECT_NAME}} (CLAUDE.md)
+
+このファイルは {{PROJECT_NAME}} 固有の Claude 向け指示。
+ユーザーレベル共通指示は `~/.claude/CLAUDE.md`(claude-system の `adapters/claude-code/user-level/CLAUDE.md`)を参照すること。
+重複は避け、本ファイルには**プロジェクト固有のもの**だけを書く。
+
+## 共通基盤の取り込み
+
+@~/ws/claude-system/adapters/claude-code/project-fragments/web-apps-common.md
+
+## プロジェクト概要
+
+- **目的**: {{PROJECT_PURPOSE}}
+- **主要機能**: {{PROJECT_KEY_FEATURES}}
+- **ステータス**: {{PROJECT_STATUS}} (例: prototype / production / archived)
+- **公開範囲**: {{PROJECT_VISIBILITY}} (例: private / public / members-only)
+
+## 技術スタック
+
+- ランタイム: Node.js {{NODE_VERSION}} / Bun {{BUN_VERSION}}
+- フレームワーク: Next.js {{NEXTJS_VERSION}}(App Router)
+- DB / 認証 / Storage: Supabase
+- デプロイ: Vercel
+- 型: TypeScript strict
+- パッケージ管理: bun(lockfile: `bun.lockb`)
+- テスト: bun test / Vitest
+
+## ディレクトリ規約
+
+- `app/` Next.js App Router(page / layout / route handler / server action)
+- `components/` 再利用 UI コンポーネント
+- `lib/supabase/{client,server,admin}.ts` Supabase クライアント分離(必須)
+- `lib/database.types.ts` `bunx supabase gen types typescript --linked` で生成
+- `docs/adr/` 意思決定記録(`adr-template.md` を雛形として使う)
+- `tests/` E2E テスト(`*.test.ts` の単体テストはソース隣接配置)
+
+## 推奨 skill 起動条件
+
+このプロジェクトで頻出する skill。詳細は `~/ws/claude-system/adapters/claude-code/user-level/skills/_index.md`:
+
+- 実装時:
+  - `nextjs-supabase-base` — 全 Next.js + Supabase 実装
+  - `nextjs-supabase-rls` — テーブル / ポリシー追加・変更時
+  - `typescript-strict` — TS の型設計判断時
+- レビュー時:
+  - `security-audit` — 認証・認可・依存追加・PR レビュー時のセルフチェック
+  - `dependency-review` — 依存パッケージ追加・更新時
+- doc / commit:
+  - `japanese-tech-writing` — README / ADR / docs を日本語で書くとき
+  - `commit-conventional` — コミット時
+  - `pr-description` — PR 作成時
+  - `adr-writing` — 意思決定を ADR 化するとき
+
+## 推奨 subagent 起動条件
+
+詳細は `~/ws/claude-system/adapters/claude-code/subagents/_index.md`:
+
+- **`code-reviewer`**: 変更行 100 行超 / 5 ファイル超のレビュー
+- **`security-auditor`**: 認証・認可・依存・機密関連の変更レビュー(原子性 + セキュリティ系)
+- **`refactor-planner`**: 構造改善計画立案(計画のみ、実装はしない)
+- **`explorer`**: 内部コードベース探索(10 ファイル以上の調査)
+- **`doc-writer`**: コード差分に追従する doc 更新提案
+- **`research-summarizer`**: 外部資料(公式ドキュメント / RFC / Issue)調査
+
+## プロジェクト固有の禁止事項
+
+- `SUPABASE_SERVICE_ROLE_KEY` を Client Component / Edge Runtime / `NEXT_PUBLIC_*` に絶対露出させない
+- RLS を無効化したまま運用しない(`alter table ... enable row level security;` を必ず)
+- `useEffect` で Supabase の初期データ取得を行わない(Server Component で取る)
+- 全コンポーネントに `'use client'` を付けない(葉だけ)
+- `bun add` の floating range(`^x.y.z`)で依存を追加しない(必ず `@x.y.z` で固定)
+- migration を本番に当てる前に staging で試さない
+
+## 検証コマンド
+
+プロジェクトルートで `bun run check` で以下を一括実行(scripts/check.ts または package.json の scripts):
+
+- `bunx tsc --noEmit`
+- `bun run lint`
+- `bun test`
+
+## 関連
+
+- ユーザーレベル指示: `~/.claude/CLAUDE.md`(`adapters/claude-code/user-level/CLAUDE.md`)
+- 共通 fragment: `~/ws/claude-system/adapters/claude-code/project-fragments/web-apps-common.md`
+- skill / subagent: 上記参照
+- ADR 0001 / 0002 / 0003 を全プロジェクトで遵守

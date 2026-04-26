@@ -1,0 +1,91 @@
+# {{PROJECT_NAME}}
+
+{{PROJECT_PURPOSE}}
+
+## Stack
+
+- Next.js {{NEXTJS_VERSION}}(App Router) / React 19 / TypeScript strict
+- Bun {{BUN_VERSION}}
+- Supabase(PostgreSQL + Auth + Storage)
+- Vercel(本番ホスティング)
+
+## Quick Start
+
+### 1. 依存インストール
+
+```bash
+bun install
+```
+
+### 2. 環境変数
+
+`.env.example` を `.env.local` にコピーし、必要な値を埋める:
+
+```bash
+cp .env.example .env.local
+```
+
+主な変数:
+
+- `NEXT_PUBLIC_SUPABASE_URL` — Supabase プロジェクト URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon key(Client / Server 共通)
+- `SUPABASE_SERVICE_ROLE_KEY` — **サーバー専用**(`NEXT_PUBLIC_` 付与禁止)
+- その他 {{ADDITIONAL_ENV_VARS}}
+
+### 3. DB 型生成(Supabase スキーマと同期するとき)
+
+```bash
+bunx supabase gen types typescript --linked > lib/database.types.ts
+```
+
+### 4. 開発サーバー
+
+```bash
+bun run dev
+```
+
+`http://localhost:3000`
+
+### 5. 検証
+
+```bash
+bun run check    # tsc --noEmit + lint + test を一括実行
+```
+
+### 6. pre-commit hook(初回のみ)
+
+```bash
+brew install pre-commit
+pre-commit install
+```
+
+## Scripts
+
+| コマンド | 用途 |
+|---------|------|
+| `bun run dev` | 開発サーバー(HMR 有効) |
+| `bun run build` | 本番ビルド |
+| `bun run start` | 本番ビルドの起動 |
+| `bun test` | テスト実行 |
+| `bun run lint` | ESLint / Biome |
+| `bun run typecheck` | `bunx tsc --noEmit` |
+| `bun run check` | typecheck + lint + test を一括実行 |
+
+## ディレクトリ構成
+
+- `app/` — Next.js App Router(page / layout / route handler / server action)
+- `components/` — 再利用 UI
+- `lib/supabase/{client,server,admin}.ts` — Supabase クライアント分離
+- `lib/database.types.ts` — Supabase スキーマから生成された型
+- `docs/adr/` — 意思決定記録
+- `tests/` — E2E テスト(unit テストはソース隣接)
+
+## 開発ガイド
+
+- AI 協働のガイドは `CLAUDE.md` を参照
+- 主要な意思決定は `docs/adr/` に記録(雛形: `~/ws/claude-system/adapters/claude-code/project-fragments/adr-template.md`)
+- コミット規約: Conventional Commits(`feat: ` / `fix: ` / `docs: ` / `refactor: ` / `chore: ` / `test: `)
+
+## License
+
+{{LICENSE}}

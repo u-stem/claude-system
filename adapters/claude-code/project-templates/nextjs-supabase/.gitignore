@@ -1,0 +1,64 @@
+# Node / Bun
+node_modules/
+.npm/
+.bun/
+
+# Next.js
+.next/
+out/
+build/
+dist/
+
+# Vercel
+.vercel/
+
+# Supabase
+.supabase/
+supabase/.temp/
+supabase/.branches/
+
+# 環境変数(機密、settings.json deny でも保護されるが二重防御)
+.env
+.env.*
+!.env.example
+
+# テスト・カバレッジ
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# Logs
+*.log
+npm-debug.log*
+bun-debug.log*
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+!.vscode/settings.json.example
+.idea/
+*.swp
+
+# Claude Code ランタイム生成物(プロジェクト内にも生成されうる)
+.claude/projects/
+.claude/telemetry/
+.claude/debug/
+.claude/file-history/
+.claude/session-env/
+.claude/sessions/
+.claude/shell-snapshots/
+.claude/todos/
+.claude/tasks/
+.claude/cache/
+.claude/paste-cache/
+.claude/statsig/
+.claude/history.jsonl
+.claude/stats-cache.json
+.claude/failure-log.jsonl
+
+# 一時 / バックアップ
+*.tmp
+*.bak
+*.backup-*

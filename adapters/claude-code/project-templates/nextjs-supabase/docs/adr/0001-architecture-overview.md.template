@@ -1,0 +1,57 @@
+# ADR 0001: Architecture Overview
+
+- **Status**: Accepted
+- **Date**: {{ADR_DATE}}
+- **Decider**: {{DECIDER}}
+
+## Context
+
+{{PROJECT_NAME}} を立ち上げるにあたり、初期アーキテクチャの選定理由をここに記録する。
+本 ADR は**初期判断のスナップショット**であり、後続の主要判断は別 ADR(0002 以降)で記録する。
+
+## Decision
+
+| 軸 | 採用 | 理由 |
+|----|------|------|
+| ランタイム | Node.js {{NODE_VERSION}} + Bun {{BUN_VERSION}} | bun の起動速度 / 統合 test runner、Node 互換 |
+| フロントエンド | Next.js {{NEXTJS_VERSION}}(App Router) | Server Component / Streaming / RSC エコシステム |
+| バックエンド / DB / 認証 / Storage | Supabase | PostgreSQL + RLS でセキュリティ境界を DB に寄せる |
+| ホスティング | Vercel | Next.js との統合、Edge Function、preview deployment |
+| 型 | TypeScript strict | `~/ws/claude-system/adapters/claude-code/user-level/skills/typescript-strict/SKILL.md` 準拠 |
+| パッケージ管理 | bun(lockfile: `bun.lockb`) | `bun add foo@x.y.z` で固定運用 |
+| テスト | bun test / Vitest | 軽量、TS ネイティブ、bun との統合 |
+| 機密検出 | gitleaks(pre-commit + GitHub Actions) | 二重防御 |
+
+## Alternatives Considered
+
+| 代替案 | 採否 | 理由 |
+|--------|------|------|
+| Remix / SvelteKit | 不採用 | エコシステム規模 / Vercel との統合度合い |
+| 自前 Express + Postgres | 不採用 | 認証・Storage・RLS を自作する負担、Supabase で吸収できる |
+| Firebase | 不採用 | RLS 相当(Security Rules)の表現力が SQL ベースより制限される、Postgres から離れたくない |
+| pnpm / npm | 不採用 | bun の起動速度・組み込み test runner を優先 |
+
+## Consequences
+
+### Positive
+
+- セキュリティ境界が DB(Supabase RLS)に寄り、Service Role 漏洩リスクを最小化できる
+- Next.js + Supabase + Vercel の組み合わせはエコシステムが厚く、問題発生時の参考資料が多い
+- bun + TypeScript strict で型の網と CI 速度を両立
+
+### Negative
+
+- bun はまだ Node.js 互換性の境界で hit する場面がある(必要なら fallback 設計)
+- Supabase ロックイン(将来の DB 移行コスト)を受容する
+- Vercel の vendor 依存(Edge / Serverless 制約)
+
+### Neutral
+
+- 各種バージョンは migration を伴うため、メジャー更新は別 ADR で記録する
+- RLS の具体ポリシーは別 ADR(0002 以降)で個別に判断する
+
+## Related
+
+- 共通基盤: `~/ws/claude-system/adapters/claude-code/project-fragments/web-apps-common.md`
+- 関連 skill: `nextjs-supabase-base` / `nextjs-supabase-rls` / `typescript-strict` / `security-audit`
+- claude-system ADR: `~/ws/claude-system/meta/decisions/`(0001 / 0002 / 0003 を全プロジェクトで遵守)

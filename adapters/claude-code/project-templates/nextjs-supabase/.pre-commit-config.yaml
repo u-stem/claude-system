@@ -1,0 +1,55 @@
+# pre-commit hook(Next.js + Supabase プロジェクト用)
+#
+# 共通基盤: ~/ws/claude-system/adapters/claude-code/project-fragments/pre-commit-config.template.yaml
+#   - gitleaks + 一般的健全性チェックの部分は本ファイルにコピー済み
+#   - 言語固有(TypeScript / Bun)の hook を以下に追記
+#
+# 利用者向け:
+#   brew install pre-commit
+#   pre-commit install
+#   pre-commit run --all-files
+
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=1024']
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+      - id: detect-private-key
+
+  # === TypeScript / Bun 固有 ===
+  - repo: local
+    hooks:
+      - id: typecheck
+        name: TypeScript typecheck (tsc --noEmit)
+        entry: bunx tsc --noEmit
+        language: system
+        pass_filenames: false
+        types_or: [ts, tsx]
+
+      - id: lint
+        name: Lint (bun run lint)
+        entry: bun run lint
+        language: system
+        pass_filenames: false
+        types_or: [ts, tsx, javascript, jsx]
+
+      # 任意: format-check(prettier / biome)
+      # - id: format-check
+      #   name: Format check
+      #   entry: bunx biome check
+      #   language: system
+      #   pass_filenames: false

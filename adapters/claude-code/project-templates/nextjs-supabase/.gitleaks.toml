@@ -1,0 +1,36 @@
+# gitleaks 設定(Next.js + Supabase プロジェクト用)
+#
+# - allowlist: 検出対象から除外するパス・正規表現
+# - extend.useDefault: gitleaks の組み込みルールを継承する(Supabase JWT・GitHub PAT 等を検出)
+#
+# 参考:
+# - ~/ws/claude-system/practices/secrets-handling.md
+# - ~/ws/claude-system/adapters/claude-code/user-level/skills/security-audit/SKILL.md
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allow common false positives"
+paths = [
+  '''node_modules/''',
+  '''\.next/''',
+  '''dist/''',
+  '''build/''',
+  '''coverage/''',
+  '''playwright-report/''',
+  '''bun\.lockb''',           # binary lockfile, not human-readable secrets
+  '''package-lock\.json''',
+  '''\.env\.example''',       # placeholder values only
+  '''docs/adr/''',            # ADR の例示用ダミー値
+  '''docs/architecture/''',   # 構造図の例示
+]
+
+# placeholder 値の正規表現(レビュー時にダミーと判別できるもの)
+regexes = [
+  '''YOUR_[A-Z_]+_HERE''',
+  '''<placeholder[^>]*>''',
+  '''xxx-?xxx-?xxx''',
+  '''sk-test-[A-Za-z0-9]{20,}''',
+  '''dummy_[a-z_]+''',
+]
