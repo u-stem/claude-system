@@ -1,0 +1,27 @@
+# principles 層に混入してはならない語(機械検出用データ)
+#
+# 用途:
+#   - 不変層(principles/)から「特定 AI 開発ツールに依存する語」が漏れていないことを
+#     CI / hooks で機械的に検証する
+#   - Phase 7b のガードレール(hooks / GitHub Actions)はこのファイルを唯一の真実源として読む
+#
+# 形式:
+#   - 1 行 1 語
+#   - 行頭 # はコメント
+#   - 大文字小文字は区別しない(検出側で `grep -i` 等を想定)
+#
+# このファイルは meta/ 配下に置くことで、principles/ 自身を grep する際に
+# 自己言及で検出されることを避けている(ADR 0002 / Phase 1 の設計判断)。
+#
+# 追加ルール: 新しい禁止語を増やすときは MAJOR バージョンアップ相当の判断とし、
+#   principles/ 配下に既出の語が混入していないかを再点検してから追加する。
+
+claude
+claude code
+claude.md
+skill.md
+subagent
+mcp
+~/.claude/
+settings.json
+slash command
