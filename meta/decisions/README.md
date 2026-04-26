@@ -73,6 +73,7 @@ claude-system における設計上の重大な意思決定を記録する場所
 |------|----------|--------|------|
 | [0001](./0001-anonymity-policy.md) | Anonymity Policy for claude-system Outputs | Accepted (2026-04-26) | 個人特定情報(本名・呼称・新規 email 等)を成果物に焼き込まない方針。GitHub handle と既露出 personal email は条件付き許容 |
 | [0002](./0002-public-private-boundary.md) | Public/Private Boundary in claude-system | Accepted (2026-04-26) | Public claude-system から Private リソース(旧 claude-settings 等)への直接リンクを作らない。Private 情報の存在に言及する場合も URL を含めず事実のみ記載する |
+| [0003](./0003-memory-architecture.md) | Memory Architecture for claude-system | Accepted (2026-04-26) | `auto memory` + `episodic-memory` の 2 層に統一し、`Memory MCP` は採用しない。各層の用途分担と振り分けルールを規定 |
 
 ## ADR を書くタイミング
 
