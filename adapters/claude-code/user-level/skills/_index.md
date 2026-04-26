@@ -32,6 +32,15 @@ skill は段階的開示で読み込まれる「能力単位」(根拠は [`prin
 | [`pr-description`](./pr-description/SKILL.md) | Pull Request の本文(Summary / Test plan)を書く | sonnet | 新規(旧 `skills/pr-review` のレビュー側に対する作成側) |
 | [`skill-creation`](./skill-creation/SKILL.md) | 新しい skill を設計・作成する(メタ skill) | sonnet | 新規(`practices/skill-design-guide.md` の手順を skill 化) |
 
+### プロジェクト立ち上げ(Phase 4.5 追加)
+
+| name | description | recommended_model | 旧資産との対応 |
+|------|-------------|-------------------|----------------|
+| [`project-tech-stack-decision`](./project-tech-stack-decision/SKILL.md) | 新規プロジェクトの技術スタックを選定する | opus | 新規(`practices/project-bootstrap.md` のステップ前段を skill 化、テンプレート選択の形骸化を防ぐ) |
+
+連動 skill: [`adr-writing`](./adr-writing/SKILL.md)(選定理由の ADR 化で連携)。
+連動 tool: `~/ws/claude-system/tools/new-project.sh`(Phase 7a で作成予定、本 skill 通過後の初期化を担う)。
+
 ### 言語別 style skill(`practices/coding-style-conventions.md` 言語別具体化、TODO-for-phase-4 由来)
 
 | name | description | recommended_model | 状態 | 旧資産との対応 |
