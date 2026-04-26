@@ -78,11 +78,32 @@
 - **project-templates**: `adapters/claude-code/project-templates/post-stop/{auto-detect,monorepo-bun}.sh`(Phase 6)
 - monorepo 用は `{{PROJECT_NAME}}` プレースホルダ化(`meta/migration-inventory.md` の hooks/examples 行参照)
 
+### 4. SubagentStop hook での記録と整合確認(Phase 5 由来の追加申し送り)
+
+Phase 5 で 6 件の subagent(`code-reviewer` / `security-auditor` / `doc-writer` / `refactor-planner` / `explorer` / `research-summarizer`)を新規追加した。
+旧 settings.json には `SubagentStop` で `agent_type` / `agent_id` / `agent_transcript_path` を `/tmp/claude-subagent.log` に append する仕組みがあった。Phase 7b ではこれを以下の形で再構築する:
+
+- **基本ログ**: 旧仕様を踏襲(タイムスタンプ + agent_type + agent_id + transcript_path を JSONL で `${CLAUDE_PROJECT_DIR:-.}/.claude/subagent-log.jsonl` に追記。プロジェクト内に閉じる)
+- **ADR 0001 サニタイゼーション**: subagent の出力(transcript)に本名・personal email literal が含まれていないかを後処理でチェックし、検出したら警告(自動マスクは段階を分けて検討)
+- **ADR 0002 サニタイゼーション**: subagent の出力に Private リポジトリ URL / git remote が含まれていないかをチェック
+- **tools 越権検知**: subagent の `tools` frontmatter に書かれていないツール呼び出しが transcript に含まれていないかを検査(将来の Claude Code 仕様変更で `tools` 制限が緩んだ場合の早期発見用)
+- **失敗フィードバックループ連携**: subagent の異常終了(StopFailure 相当)を `failure-log.jsonl` に subagent カテゴリで追記し、`check-failure-patterns.sh` の対象に含める
+
+新規 hook ファイル候補:
+
+| ファイル | hook 種別 | 役割 |
+|----------|-----------|------|
+| `log-subagent.sh` | SubagentStop | 基本ログ(旧仕様を JSONL 化) |
+| `audit-subagent-output.sh` | SubagentStop | ADR 0001 / 0002 機械検出(本名・Private URL) |
+
+settings.json テンプレートの `hooks.SubagentStop` に上記を結線する(Phase 3 時点では空配列 + TODO コメント)。
+
 ## 取り込みのチェックリスト(Phase 7b 完了時)
 
 - [ ] `check-package-age.sh` が adapter/user-level/hooks に配置され、settings.json テンプレートから結線されている
 - [ ] `log-failure.sh` / `log-bash-failure.sh` / `check-failure-patterns.sh` が adapter/user-level/hooks に配置され、SessionStart と PostToolUse(Bash) から結線されている
 - [ ] グローバル `settings.json` テンプレートに post-edit / post-stop dispatcher hook が記述されている
+- [ ] `log-subagent.sh` / `audit-subagent-output.sh` が SubagentStop に結線されている(Phase 5 由来の追加項目)
 - [ ] `practices/feedback-loop.md`(Phase 2)で自己参照ループの原則が抽象化されている
 - [ ] `practices/supply-chain.md`(Phase 2)で typosquatting 防御の原則が抽象化されている
 - [ ] このファイル `meta/TODO-for-phase-7b.md` 自体を削除する(Phase 7b 終了時)

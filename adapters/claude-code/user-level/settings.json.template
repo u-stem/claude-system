@@ -56,6 +56,7 @@
     "// permissions.allow.file_ops": "削除系(rm 等)は意図的に allow に入れない。都度 ask で十分",
     "// permissions.allow.network": "取得系のみ。送信系の curl -X POST 等は都度 ask",
     "// permissions.allow.docker": "観察系のみ allow。run / build / push 系は ask",
+    "// permissions.allow.audit_tools": "security-auditor subagent / dependency-review skill / supply-chain-hygiene practice で利用する読み取り系監査コマンド。bun audit / npm audit / uv pip audit は package manager のワイルドカードで covered、gitleaks のみ独立 allow が必要",
     "allow": [
       "Bash(bun *)",
       "Bash(pnpm *)",
@@ -131,6 +132,9 @@
       "Bash(docker inspect *)",
       "Bash(docker compose *)",
       "Bash(claude *)",
+      "Bash(gitleaks detect *)",
+      "Bash(gitleaks version)",
+      "Bash(gitleaks version *)",
       "Read",
       "Grep",
       "Glob",
