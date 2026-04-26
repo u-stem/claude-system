@@ -90,6 +90,32 @@ Claude Code がアップデートされた場合、以下を順に確認する:
 
 破壊的変更(skill / subagent / hook の互換性が壊れる場合)は MAJOR バージョンアップ相当として扱い、ADR を必ず起票する。
 
+## クロスレイヤー参照のパス規約
+
+`user-level/skills/<name>/SKILL.md` や `subagents/<name>.md` から他層(`principles/` / `practices/` / `meta/`)を参照する場合、**絶対パス `~/ws/claude-system/<path>` 形式を使用する**。
+
+### 判断の理由
+
+- skills は `~/ws/claude-system/adapters/claude-code/user-level/skills/<name>/SKILL.md` という 4 階層深い位置にあり、相対パス(`../../../../meta/...`)はリンク数が読みにくい
+- Phase 10 で `~/.claude/skills/` → `~/ws/claude-system/adapters/claude-code/user-level/skills/` に symlink される。symlink を辿るかどうかで相対パスの解決先が変わるため(physical 解決と lexical 解決の差)、絶対パスのほうが曖昧さが少ない
+- `${CLAUDE_SYSTEM_ROOT}` のような環境変数経由は markdown レンダラ・ツールが展開しないため不採用
+- claude-system は本システムの設計上 `~/ws/claude-system/` に固定配置される(Phase 10 の symlink 設計、`tools/setup.sh` の前提)。別パスへの配置を許容しないことを規約として明示する
+
+### 適用範囲
+
+| 参照元 | 参照先 | 推奨パス形式 |
+|--------|--------|--------------|
+| `principles/<file>.md` | 同層 / `practices/` | 相対(`./<file>` / `../practices/<file>`) |
+| `practices/<file>.md` | `principles/` | 相対(`../principles/<file>`) |
+| `adapters/claude-code/user-level/skills/<name>/SKILL.md` | `principles/` / `practices/` / `meta/` | **絶対**(`~/ws/claude-system/<layer>/<file>`) |
+| `adapters/claude-code/subagents/<name>.md` | 同上 | **絶対**(`~/ws/claude-system/<layer>/<file>`) |
+| `adapters/claude-code/user-level/CLAUDE.md` | 他層 | 既存通り相対(直近 4 階層程度の深さに収まる) |
+| `adapters/claude-code/README.md`(本ファイル)/ `_index.md` 系 | 他層 | 相対 |
+
+skill 内・subagent 内の同一 skill/subagent ディレクトリ内の参照(`./references/foo.md` 等)は相対のまま。
+
+判断のレベルは「層配置の運用規約」であり、principles 層の改訂や機械的ガードレール変更には該当しないため ADR は起票しない(`practices/adr-workflow.md` の判断基準を参照)。
+
 ## 関連
 
 - [`principles/`](../../principles/) — 本層が翻訳元とする不変原則
@@ -97,3 +123,4 @@ Claude Code がアップデートされた場合、以下を順に確認する:
 - [`meta/forbidden-words.txt`](../../meta/forbidden-words.txt) — principles / practices に混入してはならない語
 - [`meta/migration-inventory.md`](../../meta/migration-inventory.md) — 旧 claude-settings からの取り込み判断
 - [`meta/TODO-for-phase-7b.md`](../../meta/TODO-for-phase-7b.md) — hooks 実装の取り込み対象
+- [`meta/decisions/0003-memory-architecture.md`](../../meta/decisions/0003-memory-architecture.md) — `enabledPlugins.episodic-memory` の根拠

@@ -109,7 +109,8 @@
 - **auto memory**: ユーザー情報・設計判断・フィードバック等、明示的に記録すべき知識
 - **episodic-memory**: 過去会話の自動インデックス + セマンティック検索
 - 「覚えておいて」と言われたら auto memory、「前に話した X は?」は episodic-memory
-- アーキテクチャ ADR は Phase 4 で `meta/decisions/00NN-memory-architecture.md` として作成予定([`meta/TODO-for-phase-4.md`](../../../meta/TODO-for-phase-4.md))
+- `Memory MCP` は採用しない(2 層に統一)
+- アーキテクチャの確定版は [`meta/decisions/0003-memory-architecture.md`](../../../meta/decisions/0003-memory-architecture.md) を参照
 
 ## 10. 思想的背景と関連参照
 
