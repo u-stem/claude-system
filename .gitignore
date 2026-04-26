@@ -1,0 +1,12 @@
+.DS_Store
+*.backup-*
+/tmp
+/scratch
+
+# マシン固有 / 機密
+adapters/claude-code/user-level/settings.json
+
+# プロジェクト統合情報(機密保護)
+projects/*
+!projects/.gitkeep
+!projects/_README.md

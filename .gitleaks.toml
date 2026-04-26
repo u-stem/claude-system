@@ -1,0 +1,22 @@
+# gitleaks configuration for claude-system
+# Phase 7b で詳細化される雛形。
+# 現時点ではデフォルトルールセットを継承し、ドキュメント類のみ allowlist する。
+
+title = "claude-system gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "false-positive を抑制するための許容ルール"
+paths = [
+  '''README\.md''',
+  '''.*/README\.md''',
+  '''docs/.*\.md''',
+  '''meta/.*\.md''',
+]
+
+# Phase 7b で追加予定:
+# - プレースホルダ文字列(YOUR-API-KEY-HERE 等)
+# - サンプル設定内のダミー JWT
+# - sample/example 配下の意図的なダミー値
