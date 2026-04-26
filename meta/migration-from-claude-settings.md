@@ -4,7 +4,7 @@
 
 - パス: `~/ws/claude-settings/`
 - 時代: Opus 4.6 期に構築
-- GitHub リモート: `git@github.com:<github-user>/claude-settings.git`
+- 保管: 別途 Private リポジトリにて永続保管(本リポジトリからは直接参照しない、ADR 0002 参照)
 - 既存コミット数: 90+ (Phase 0 時点で `91 commits` を含む `main` ブランチ)
 
 ## 移行日
