@@ -32,7 +32,13 @@
 
 ## 関連する practices
 
-Phase 2 で確定する。
+- [`practices/adr-workflow.md`](../practices/adr-workflow.md) — 意思決定記録の運用
+- [`practices/commit-conventions.md`](../practices/commit-conventions.md) — Why を残すコミット粒度
+- [`practices/development-workflow.md`](../practices/development-workflow.md) — 検証なしで完了と言わない
+- [`practices/testing-strategy.md`](../practices/testing-strategy.md) — テストは振る舞いの仕様を保存する
+- [`practices/coding-style-conventions.md`](../practices/coding-style-conventions.md) — エラーメッセージは事後判断材料
+- [`practices/refactoring-trigger.md`](../practices/refactoring-trigger.md) — 共通化判断の根拠を残す
+- [`practices/supply-chain-hygiene.md`](../practices/supply-chain-hygiene.md) — 意図不明のロックファイル変更を残さない
 
 ## 旧資産からの継承
 

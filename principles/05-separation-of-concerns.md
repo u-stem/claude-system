@@ -30,7 +30,11 @@
 
 ## 関連する practices
 
-Phase 2 で確定する。
+- [`practices/project-bootstrap.md`](../practices/project-bootstrap.md) — 層の役割分担を最初に確定させる
+- [`practices/secure-coding-patterns.md`](../practices/secure-coding-patterns.md) — 境界での検証、許可リストの選択
+- [`practices/secrets-handling.md`](../practices/secrets-handling.md) — 機密と通常設定の分離
+- [`practices/update-propagation.md`](../practices/update-propagation.md) — 層ごとに伝播範囲を変える
+- [`practices/testing-strategy.md`](../practices/testing-strategy.md) — テストの境界(unit/integration/e2e)を関心の粒度で選ぶ
 
 ## 旧資産からの継承
 

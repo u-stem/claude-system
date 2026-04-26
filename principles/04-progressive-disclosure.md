@@ -31,7 +31,7 @@
 
 ## 関連する practices
 
-Phase 2 で確定する。
+- [`practices/skill-design-guide.md`](../practices/skill-design-guide.md) — 段階的開示の入口を能力単位として設計する
 
 ## 旧資産からの継承
 

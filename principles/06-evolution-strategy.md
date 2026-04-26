@@ -32,7 +32,14 @@
 
 ## 関連する practices
 
-Phase 2 で確定する。
+- [`practices/update-propagation.md`](../practices/update-propagation.md) — 層ごとの変更コストを変える
+- [`practices/supply-chain-hygiene.md`](../practices/supply-chain-hygiene.md) — 機械的ガードレールでの自動防御
+- [`practices/secrets-handling.md`](../practices/secrets-handling.md) — 安易な無効化を許さない
+- [`practices/secure-coding-patterns.md`](../practices/secure-coding-patterns.md) — 根本原因を修正する
+- [`practices/adr-workflow.md`](../practices/adr-workflow.md) — MAJOR 相当の判断を記録する
+- [`practices/model-selection.md`](../practices/model-selection.md) — モデル世代の変動に耐える指針
+- [`practices/development-workflow.md`](../practices/development-workflow.md) — 機械的検査を都度組み込む
+- [`practices/refactoring-trigger.md`](../practices/refactoring-trigger.md) — 緑のテストを前提に構造を変える
 
 ## 旧資産からの継承
 

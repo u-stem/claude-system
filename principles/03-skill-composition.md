@@ -30,7 +30,11 @@
 
 ## 関連する practices
 
-Phase 2 で確定する。
+- [`practices/skill-design-guide.md`](../practices/skill-design-guide.md) — 能力単位の切り方
+- [`practices/refactoring-trigger.md`](../practices/refactoring-trigger.md) — 3 回出現で抽象化を検討する
+- [`practices/testing-strategy.md`](../practices/testing-strategy.md) — 振る舞いベースのテスト記述
+- [`practices/coding-style-conventions.md`](../practices/coding-style-conventions.md) — 1 ファイル 1 概念
+- [`practices/commit-conventions.md`](../practices/commit-conventions.md) — 1 コミット 1 判断単位
 
 ## 旧資産からの継承
 

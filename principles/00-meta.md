@@ -29,7 +29,7 @@
 
 ## 関連する practices
 
-Phase 2 で確定する。
+本層自体の編集規約のため対応する practice はない。本層を編集するときは [`practices/adr-workflow.md`](../practices/adr-workflow.md) で意思決定を記録する。
 
 ## 旧資産からの継承
 
