@@ -1,0 +1,26 @@
+# gitleaks 設定(ゲーム系プロジェクト用、最小骨子)
+#
+# 本格運用時は ~/ws/claude-system/adapters/claude-code/project-templates/nextjs-supabase/.gitleaks.toml
+# を参考に allowlist / regex を充実させる
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allow common false positives"
+paths = [
+  '''node_modules/''',
+  '''dist/''',
+  '''build/''',
+  '''\.cache/''',
+  '''coverage/''',
+  '''assets/''',
+  '''bun\.lockb''',
+  '''package-lock\.json''',
+  '''\.env\.example''',
+]
+
+regexes = [
+  '''YOUR_[A-Z_]+_HERE''',
+  '''<placeholder[^>]*>''',
+]

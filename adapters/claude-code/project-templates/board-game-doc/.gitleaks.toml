@@ -1,0 +1,21 @@
+# gitleaks 設定(板ゲー設計プロジェクト用、最小骨子)
+#
+# 板ゲー設計では機密 API キー等は通常含まれないが、
+# 万一のデジタル化対応時(API 連携・配信プラットフォーム連携)に備えて配置
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allow common false positives"
+paths = [
+  '''assets/''',
+  '''docs/adr/''',
+  '''docs/playtest-logs/''',  # 匿名化済みのプレイテストログ
+  '''\.env\.example''',
+]
+
+regexes = [
+  '''YOUR_[A-Z_]+_HERE''',
+  '''<placeholder[^>]*>''',
+]

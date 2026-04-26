@@ -1,0 +1,46 @@
+# 中間ファイル(別管理推奨)
+*.psd
+*.psb
+*.blend
+*.blend1
+*.ai
+*.afdesign
+*.afphoto
+
+# spreadsheet 一時ファイル
+.~lock.*
+~$*
+
+# 環境変数(デジタル化対応時)
+.env
+.env.*
+!.env.example
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Claude Code ランタイム生成物
+.claude/projects/
+.claude/telemetry/
+.claude/debug/
+.claude/file-history/
+.claude/session-env/
+.claude/sessions/
+.claude/shell-snapshots/
+.claude/todos/
+.claude/tasks/
+.claude/cache/
+.claude/paste-cache/
+.claude/statsig/
+.claude/history.jsonl
+.claude/stats-cache.json
+.claude/failure-log.jsonl
+
+# 一時 / バックアップ
+*.tmp
+*.bak
+*.backup-*

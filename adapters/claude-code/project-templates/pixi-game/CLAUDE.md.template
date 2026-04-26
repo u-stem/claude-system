@@ -1,0 +1,64 @@
+# {{PROJECT_NAME}} (CLAUDE.md)
+
+ゲーム系プロジェクトの最小骨子テンプレート。
+ユーザーレベル指示は `~/.claude/CLAUDE.md`(`adapters/claude-code/user-level/CLAUDE.md`)を参照。
+
+## 共通基盤の取り込み
+
+@~/ws/claude-system/adapters/claude-code/project-fragments/games-common.md
+
+## プロジェクト概要
+
+- **目的**: {{PROJECT_PURPOSE}}
+- **ジャンル**: {{GAME_GENRE}}(例: パズル / アクション / RPG)
+- **プラットフォーム**: {{TARGET_PLATFORM}}(例: Web / iOS / Android / native)
+- **エンジン / フレームワーク**: {{GAME_ENGINE}}(例: PixiJS / Three.js / Phaser / Bevy)
+- **ステータス**: {{PROJECT_STATUS}}
+
+## 技術スタック(例: PixiJS の場合)
+
+- ランタイム: TypeScript / Bun
+- レンダリング: PixiJS {{PIXI_VERSION}}
+- 物理(任意): Matter.js / Rapier 等
+- 状態管理: 自前 ECS / Zustand 等
+- ビルド: Vite / esbuild
+
+## ディレクトリ規約(参考)
+
+- `src/game/` ゲームロジック(描画依存なし、テスト可能)
+- `src/render/` PixiJS 等の描画層
+- `src/input/` 入力抽象化
+- `src/assets/` アセット宣言(実体は `assets/`)
+- `assets/` アセット実体(画像 / 音 / フォント)
+- `tests/` 純粋ロジックの単体テスト
+
+## 推奨 skill / subagent
+
+- 実装時: `typescript-strict`
+- レビュー時: `code-reviewer` subagent
+- 探索: `explorer` subagent(ゲームコードは肥大しやすく委譲効果が大)
+
+## プロジェクト固有の禁止事項
+
+- 描画コードの中にゲームロジックを直接書かない(分離)
+- 乱数を直接使わない(seedable random で deterministic を保つ)
+- 中間アセット(`.psd` / `.blend`)をリポジトリに含めない(別管理 / Git LFS)
+- フレームレート依存のロジックを書かない(`deltaTime` を引数で受け取る)
+
+## 状態
+
+このテンプレートは**最小骨子**(skeleton)。本格採用時に以下を肉付けする:
+
+- `_TEMPLATE_USAGE.md` のプレースホルダ表を充実
+- `README.md.template` を追加
+- `docs/adr/` 構成を追加
+- `.pre-commit-config.yaml` を追加(games 系の lint / typecheck を確定後)
+- 言語別 testing skill(`testing-typescript` 等)へのリンクを `_TEMPLATE_USAGE.md` で明示
+
+肉付け手順は `~/ws/claude-system/adapters/claude-code/user-level/skills/skill-creation/SKILL.md` の流れを準用。
+
+## 関連
+
+- 共通 fragment: `~/ws/claude-system/adapters/claude-code/project-fragments/games-common.md`
+- ユーザーレベル指示: `~/.claude/CLAUDE.md`
+- 全テンプレート索引: `~/ws/claude-system/adapters/claude-code/project-templates/_README.md`

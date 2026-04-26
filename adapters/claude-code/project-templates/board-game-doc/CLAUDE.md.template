@@ -1,0 +1,69 @@
+# {{PROJECT_NAME}} (CLAUDE.md)
+
+板ゲー設計プロジェクトの初期構成テンプレート。
+ユーザーレベル指示は `~/.claude/CLAUDE.md`(`adapters/claude-code/user-level/CLAUDE.md`)を参照。
+
+## 共通基盤の取り込み
+
+@~/ws/claude-system/adapters/claude-code/project-fragments/board-game-design-common.md
+
+## プロジェクト概要
+
+- **タイトル**: {{GAME_TITLE}}
+- **コアメカニクス**(1 文): {{CORE_MECHANIC}}
+- **プレイヤー人数**: {{PLAYER_COUNT}}
+- **プレイ時間**: {{PLAY_TIME}}
+- **ターゲット層**: {{TARGET_AUDIENCE}}(コア / カジュアル / 子ども / ファミリー 等)
+- **形態**: {{GAME_FORMAT}}(物理 / デジタル / 両用)
+- **バージョン**: {{VERSION}}
+- **ステータス**: {{PROJECT_STATUS}}(設計初期 / プレイテスト中 / 出版準備 / 完成)
+
+## ディレクトリ規約
+
+- `docs/rulebook/` ルールブック原稿(章別)
+- `docs/balance-tests/` バランス計算 spreadsheet(`.csv` / `.ods` / `.numbers`)、シミュレーション結果
+- `docs/playtest-logs/` プレイテストログ(`<日付>-<人数>-<バージョン>.md` 形式)
+- `docs/adr/` 設計上の主要判断(バランス変更理由・ルール変更理由 等)
+- `assets/` カードイラスト・コンポーネント図(中間ファイルは別管理推奨)
+
+## ルールブック執筆方針
+
+- 構成: コンセプト → コンポーネント → セットアップ → ターン構造 → 詳細ルール → 終了 / 勝利 → 例示 → FAQ
+- 例示は実プレイの再現で書く(抽象記述だけにしない)
+- 用語集を最初に作る
+- 矛盾チェックを定期的に(同一事象の複数説明・優先順位の曖昧)
+
+## バランステスト方針
+
+- コスト ↔ 効果のマトリクスを spreadsheet で管理
+- 各カード / ユニットのレート(コストに対する勝率 / 期待値)を定量化
+- バランス変更時は ADR を起票(なぜ変えたか、何が改善したか)
+
+## プレイテストログ方針
+
+- ファイル名: `docs/playtest-logs/YYYY-MM-DD-<人数>p-v{{VERSION}}.md`
+- 含める情報:
+  - 参加者(**匿名化**、ADR 0001 準拠で本名は書かない、A / B / C 等のラベル)
+  - 所要時間
+  - 勝者(プレイヤーラベル)
+  - 各プレイヤーの感想要約
+  - 観察した問題(2 回観察されたら設計改修を検討)
+
+## 推奨 skill / subagent
+
+- ルールブック / プレイテストログ執筆: `japanese-tech-writing` skill
+- バランス変更時: `adr-writing` skill
+- ルールブックのレビュー: `code-reviewer` 相当の subagent 起動も検討余地
+
+## プロジェクト固有の禁止事項
+
+- プレイテストログに参加者の本名・連絡先を書かない(ADR 0001、ラベル化必須)
+- バランス変更を ADR なしに行わない(なぜ変えたかが残らない)
+- ルールブックに「あとで詳細」を残さない(リリース時に必ず潰す)
+- 用語集にない造語を本文で使わない(必ず用語集に追加してから使う)
+
+## 関連
+
+- 共通 fragment: `~/ws/claude-system/adapters/claude-code/project-fragments/board-game-design-common.md`
+- 全テンプレート索引: `~/ws/claude-system/adapters/claude-code/project-templates/_README.md`
+- ADR 雛形: `~/ws/claude-system/adapters/claude-code/project-fragments/adr-template.md`
