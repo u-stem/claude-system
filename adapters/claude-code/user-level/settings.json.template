@@ -143,18 +143,69 @@
     ]
   },
 
-  "// hooks": "ここは Phase 7b で本格実装される。本テンプレートでは枠と TODO のみ。詳細は meta/TODO-for-phase-7b.md および adapters/claude-code/user-level/hooks/_README.md 参照",
-  "// hooks.SessionStart": "TODO(Phase 7b): check-failure-patterns.sh を結線(失敗フィードバックループの起点)",
-  "// hooks.PreToolUse": "TODO(Phase 7b): check-package-age.sh / filter-test-output.sh / require-review-before-commit.sh / --no-verify+破壊的 git 検出を結線",
-  "// hooks.PostToolUse": "TODO(Phase 7b): post-edit dispatcher(プロジェクト側 .claude/hooks/post-edit.sh への委譲)、log-bash-failure、lockfile 変更通知を結線",
-  "// hooks.Stop": "TODO(Phase 7b): post-stop dispatcher(プロジェクト側 .claude/hooks/post-stop.sh)を結線",
+  "// hooks": "Phase 7b で結線。本物の実体は adapters/claude-code/user-level/hooks/*.sh。Phase 10 で ~/.claude/hooks/ に symlink される。緊急停止は tools/disable-guardrails.sh を使う",
+  "// hooks.SessionStart": "繰り返し失敗パターンを通知して self-improving loop を促す",
+  "// hooks.PreToolUse.Bash": "破壊的コマンド阻止 + 若いパッケージ阻止(supply-chain)。各 hook は対象外コマンドで早期 exit する",
+  "// hooks.PreToolUse.Edit_Write": "claude-settings/ や *.backup-* への書き込み阻止 + principles/practices への禁止語混入阻止",
+  "// hooks.PostToolUse.Edit_Write": "validate(SKILL.md frontmatter / 禁止語) + project dispatcher(.claude/hooks/post-edit.sh)",
+  "// hooks.PostToolUse.Bash": "Bash 失敗を category 判定して failure-log.jsonl に追記(self-referential feedback loop)",
+  "// hooks.Stop": "stop diagnostic(timeout 付き doctor.sh)+ project dispatcher(.claude/hooks/post-stop.sh)",
+  "// hooks.SubagentStop": "基本ログ + ADR 0001/0002 サニタイゼーション + tools 越権検知(log-only、Phase 9 で escalation 再評価)",
   "hooks": {
-    "SessionStart": [],
-    "PreToolUse": [],
-    "PostToolUse": [],
-    "Stop": [],
+    "SessionStart": [
+      {
+        "hooks": [
+          {"type": "command", "command": "$HOME/ws/claude-system/adapters/claude-code/user-level/hooks/check-failure-patterns.sh"}
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {"type": "command", "command": "$HOME/ws/claude-system/adapters/claude-code/user-level/hooks/pre-bash-guard.sh"},
+          {"type": "command", "command": "$HOME/ws/claude-system/adapters/claude-code/user-level/hooks/check-package-age.sh"}
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {"type": "command", "command": "$HOME/ws/claude-system/adapters/claude-code/user-level/hooks/pre-edit-protect.sh"}
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {"type": "command", "command": "$HOME/ws/claude-system/adapters/claude-code/user-level/hooks/post-edit-validate.sh"},
+          {"type": "command", "command": "$HOME/ws/claude-system/adapters/claude-code/user-level/hooks/post-edit-dispatcher.sh"}
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {"type": "command", "command": "$HOME/ws/claude-system/adapters/claude-code/user-level/hooks/log-bash-failure.sh"}
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {"type": "command", "command": "$HOME/ws/claude-system/adapters/claude-code/user-level/hooks/stop-session-doctor.sh"},
+          {"type": "command", "command": "$HOME/ws/claude-system/adapters/claude-code/user-level/hooks/post-stop-dispatcher.sh"}
+        ]
+      }
+    ],
     "StopFailure": [],
-    "SubagentStop": [],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {"type": "command", "command": "$HOME/ws/claude-system/adapters/claude-code/user-level/hooks/subagent-stop-record.sh"},
+          {"type": "command", "command": "$HOME/ws/claude-system/adapters/claude-code/user-level/hooks/subagent-stop-audit.sh"}
+        ]
+      }
+    ],
     "PreCompact": [],
     "SessionEnd": []
   },
