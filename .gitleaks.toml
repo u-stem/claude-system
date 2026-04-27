@@ -1,6 +1,6 @@
-# gitleaks configuration for claude-system
-# Phase 7b で詳細化される雛形。
-# 現時点ではデフォルトルールセットを継承し、ドキュメント類のみ allowlist する。
+# gitleaks configuration for claude-system.
+# Phase 7b: extends gitleaks defaults with allowlists for templates/drafts and
+# explicit placeholder regexes.
 
 title = "claude-system gitleaks config"
 
@@ -8,15 +8,30 @@ title = "claude-system gitleaks config"
 useDefault = true
 
 [allowlist]
-description = "false-positive を抑制するための許容ルール"
+description = "Suppress false positives in templates, drafts, and intentional placeholder strings."
+
 paths = [
   '''README\.md''',
   '''.*/README\.md''',
   '''docs/.*\.md''',
   '''meta/.*\.md''',
+  '''adapters/claude-code/project-templates/.*''',
+  '''adapters/claude-code/project-fragments/.*''',
+  '''adapters/claude-code/user-level/settings\.json\.template''',
+  '''adapters/claude-code/user-level/mcp/servers\.template\.json''',
+  '''.*\.template''',
+  '''.*\.md\.draft''',
+  '''.*\.gitleaks\.toml''',
+  '''.gitleaks\.toml''',
 ]
 
-# Phase 7b で追加予定:
-# - プレースホルダ文字列(YOUR-API-KEY-HERE 等)
-# - サンプル設定内のダミー JWT
-# - sample/example 配下の意図的なダミー値
+regexes = [
+  '''\{\{[A-Z_][A-Z0-9_]*\}\}''',          # mustache placeholders
+  '''YOUR[_-]?API[_-]?KEY[_-]?HERE''',     # legacy placeholder string
+  '''<placeholder>''',
+  '''ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx''',  # gitleaks own example
+  '''sk-[a-zA-Z]+_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx''',
+  '''(?i)example[_-]?(api|key|secret|token)''',
+  '''\$\{?GITHUB_PERSONAL_ACCESS_TOKEN\}?''',
+  '''GITHUB_PERSONAL_ACCESS_TOKEN=<token>''',
+]
