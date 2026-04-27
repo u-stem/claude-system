@@ -3,6 +3,9 @@
 /tmp
 /scratch
 
+# Claude Code がカレントディレクトリに生成するランタイム / プロジェクトローカル設定
+.claude/
+
 # マシン固有 / 機密
 adapters/claude-code/user-level/settings.json
 
