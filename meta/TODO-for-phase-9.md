@@ -3,6 +3,29 @@
 このファイルは Phase 1 / Phase 2 / Phase 3 等での運用・整理判断のうち、
 Phase 9(検証・レトロ・整備)で一括判断・整理すべきものを記録する場所。
 
+## drawzzz の Phase 8 スキップ判断
+
+### 経緯
+
+Phase 8 当初計画では drawzzz も取り込み対象だったが、以下の理由でスキップ:
+
+- drawzzz は中断中(再開未定)
+- `games-common.md` / `pixi-game` template の実戦経験が薄い状態で取り込んでも、検証材料にならない
+- 再開時に取り込む方が、実戦経験ベースで `games-common` を進化させる機会になる
+
+### Phase 9 での確認事項
+
+- drawzzz スキップが claude-system の動作確認に支障をきたしていないか
+- Web 系 2 プロジェクト(kairous, sugara)で十分な検証ができているか
+
+### 将来のトリガー
+
+drawzzz 再開時:
+
+1. `tools/adopt-project.sh` で取り込み
+2. `games-common.md` の検証
+3. 不足部分を fragment / skill にフィードバック
+
 ## テンプレート構造の階層化深化(Phase 4.5 追加)
 
 ### 検討事項
