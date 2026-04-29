@@ -2,11 +2,12 @@
 # Phase 7b: extends gitleaks defaults with allowlists for templates/drafts and
 # explicit placeholder regexes.
 #
-# Phase 9 audit (post-rc1): tightened path allowlist so that meta/*.md and
-# README.md are no longer wholesale-excluded. The single document that
-# legitimately holds owner identifiers (ADR 0001) is excluded by path so
-# that the *literals are not duplicated into this config file* — writing
-# them here would itself increase public exposure (ADR 0001 violation).
+# rc2 (post-ADR-0006): the user-identifier path-allowlist for ADR 0001 was
+# removed because ADR 0006 establishes "no user identifiers inside the
+# system" as the first defence line. With no literals in the tree, the
+# detector has nothing to false-positive on and there is nothing to
+# allowlist. Detection is now a pure last-resort: anything matched in
+# README.md / meta/*.md is a real new leak.
 
 title = "claude-system gitleaks config"
 
@@ -14,16 +15,12 @@ title = "claude-system gitleaks config"
 useDefault = true
 
 [allowlist]
-description = "Suppress false positives in templates, drafts, intentional placeholders, and the single ADR that records owner identifiers."
+description = "Suppress false positives in templates, drafts, and intentional placeholders only. User identifiers are kept out of the tree per ADR 0006, so no path-level allowlist is needed for them."
 
-# Path allowlist:
-#   - generated artefacts (templates, drafts, this config)
-#   - meta/decisions/0001-anonymity-policy.md is the *only* document where
-#     owner identifiers are intentionally recorded (per ADR 0001 itself);
-#     scanning it would flag the very text it is the source of truth for.
-# Other document trees (README.md, the rest of meta/*.md, principles/, etc.)
-# are scanned in full so that any *new* personal identifier added elsewhere
-# is detected.
+# Path allowlist: only generated artefacts / templates / drafts / this config.
+# Documentation trees (README.md, meta/*.md, principles/, ADRs themselves)
+# are scanned in full — the assumption is that the tree contains no literal
+# user identifiers (ADR 0006).
 paths = [
   '''adapters/claude-code/project-templates/.*''',
   '''adapters/claude-code/project-fragments/.*''',
@@ -33,7 +30,6 @@ paths = [
   '''.*\.md\.draft''',
   '''.*\.gitleaks\.toml''',
   '''.gitleaks\.toml''',
-  '''meta/decisions/0001-anonymity-policy\.md''',
 ]
 
 regexes = [
