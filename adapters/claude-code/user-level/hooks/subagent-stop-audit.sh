@@ -39,24 +39,12 @@ if [[ -z "$transcript_path" || ! -r "$transcript_path" ]]; then
   exit 0
 fi
 
-# 1. ADR 0001: well-known personal email pattern. Literal addresses already
-# allowed by ADR 0001 (commit author identity, ADR 0001 itself) are excluded
-# via SUBAGENT_AUDIT_KNOWN_EMAILS so the audit log surfaces only *new*
-# personal-email-shape leaks. Set SUBAGENT_AUDIT_KNOWN_EMAILS in
-# settings.json or the shell env as a comma-separated list when needed.
-known_emails="${SUBAGENT_AUDIT_KNOWN_EMAILS:-tanaka128821@gmail.com}"
+# 1. ADR 0001 / ADR 0006: well-known personal email shape.
+# Per ADR 0006 the tree contains no literal user identifiers, so any match
+# here is a real leak — no allowlist is needed and the previous
+# SUBAGENT_AUDIT_KNOWN_EMAILS env-var has been removed.
 if /usr/bin/grep -qE '[A-Za-z0-9._%+-]+@(gmail\.com|icloud\.com|outlook\.com)' "$transcript_path"; then
-  # Pull every matched address, strip the known-allowed ones, only emit if any
-  # unknown remains.
-  unknown="$(/usr/bin/grep -oE '[A-Za-z0-9._%+-]+@(gmail\.com|icloud\.com|outlook\.com)' "$transcript_path" \
-              | sort -u \
-              | /usr/bin/grep -vFx -f <(printf '%s\n' "$known_emails" | tr ',' '\n') \
-              || true)"
-  if [[ -n "$unknown" ]]; then
-    emit_finding personal-email-shape-unknown "$transcript_path"
-  else
-    emit_finding personal-email-shape-allowed "$transcript_path"
-  fi
+  emit_finding personal-email-shape "$transcript_path"
 fi
 
 # 2. ADR 0002: claude-settings / private-host references.
