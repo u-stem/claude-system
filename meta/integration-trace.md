@@ -3,7 +3,7 @@
 このドキュメントは Phase 9 検証時点での「セッション起動時に何がロードされるか」を整理した観測ノート。
 実プロジェクト 2 件(`kairous`, `sugara`)取り込み完了状態 + Phase 10 切り替え前の前提で記述する。
 
-実機で `claude` を起動して挙動を確認するのはオーナーの役目。本ファイルは設計上の予測と確認手順を提示する。
+実機で `claude` を起動して挙動を確認する作業は別途手動で行う。本ファイルは設計上の予測と確認手順を提示する。
 
 ---
 
@@ -144,7 +144,7 @@ test -f AGENTS.md && wc -l AGENTS.md
 - プロジェクトレベル `.claude/` 配下(プロジェクト内に閉じている)
 - auto memory / episodic-memory の場所(ハーネス側で `~/.claude/projects/` に保持)
 
-### Phase 10 で確認すべきこと(オーナー担当)
+### Phase 10 切り替え時の手動確認項目
 
 - [ ] `readlink ~/.claude/CLAUDE.md` が claude-system を指す
 - [ ] `readlink ~/.claude/skills` が claude-system を指す

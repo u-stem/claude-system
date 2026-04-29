@@ -183,7 +183,7 @@ Claude Code が直接これを読むかは現時点で不確定。
 
 ### 判断軸
 
-- 個人プロジェクトのためフル運用は過剰の可能性
+- 単独運用のためフル運用は過剰の可能性
 - ADR 議論プロセスを Discussion で記録する価値は高い
 - Issue 駆動導入なら kairous の運用パターンを skill 化(`issue-driven-pbi-management` / `retrospective-to-action` / `pr-action-to-issue`)してから適用するのが筋
 
