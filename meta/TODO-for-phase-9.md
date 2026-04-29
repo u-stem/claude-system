@@ -29,9 +29,9 @@ Phase 8 の kairous 取り込みは案 Y(`CLAUDE.md` 冒頭への `@web-apps-com
 
 **案 X に進む前の前提**: 後述「Phase 8 で発見された skill 化候補」の中優先候補(特に `issue-driven-pbi-management` / `retrospective-to-action` / `pr-action-to-issue`)を先に skill 化し、Issue 駆動運用全体を共通基盤側に持ち上げてから rules を削減する順序を守る。
 
-## Phase 8 で発見された skill 化候補(kairous 取り込みから)
+## Phase 8 で発見された skill 化候補(kairous + sugara 取り込みから)
 
-### 中優先候補(sugara への応用可能性: 高)
+### 中優先候補(sugara への応用可能性: 高、kairous 由来)
 
 | 候補名 | 用途 | 出所 |
 |--------|------|------|
@@ -51,15 +51,103 @@ Phase 8 の kairous 取り込みは案 Y(`CLAUDE.md` 冒頭への `@web-apps-com
 - `worktree-migration-numbering`(`bun run worktree:create` の予約番号方式)
 - `agent-team-roles-scrum`(Developer / Reviewer / PO / Tester / User の役割定義パターン)
 
-### トリガー
+### トリガー(2026-04-29 更新)
 
-- sugara 取り込み(次セッション)で同じパターンが発見された時、共通化判断を行う
+- 2026-04-29 sugara 取り込みで該当性評価実施(下記サブセクション参照)
+- Phase 9 で transplant 候補として再評価
 - 発見されなくても Phase 9 のレトロで kairous 単体での skill 化判断は可能
 
-### 判断軸
+### 判断軸(2026-04-29 改訂、観察 B 参照)
 
-- 2 プロジェクト以上で同じパターンが見られたら共通化(skill 化)
-- 1 プロジェクトのみなら、当該プロジェクト内の `.claude/skills/` で保持
+- **旧基準**(2026-04-28 時点): 「2 プロジェクト以上で同じパターンが見られたら共通化」
+- **新基準**(2026-04-29 改訂): 「両方の実態(現状の運用 + 将来の必要性)に適用可能か」で判断する
+  - 現状の運用に書かれていなくても、将来の必要性があれば共通化対象
+  - kairous で確立、sugara で未到達 → transplant 候補としてラベル
+  - 1 プロジェクトのみで運用、他プロジェクトに適用可能性なし → 当該プロジェクト内の `.claude/skills/` で保持
+- 詳細は本ファイル下記「Phase 8 で発見された重要な観察(Claude 運用の時系列差)」参照
+
+### sugara 取り込み(2026-04-29)での kairous 由来 7 件の該当性評価
+
+旧基準では「両方該当ゼロ」だが、新基準(両方の実態に適用可能)では **6 件が transplant 候補**(7 件中、Edge Functions のみ適用外)。
+
+| # | 候補 | kairous | sugara 現状 | 解釈 |
+|---|------|---------|-------------|------|
+| 1 | `supabase-edge-functions-placement` | ◯(FSRS Edge Functions、`service_role` bypass) | △ Edge Functions 不採用(Hono + Route Handler 統合) | sugara はアーキテクチャ的に Edge Functions を採用していない。**transplant 対象外** |
+| 2 | `test-taxonomy-bun-vitest` | ◯(Small/Medium/Large 3 層) | ✗ 分類無し、`test:integration` のみ別軌道 | **kairous で確立、sugara で未到達**。テスト数増加 + フレーキネス顕在化時に transplant 検討 |
+| 3 | `playwright-testid-policy` | ◯(E2E `data-testid` 規約) | ✗ 規約明示無し | **kairous で確立、sugara で未到達**。E2E 保守性が問題化した時に transplant 検討 |
+| 4 | `timezone-aware-tests` | ◯(`toJstDateString()`) | ✗ 明示無し | **kairous で確立、sugara で未到達**。テスト数増加 + フレーキネス顕在化時に transplant 検討 |
+| 5 | `issue-driven-pbi-management` | ◯ | ✗ 言及無し(Branch Protection と squash merge のみ) | **kairous で確立、sugara で未到達**。チーム開発移行時に transplant 検討 |
+| 6 | `retrospective-to-action` | ◯ | ✗ 言及無し | 同上 |
+| 7 | `pr-action-to-issue` | ◯ | ✗ 言及無し | 同上 |
+
+### sugara 由来 skill 化候補(2026-04-29 取り込みから)
+
+| 候補名 | 用途 | 出所 | 優先度 | kairous 応用可能性 |
+|--------|------|------|--------|---------------------|
+| `drizzle-vercel-buildcommand-migration` | Vercel buildCommand で migration 自動実行(Pattern A)、`db:push` 禁止、`MIGRATION_URL` は Direct Connection (5432) | sugara CLAUDE.md / release-flow.md | **高** | ✗(kairous は Supabase migration を別管理) |
+| `tauri-v2-3files-version-sync` | tauri.conf.json (version + userAgent) と Cargo.toml の手動同期、desktop-tag.yml → desktop-build.yml | sugara CLAUDE.md / release-flow.md | **高** | ✗(kairous にデスクトップ無し) |
+| `supabase-realtime-channel-cleanup` | `removeChannel` 二重呼び出しガード(`cleaned` フラグ + テストモック `_emitStatus("CLOSED")` 発火) | sugara CLAUDE.md | **高** | ?(kairous で Realtime 採用してない可能性) |
+| `next-intl-cookie-i18n-sync` | next-intl Cookie ベース、ja/en 同時更新義務(FAQ / News / messages.json / `resolveCategory`) | sugara CLAUDE.md | **高** | ✗(kairous に i18n 無し) |
+| `monorepo-bun-turbo-filter` | `bun run --filter @scope/pkg` 強制、`cd <dir>` 禁止、`bunx` 禁止 | sugara CLAUDE.md | 中 | △(kairous は単一 repo) |
+| `hono-on-nextjs-route-handler` | Hono を `app/api/[[...route]]/route.ts` として統合、API クライアントが認証 Cookie 自動処理 | sugara CLAUDE.md | 中 | ✗(kairous は Server Action) |
+| `feature-coupled-content-update` | 機能変更時に FAQ / News / バッジ / docs を同じコミットで更新 | sugara `.claude/skills/feature-update` | 中 | △(kairous も DoD で類似運用) |
+| `branch-protection-solo-flow` | ソロ運用でも main 直 push 禁止 + squash merge + linear history 強制 | sugara release-flow.md / lefthook.yml | 中 | **要確認**(kairous の `rules/workflow.md` 267 行に同等記述があるかは未確認、Phase 9 タスクとして登録) |
+| `pino-structured-logging` | pino、`{err}` キー、第1引数構造化第2引数メッセージ、`requestLogger` middleware | sugara CLAUDE.md | 低 | ?(kairous は不明) |
+| `lefthook-layered-cost-strategy` | pre-commit (1秒以内) / commit-msg / pre-push (型+audit) / テストは CI 集約 | sugara lefthook.yml | 低 | △(kairous は別構成) |
+| `vercel-skip-tags-deploy-control` | `[skip ci]` (両方止め) と `[skip deploy]` (Vercel のみ止め) の使い分け、DB migration は別軌道 | sugara CLAUDE.md / release-flow.md | 低 | ?(kairous は別 deploy 先の可能性) |
+| `monorepo-postedit-hook-package-scoped` | post-edit hook を turbo monorepo でパッケージ filter、`failure-log.jsonl` を append でなく「現在状態」管理 | sugara `.claude/hooks/post-edit.sh` | 低 | △(kairous は単一 repo、hook 構成が違う) |
+
+→ 高優先 4 件は「sugara 単独で実害防止価値が高い」ため、3 件目のプロジェクトを待たずに skill 化検討する余地あり(新基準で言えば「片方の実態に強く適用可能」段階)。
+
+### Phase 9 で確認する追加タスク(branch-protection-solo-flow の kairous 該当性)
+
+`branch-protection-solo-flow` 候補の kairous 該当性を確認する。
+
+- 確認対象: `~/ws/kairous/.claude/rules/workflow.md`(267 行)
+- 確認内容: main 直接コミット禁止、squash merge 強制、linear history 強制の記述があるか
+- 該当した場合: 「両方の実態に適用可能」が明示的に確認できる最初の skill 化候補となる
+- 判定後: 該当すれば skill 化優先度を上げ、`adapters/claude-code/user-level/skills/` 配下に新規作成判断
+
+## Phase 8 で発見された重要な観察(Claude 運用の時系列差)
+
+2026-04-29 sugara 取り込みで判明したメタな気付き。プロジェクト固有度評価の解釈を訂正する。
+
+### 観察 A: プロジェクト固有度の評価軸の修正
+
+プロジェクト固有度の評価軸として「プロジェクトの性格」と「Claude 運用習熟度の時系列差」を混同しないルール。
+sugara のように「ルールが薄い = 適用しなくてよい」と早合点せず、未到達領域として扱う。
+
+### 観察 B: 共通化判定軸の修正
+
+2 プロジェクト間で「両方該当の skill 化候補がゼロ」だった事実は、共通化の根拠不足ではなく「sugara が方法論を書き起こす段階に到達していない」ことを示す。
+共通化判断軸は「両方の運用に書かれているか」ではなく「両方の実態(現状の慣習・将来の必要性)に適用可能か」に修正する必要がある。
+
+### 観察 C: 双方向の方法論移植
+
+kairous → sugara の skill 候補比較で「sugara に該当無し」の項目が多数出た場合、それは sugara への適用機会である。
+skill 化候補リストに「kairous で確立 → sugara への transplant 候補」という双方向の流れを記録する。
+
+### Phase 9 で実施するアクション
+
+1. **kairous 由来 skill 化候補 7 件の transplant 評価**
+   - 各候補について「sugara が将来この段階に到達する可能性」を評価
+   - 該当候補: `supabase-edge-functions-placement`(sugara は Edge Functions 不採用なので適用外) / `test-taxonomy-bun-vitest` / `playwright-testid-policy` / `timezone-aware-tests` / `issue-driven-pbi-management` / `retrospective-to-action` / `pr-action-to-issue`
+   - 高い適用可能性があるもの → 「kairous で確立、sugara で未到達」とラベリングして skill 化優先度を上げる
+
+2. **共通化判定軸の改訂**
+   - 旧基準: 「2 プロジェクト両方該当」
+   - 新基準: 「両方の実態に適用可能」(現状の運用に書かれていなくても、将来の必要性があれば共通化対象)
+   - `meta/glossary.md` または `practices/refactoring-trigger.md` に判定軸を反映
+
+3. **sugara への方法論移植のトリガー設定**
+   - sugara がチーム開発に移行した時 → `issue-driven-pbi-management` / `retrospective-to-action` / `pr-action-to-issue` を導入検討
+   - sugara のテスト数が増えてフレーキネスが顕在化した時 → `test-taxonomy-bun-vitest` / `timezone-aware-tests` を導入検討
+   - sugara で E2E テストの保守性が問題になった時 → `playwright-testid-policy` を導入検討
+   - これらは sugara 側で実害が顕在化したタイミングで発動する。**先回り導入は避ける**(過剰投資の罠)
+
+4. **「Claude 運用習熟度」を skill 化判断の評価軸に追加**
+   - skill 化候補に「成立した時期」を記録(プロジェクトの作成時期、Claude 運用の成熟度)
+   - 古いプロジェクトに新しい方法論を導入するか、新しいプロジェクトの設計時に過去の方法論を踏襲するかの判断材料にする
 
 ## kairous AGENTS.md の扱い
 
