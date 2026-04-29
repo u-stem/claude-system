@@ -89,7 +89,7 @@ chezmoi は以下のみ受け持つ:
 ```yaml
 # ~/.config/chezmoi/chezmoi.yaml
 data:
-  email: "{{ .githubEmail | default \"tanaka128821@gmail.com\" }}"
+  email: "{{ .githubEmail | default \"<your-github-noreply-or-personal-email>\" }}"  # TODO: 自分のアドレスに置き換え(ADR 0001 に従い、Public 公開する文書本文には新規露出させない)
   ws_dir: "{{ .chezmoi.homeDir }}/ws"
 ```
 
