@@ -34,7 +34,7 @@ recommended_model: opus
    - `Consequences`: Positive / Negative / Neutral の 3 区分
    - `Related`: 関連 ADR(番号で参照)、関連 Phase / コミット / ファイル
 5. **任意セクション**: 複雑な決定では `Alternatives Considered`(検討した他案)、`Implementation Notes`(実装メモ)を追加してよい
-6. **意思決定者**: ADR 0001 の識別子規約に従う(本名・新規連絡先は書かない、`プロジェクトオーナー` 等の抽象語または `u-stem`)
+6. **意思決定者**: ADR 0001 / 0006 の識別子規約に従う(本名・新規連絡先・自分の handle literal は書かない、`プロジェクトオーナー` 等の抽象語を使う)
 7. **ADR 0002 遵守**: Public 文書から Private リソース(URL / git remote)へのリンクを書かない。旧 spec に言及するときは「Private リソースで参照不能」と明記
 8. **既存 ADR との整合**: 前の決定を覆す場合、旧 ADR の Status を `Superseded by NNNN` に更新し、本 ADR 末尾の Related で参照する
 9. **`meta/decisions/README.md` の表に追記**: 番号・タイトル・Status・短い概要を 1 行で

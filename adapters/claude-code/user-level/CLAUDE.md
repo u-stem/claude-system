@@ -39,11 +39,11 @@
 | 識別子 | 取り扱い |
 |--------|----------|
 | 本名・個人呼称 | **不許可**。リポジトリ内のいかなるファイル・コミットメッセージ・コード片にも含めない |
-| GitHub handle (`u-stem`) | 許容(LICENSE / README / commit author 等で使用可) |
-| Personal email | 既露出用途のみ条件付き許容(commit author 等)。新規ドキュメント本文として書かない(具体アドレスは `meta/decisions/0001-anonymity-policy.md` のみに記録する) |
+| GitHub handle | **literal は不許可**(ADR 0006)。例外: ① LICENSE Copyright holder ② `https://github.com/<handle>/<repo>` 形式の URL に含まれる自動参照 ③ 手順書中の `<your-handle>` のような明示的プレースホルダ |
+| Personal email | **literal を書かない**(ADR 0006)。commit author は global `git config` で自動付与され、リポジトリ内ファイルに literal を書く必然性はない |
 | 新規の連絡先・住所・電話番号 | **不許可** |
 
-新規ファイル / 新規コミットメッセージ作成前に、本名・呼称が混入していないか自己 grep で確認する(Phase 7b で機械検出を導入予定)。**ローカル `git config` の `user.name` / `user.email` を override しない**(global を継承する設計)。
+新規ファイル / 新規コミットメッセージ作成前に、本名・呼称・自分の handle / email が literal で混入していないか自己 grep で確認する(機械検出は `gitleaks` / forbidden-words / hooks で多層化済み)。**ローカル `git config` の `user.name` / `user.email` を override しない**(global を継承する設計)。
 
 ### 情報源レイヤ(ADR 0002 由来)
 
