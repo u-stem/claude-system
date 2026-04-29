@@ -40,8 +40,14 @@ bk="$(cs_backup_path_for "$SETTINGS")"
 cp "$SETTINGS" "$bk"
 cs_success "Backed up: $bk"
 
+# Capture the timestamp into a variable and pass it to jq via --arg so that
+# odd characters in the date output (none expected, but defence-in-depth)
+# cannot break the jq filter, and so the quoting is one level deep instead
+# of three.
+ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 tmp="$(mktemp)"
-jq '.hooks = {} | ."// hooks-disabled-by" = "tools/disable-guardrails.sh on '"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"' \
+jq --arg ts "$ts" \
+  '.hooks = {} | ."// hooks-disabled-by" = ("tools/disable-guardrails.sh on " + $ts)' \
   "$SETTINGS" > "$tmp"
 mv "$tmp" "$SETTINGS"
 cs_success "Hooks disabled. Restore with tools/enable-guardrails.sh"

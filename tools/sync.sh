@@ -71,7 +71,7 @@ declare -a LINK_PAIRS=(
   "agents::$ADAPTER_ROOT/subagents"
 )
 
-cs_step "sync.sh plan ($([[ $DRY_RUN -eq 1 ]] && echo DRY-RUN || echo APPLY))"
+cs_step "sync.sh plan ($([[ "$DRY_RUN" == "1" ]] && echo DRY-RUN || echo APPLY))"
 cs_info "CLAUDE_HOME = $CLAUDE_HOME"
 cs_info "CS_ROOT     = $CS_ROOT"
 

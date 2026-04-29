@@ -22,7 +22,9 @@ for skill in adapters/claude-code/user-level/skills/*/SKILL.md; do
   name_field="$(grep '^name:' "$skill" | head -1 | cut -d: -f2 | tr -d ' ')"
   [[ "$dir_name" == "$name_field" ]] || err "dir/name mismatch: dir=$dir_name name=$name_field ($skill)"
   desc="$(grep '^description:' "$skill" | head -1 | sed 's/^description: //')"
-  chars="$(printf '%s' "$desc" | wc -m | tr -d ' ')"
+  # Force UTF-8 locale so `wc -m` counts characters (not bytes) for CJK
+  # descriptions on macOS BSD.
+  chars="$(printf '%s' "$desc" | LC_ALL=en_US.UTF-8 wc -m | tr -d ' ')"
   [[ "$chars" -le 50 ]] || err "description over 50 ($chars): $skill"
   for sec in '## 目的' '## いつ発動するか' '## 手順'; do
     grep -q "^${sec}" "$skill" || err "missing section '${sec}': $skill"

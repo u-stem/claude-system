@@ -101,7 +101,9 @@ for skill in adapters/claude-code/user-level/skills/*/SKILL.md; do
     fail "skill dir/name mismatch: dir=$dir_name name=$name_field ($skill)"
   fi
   desc="$(grep '^description:' "$skill" | head -1 | sed 's/^description: //')"
-  chars="$(printf '%s' "$desc" | wc -m | tr -d ' ')"
+  # `wc -m` returns bytes when LC_ALL is unset on macOS BSD; force UTF-8 so
+  # CJK descriptions are counted as characters.
+  chars="$(printf '%s' "$desc" | LC_ALL=en_US.UTF-8 wc -m | tr -d ' ')"
   if [[ "$chars" -gt 50 ]]; then
     warn "skill description over 50 chars ($chars): $skill"
   fi
@@ -203,7 +205,9 @@ fi
 cs_step "shellcheck"
 if command -v shellcheck >/dev/null 2>&1; then
   set +e
-  shellcheck_targets=(tools/*.sh tests/*.sh)
+  # Note: `tools/*.sh` does not recurse, so subdirectories under tools/
+  # (currently `tools/migrate/`) need to be added explicitly.
+  shellcheck_targets=(tools/*.sh tools/migrate/*.sh tests/*.sh)
   if [[ -d adapters/claude-code/user-level/hooks ]]; then
     while IFS= read -r -d '' f; do
       shellcheck_targets+=("$f")
