@@ -44,6 +44,10 @@ for f in "${FILES[@]}"; do
 done
 
 # Cycle detection via DFS in awk.
+# `set -e` would terminate the script the moment awk returned 1, so we drop
+# it around the awk invocation in order to capture the exit status reliably
+# (same pattern as tools/doctor.sh's shellcheck section).
+set +e
 awk -F'\t' '
 function dfs(node,    i, nb, neighbors) {
   if (state[node] == 1) {
@@ -81,8 +85,9 @@ END {
   exit (cycles > 0) ? 1 : 0;
 }
 ' "$EDGES"
-
 rc=$?
+set -e
+
 if [[ $rc -ne 0 ]]; then
   cs_error "circular reference(s) detected"
   exit 1

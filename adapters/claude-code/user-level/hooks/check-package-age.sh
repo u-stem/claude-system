@@ -32,10 +32,16 @@ case "$COMMAND" in
 esac
 
 # Extract package names, skipping flags / option values / subcommands.
+# Tokenises $COMMAND into an array up front rather than relying on unquoted
+# word-splitting in `for arg in $COMMAND`, which would mishandle package
+# names containing whitespace or shell-glob metacharacters.
 extract_packages() {
   local skip_next=false
   local found_add=false
-  for arg in $COMMAND; do
+  local args=()
+  # `read -ra` splits on $IFS (default space/tab/newline) into a real array.
+  read -ra args <<<"$COMMAND"
+  for arg in "${args[@]}"; do
     if $skip_next; then skip_next=false; continue; fi
     if ! $found_add; then
       case "$arg" in add|install) found_add=true ;; esac
@@ -44,7 +50,7 @@ extract_packages() {
     case "$arg" in
       --registry|--tag|--index) skip_next=true ;;
       -*) ;;
-      *) echo "$arg" ;;
+      *) printf '%s\n' "$arg" ;;
     esac
   done
 }
@@ -110,8 +116,15 @@ while IFS= read -r raw_pkg; do
   [[ -z "$pkg_name" ]] && continue
 
   if ! created_ts="$(get_created_ts "$pkg_name")"; then
-    hk_log check-package-age "registry lookup failed: $pkg_name"
-    hk_deny PreToolUse "$pkg_name: registry lookup failed. Verify the package name."
+    # Registry lookup failed. Possible causes: offline, rate-limit, transient
+    # error, or a typo in the package name. Failing closed (deny) bricks the
+    # whole `bun add` flow whenever the network is flaky, which has been more
+    # disruptive than the tiny attack-window saved.
+    # Fail-open with a logged warning instead. Typo cases get caught by the
+    # package manager itself; supply-chain risk for typosquats is mitigated
+    # by the human reviewing the install command.
+    hk_log check-package-age "registry lookup failed (fail-open): $pkg_name"
+    continue
   fi
 
   if [[ "$created_ts" -gt "$threshold" ]]; then

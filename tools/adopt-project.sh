@@ -53,9 +53,10 @@ cs_step "Inventory"
 [[ -d "$PROJ_PATH/docs" ]]        && cs_info "found docs/"       || cs_info "no docs/"
 [[ -d "$PROJ_PATH/docs/adr" ]]    && cs_info "found docs/adr/"   || cs_info "no docs/adr/"
 
-# 2. Backup CLAUDE.md
+# 2. Backup CLAUDE.md (project-scoped naming so unadopt/restore can locate
+# this project's backup without scanning every project's backups).
 if [[ -f "$PROJ_PATH/CLAUDE.md" ]]; then
-  bk="$(cs_backup_path_for "$PROJ_PATH/CLAUDE.md")"
+  bk="$(cs_backup_path_for_project "$PROJ_NAME" "$PROJ_PATH/CLAUDE.md")"
   cp "$PROJ_PATH/CLAUDE.md" "$bk"
   cs_success "Backed up CLAUDE.md -> $bk"
 fi

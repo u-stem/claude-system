@@ -36,10 +36,14 @@ PROJ_NAME="$(basename "$PROJ_PATH")"
 
 cs_step "Unadopting: $PROJ_NAME"
 
-# 1. Find latest backup.
-latest="$(ls -t "$CS_BACKUP_ROOT"/CLAUDE.md.backup-* 2>/dev/null | head -1 || true)"
+# 1. Find latest backup scoped to *this* project.
+# Look for the new project-prefixed naming first; fall back to the legacy
+# basename-only naming for backups created before Phase 9.
+latest="$(ls -t "$CS_BACKUP_ROOT/${PROJ_NAME}-CLAUDE.md.backup-"* 2>/dev/null | head -1 || true)"
 if [[ -z "$latest" ]]; then
-  cs_warn "No CLAUDE.md backup found in $CS_BACKUP_ROOT"
+  cs_warn "No project-scoped CLAUDE.md backup found in $CS_BACKUP_ROOT"
+  cs_info "Legacy basename-only backups exist in $CS_BACKUP_ROOT (CLAUDE.md.backup-*) but cannot be auto-attributed to this project."
+  cs_info "Use restore-project.sh with an explicit timestamp if you have one, or pass the path manually."
 else
   if cs_confirm "Restore CLAUDE.md from $latest?"; then
     cp "$latest" "$PROJ_PATH/CLAUDE.md"

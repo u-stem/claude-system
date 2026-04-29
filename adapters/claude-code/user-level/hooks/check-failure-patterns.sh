@@ -25,7 +25,9 @@ for category in check check-types test subagent; do
   count="$(/usr/bin/grep -c "\"category\":\"$category\"" "$log_file" 2>/dev/null || true)"
   count="${count:-0}"
   if [[ "$count" -ge 3 ]]; then
-    recent="$(/usr/bin/grep "\"category\":\"$category\"" "$log_file" | tail -3 | jq -r '.error' 2>/dev/null || true)"
+    # `jq -r '.error // empty'` skips malformed jsonl lines silently. The
+    # outer `|| true` keeps the SessionStart hook alive even when jq fails.
+    recent="$(/usr/bin/grep "\"category\":\"$category\"" "$log_file" | tail -3 | jq -r '.error // empty' 2>/dev/null || true)"
     recurring="${recurring}\n[${category}] ${count} failures:\n${recent}\n"
   fi
 done
@@ -33,6 +35,9 @@ done
 if [[ -n "$recurring" ]]; then
   echo "[Harness Feedback] Recurring failures detected in this project."
   echo "Consider adding rules (.claude/rules/) or skills (.claude/skills/) to prevent these patterns:"
-  echo -e "$recurring"
+  # Use printf %b for portable backslash interpretation. /bin/echo on macOS
+  # does not honour -e, and even bash builtin behaviour can vary depending on
+  # `shopt -s xpg_echo`. printf is the only spec-stable answer.
+  printf '%b\n' "$recurring"
   echo "After addressing, clear the log: rm ${log_file}"
 fi

@@ -30,7 +30,7 @@ export CS_LOCK_DIR
 # Color output
 # ---------------------------------------------------------------------------
 
-if [[ -t 1 ]] && [[ "${NO_COLOR:-}" == "" ]]; then
+if [[ -t 1 ]] && [[ -z "${NO_COLOR:-}" ]]; then
   CS_COLOR_RESET=$'\033[0m'
   CS_COLOR_RED=$'\033[31m'
   CS_COLOR_GREEN=$'\033[32m'
@@ -92,6 +92,28 @@ cs_backup_path_for() {
   local base
   base="$(basename "$src")"
   echo "$CS_BACKUP_ROOT/${base}.backup-${stamp}"
+}
+
+# Returns a unique backup path scoped to a project name. The resulting filename
+# is `<project>-<basename>.backup-<TIMESTAMP>` so adopt/unadopt/restore can
+# locate "the backup of project X" without scanning every backup in the dir.
+# Used by adopt-project.sh / unadopt-project.sh / restore-project.sh.
+cs_backup_path_for_project() {
+  local proj="$1"
+  local src="$2"
+  local stamp
+  stamp="$(date +%Y%m%d-%H%M%S)"
+  local base
+  base="$(basename "$src")"
+  echo "$CS_BACKUP_ROOT/${proj}-${base}.backup-${stamp}"
+}
+
+# Returns a glob pattern for finding backups of a specific project's file.
+# Callers can use this with `ls -t` etc.
+cs_backup_glob_for_project() {
+  local proj="$1"
+  local basename="$2"
+  echo "$CS_BACKUP_ROOT/${proj}-${basename}.backup-*"
 }
 
 # ---------------------------------------------------------------------------

@@ -11,11 +11,16 @@ cs_print_help() {
 restore-project.sh — restore CLAUDE.md from a specific backup.
 
 Usage:
-  tools/restore-project.sh <project-path>                  Latest backup
-  tools/restore-project.sh <project-path> <timestamp>      Specific backup
+  tools/restore-project.sh <project-path>                  Latest backup for this project
+  tools/restore-project.sh <project-path> <timestamp>      Specific timestamp
   tools/restore-project.sh --help
 
-Backup files live under ~/.claude-system-backups/CLAUDE.md.backup-<YYYYMMDD-HHMMSS>.
+Project-scoped backup naming (Phase 9+):
+  ~/.claude-system-backups/<project>-CLAUDE.md.backup-<YYYYMMDD-HHMMSS>
+
+Legacy basename-only naming is detected but only used when explicitly given a
+timestamp (the script will not auto-pick a legacy backup since attribution to
+the requested project cannot be verified).
 EOF
 }
 
@@ -27,20 +32,31 @@ if [[ $# -lt 1 || $# -gt 2 ]]; then
 fi
 
 PROJ_PATH="$(cd "$1" && pwd)"
+PROJ_NAME="$(basename "$PROJ_PATH")"
 TS="${2:-}"
 
 if [[ -n "$TS" ]]; then
-  candidate="$CS_BACKUP_ROOT/CLAUDE.md.backup-$TS"
+  # Try project-scoped first, fall back to legacy basename-only.
+  candidate="$CS_BACKUP_ROOT/${PROJ_NAME}-CLAUDE.md.backup-$TS"
   if [[ ! -f "$candidate" ]]; then
-    cs_error "Backup not found: $candidate"
-    cs_info "Available:"
-    ls "$CS_BACKUP_ROOT"/CLAUDE.md.backup-* 2>/dev/null || cs_warn "  (none)"
-    exit 2
+    legacy="$CS_BACKUP_ROOT/CLAUDE.md.backup-$TS"
+    if [[ -f "$legacy" ]]; then
+      cs_warn "Using legacy (un-attributed) backup: $legacy"
+      candidate="$legacy"
+    else
+      cs_error "Backup not found: $candidate (also tried $legacy)"
+      cs_info "Available project-scoped:"
+      ls "$CS_BACKUP_ROOT/${PROJ_NAME}-CLAUDE.md.backup-"* 2>/dev/null || cs_warn "  (none)"
+      cs_info "Available legacy (basename-only, un-attributed):"
+      ls "$CS_BACKUP_ROOT/CLAUDE.md.backup-"* 2>/dev/null || cs_warn "  (none)"
+      exit 2
+    fi
   fi
 else
-  candidate="$(ls -t "$CS_BACKUP_ROOT"/CLAUDE.md.backup-* 2>/dev/null | head -1 || true)"
+  candidate="$(ls -t "$CS_BACKUP_ROOT/${PROJ_NAME}-CLAUDE.md.backup-"* 2>/dev/null | head -1 || true)"
   if [[ -z "$candidate" ]]; then
-    cs_error "No backups found in $CS_BACKUP_ROOT"
+    cs_error "No project-scoped backups found for '$PROJ_NAME' in $CS_BACKUP_ROOT"
+    cs_info "Pass an explicit <timestamp> to use a legacy un-attributed backup."
     exit 2
   fi
 fi
