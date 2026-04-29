@@ -2,6 +2,40 @@
 
 このリポジトリの変更履歴。Phase 単位でセクション化する。
 
+## [v0.1.0-rc2] — 2026-04-29
+
+rc1 のレビュー対応で「`.gitleaks.toml` の email literal は ADR 0001 違反」として複雑な対応(paths 除外 / allowlist regexes / hooks 環境変数)が入ったが、本質的な対策は「そもそもユーザー識別子を claude-system に書かない」だったと再評価。新たに ADR 0006 を起票して原則を確立し、rc1 で導入した過剰反応を簡素化した。
+
+### Phase 9 追加対応(2026-04-29、rc1 → rc2)
+
+- ADR 起票: `0006-no-user-identifiers-in-system.md`(ADR 0001 の具体実装)
+  - 本名 / 個人 email literal / GitHub handle literal を claude-system 内に書かない
+  - 例外: LICENSE Copyright holder / `https://github.com/<handle>/<repo>` の URL 自動参照 / 手順書の `<your-...>` 明示プレースホルダ / global git config 由来の commit author
+- ADR 0001 修正:
+  - `tanaka128821@gmail.com` literal を `<personal-email>` プレースホルダに置換
+  - `u-stem` literal の例示を抽象化
+  - Decision セクションに「具体実装は ADR 0006 を参照」を追記
+  - 過去 Public 露出の経緯記述を抽象化(具体リポジトリ名 7 件のリストアップを撤回)
+- 簡素化:
+  - `.gitleaks.toml`: ADR 0001 を `paths` から除外する設定を撤回(literal が消えたため allowlist 不要)
+  - `subagent-stop-audit.sh`: `SUBAGENT_AUDIT_KNOWN_EMAILS` 環境変数 + 許容アドレス除外ロジックを撤去。検出されたら本当に新規混入なのでログがそのまま実害シグナル
+- 文書整合化:
+  - `adapters/claude-code/user-level/CLAUDE.md` の識別子規範表を ADR 0006 ベースに更新
+  - `adapters/claude-code/user-level/skills/adr-writing/SKILL.md` の DECIDER 例示から `u-stem` literal を撤去
+  - `adapters/claude-code/project-templates/nextjs-supabase/_TEMPLATE_USAGE.md` の `{{DECIDER}}` 説明を「handle literal は非推奨」に修正
+- `meta/decisions/README.md` の表に 0006 を追加
+- `git tag v0.1.0-rc2`
+
+### 検証
+
+- doctor.sh: 38/38 OK / warn 0 / error 0
+- gitleaks: no leaks found
+- shellcheck / lint-skills / lint-principles-language / check-circular-refs / validate-frontmatter: 全 pass
+- `Mikiya` / `tanaka128821` の grep: 0 hit
+- `u-stem` の grep: LICENSE / GitHub URL / ADR 0006 自身のみ(すべて例外条項該当)
+
+---
+
 ## [v0.1.0-rc1] — 2026-04-29
 
 Phase 9 完了、Phase 10 切り替え前のリリース候補。
