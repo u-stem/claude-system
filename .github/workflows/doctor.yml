@@ -16,10 +16,19 @@ jobs:
           sudo apt-get install -y -qq tree shellcheck jq
 
       - name: Install gitleaks
+        env:
+          # gh release download authenticates via GITHUB_TOKEN, which avoids
+          # the anonymous-rate-limit / occasional HTML-error-page that
+          # `curl https://github.com/.../releases/download/...` ran into in
+          # the rc1 follow-up CI run on 2026-04-29.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           GITLEAKS_VERSION=8.21.2
-          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
-            | sudo tar -xz -C /usr/local/bin gitleaks
+          gh release download "v${GITLEAKS_VERSION}" \
+            -R gitleaks/gitleaks \
+            -p "gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            -O /tmp/gitleaks.tar.gz
+          sudo tar -xz -C /usr/local/bin -f /tmp/gitleaks.tar.gz gitleaks
           gitleaks version
 
       - name: Run doctor.sh
