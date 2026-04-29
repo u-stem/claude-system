@@ -22,9 +22,10 @@
   "// permissions": "deny は物理ブロック(LLM の自制に頼らない)。allow は良性で頻出するコマンドを列挙して permission prompt を抑制する。両者の整合は Phase 7b で再点検する",
   "// permissions.deny.protected_paths": "旧 claude-settings はアーカイブで読み取り専用。Phase 10 で symlink 切替するまで現運用を維持するため write を物理ブロック",
   "// permissions.deny.backup_files": "*.backup-* は人間が手作業バックアップした原本。LLM が上書きしないよう物理ブロック",
-  "// permissions.deny.destructive_filesystem": "~/.claude/ や claude-system 全体の rm -rf を物理ブロック。Phase 10 のシンボリックリンク切替を保護する",
+  "// permissions.deny.destructive_filesystem": "~/.claude/ や claude-system 全体の rm を物理ブロック。Phase 10 のシンボリックリンク切替を保護する。-rf 以外の派生(-r 単独 / sudo / find -delete)も列挙",
   "// permissions.deny.destructive_git": "強制 push と --no-verify は禁止。--no-verify は Phase 7b の PreToolUse hook(jq インライン)でも検出予定の二重防御",
-  "// permissions.deny.secrets": "機密ファイル系の Read/Write/Edit を全面ブロック。Phase 7b で .gitleaks.toml と整合させる",
+  "// permissions.deny.secrets": "機密ファイル系の Read/Write/Edit を全面ブロック。Phase 7b で .gitleaks.toml と整合させる。相対パス glob が中心のため絶対パス・~ 展開後のアクセスは hooks 側(pre-edit-protect.sh / pre-bash-guard.sh)で補完する",
+  "// permissions.deny.global_secrets": "ホームディレクトリ直下の標準的機密保管箇所を deny。.ssh / .aws / .gnupg / .config の認証系は内容にかかわらず Read を物理ブロック",
   "permissions": {
     "defaultMode": "auto",
     "deny": [
@@ -33,7 +34,13 @@
       "Edit(**/*.backup-*)",
       "Write(**/*.backup-*)",
       "Bash(rm -rf ~/.claude*)",
+      "Bash(rm -r ~/.claude*)",
       "Bash(rm -rf ~/ws/claude-system)",
+      "Bash(rm -r ~/ws/claude-system)",
+      "Bash(rm -rf ~/ws/claude-system/*)",
+      "Bash(sudo rm *)",
+      "Bash(find ~/.claude*)",
+      "Bash(find ~/ws/claude-system*)",
       "Bash(git push --force*)",
       "Bash(git push -f*)",
       "Bash(git commit*--no-verify*)",
@@ -47,7 +54,21 @@
       "Write(./.env)",
       "Write(./.env.*)",
       "Edit(./.env)",
-      "Edit(./.env.*)"
+      "Edit(./.env.*)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.gnupg/**)",
+      "Read(~/.config/gh/hosts.yml)",
+      "Read(~/.netrc)",
+      "Read(~/.npmrc)",
+      "Read(~/.cargo/credentials*)",
+      "Read(~/.docker/config.json)",
+      "Write(~/.ssh/**)",
+      "Write(~/.aws/**)",
+      "Write(~/.gnupg/**)",
+      "Edit(~/.ssh/**)",
+      "Edit(~/.aws/**)",
+      "Edit(~/.gnupg/**)"
     ],
     "// permissions.allow.package_managers": "bun > pnpm > npm の優先順は user-level/CLAUDE.md 記載と整合。uv は Python 用",
     "// permissions.allow.compilers": "cargo / go / python3 / node / deno",
@@ -210,7 +231,7 @@
     "SessionEnd": []
   },
 
-  "// enabledPlugins": "superpowers / elements-of-style / episodic-memory は新システムでも継続採用。Memory MCP は不採用(Phase 4 の memory-architecture ADR で確定予定)",
+  "// enabledPlugins": "superpowers / elements-of-style / episodic-memory は新システムでも継続採用。Memory MCP は不採用(ADR 0003 で確定済み)",
   "enabledPlugins": {
     "elements-of-style@superpowers-marketplace": true,
     "episodic-memory@superpowers-marketplace": true,

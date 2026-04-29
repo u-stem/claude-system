@@ -39,11 +39,24 @@ if [[ -z "$transcript_path" || ! -r "$transcript_path" ]]; then
   exit 0
 fi
 
-# 1. ADR 0001: well-known personal email pattern (literal addresses are private,
-# so this hook only flags shape — actual literals are not stored anywhere
-# except meta/decisions/0001-anonymity-policy.md).
+# 1. ADR 0001: well-known personal email pattern. Literal addresses already
+# allowed by ADR 0001 (commit author identity, ADR 0001 itself) are excluded
+# via SUBAGENT_AUDIT_KNOWN_EMAILS so the audit log surfaces only *new*
+# personal-email-shape leaks. Set SUBAGENT_AUDIT_KNOWN_EMAILS in
+# settings.json or the shell env as a comma-separated list when needed.
+known_emails="${SUBAGENT_AUDIT_KNOWN_EMAILS:-tanaka128821@gmail.com}"
 if /usr/bin/grep -qE '[A-Za-z0-9._%+-]+@(gmail\.com|icloud\.com|outlook\.com)' "$transcript_path"; then
-  emit_finding personal-email-shape "$transcript_path"
+  # Pull every matched address, strip the known-allowed ones, only emit if any
+  # unknown remains.
+  unknown="$(/usr/bin/grep -oE '[A-Za-z0-9._%+-]+@(gmail\.com|icloud\.com|outlook\.com)' "$transcript_path" \
+              | sort -u \
+              | /usr/bin/grep -vFx -f <(printf '%s\n' "$known_emails" | tr ',' '\n') \
+              || true)"
+  if [[ -n "$unknown" ]]; then
+    emit_finding personal-email-shape-unknown "$transcript_path"
+  else
+    emit_finding personal-email-shape-allowed "$transcript_path"
+  fi
 fi
 
 # 2. ADR 0002: claude-settings / private-host references.
@@ -61,9 +74,33 @@ if [[ -n "$agent_type" ]]; then
     # Tool names in the transcript appear like "tool: Read" or {"tool":"Bash"}.
     used_tools="$(/usr/bin/grep -oE '"tool"[[:space:]]*:[[:space:]]*"[A-Za-z_]+"' "$transcript_path" 2>/dev/null \
                   | sed -E 's/.*"([A-Za-z_]+)"$/\1/' | sort -u || true)"
+    # Normalise declared tools into an array of exact names. Supports either
+    # `tools: A, B, C` or `tools: [A, B, C]` frontmatter shapes.
+    declared_normalised="${declared_tools#[}"
+    declared_normalised="${declared_normalised%]}"
+    declared_arr=()
+    if [[ -n "$declared_normalised" ]]; then
+      IFS=',' read -ra _dt <<<"$declared_normalised"
+      for _t in "${_dt[@]}"; do
+        # Trim surrounding whitespace and quotes.
+        _t="${_t#"${_t%%[![:space:]]*}"}"
+        _t="${_t%"${_t##*[![:space:]]}"}"
+        _t="${_t#\"}"; _t="${_t%\"}"
+        [[ -n "$_t" ]] && declared_arr+=("$_t")
+      done
+    fi
+
     while IFS= read -r tool; do
       [[ -z "$tool" ]] && continue
-      if [[ -n "$declared_tools" ]] && ! echo "$declared_tools" | /usr/bin/grep -q "$tool"; then
+      [[ -z "$declared_tools" ]] && continue
+      matched=0
+      for d in "${declared_arr[@]}"; do
+        if [[ "$d" == "$tool" ]]; then
+          matched=1
+          break
+        fi
+      done
+      if [[ $matched -eq 0 ]]; then
         emit_finding tool-overreach "${agent_type}: used $tool not declared in $agent_def"
       fi
     done <<<"$used_tools"

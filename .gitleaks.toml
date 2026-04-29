@@ -1,6 +1,12 @@
 # gitleaks configuration for claude-system.
 # Phase 7b: extends gitleaks defaults with allowlists for templates/drafts and
 # explicit placeholder regexes.
+#
+# Phase 9 audit (post-rc1): tightened path allowlist so that meta/*.md and
+# README.md are no longer wholesale-excluded. The single document that
+# legitimately holds owner identifiers (ADR 0001) is excluded by path so
+# that the *literals are not duplicated into this config file* — writing
+# them here would itself increase public exposure (ADR 0001 violation).
 
 title = "claude-system gitleaks config"
 
@@ -8,13 +14,17 @@ title = "claude-system gitleaks config"
 useDefault = true
 
 [allowlist]
-description = "Suppress false positives in templates, drafts, and intentional placeholder strings."
+description = "Suppress false positives in templates, drafts, intentional placeholders, and the single ADR that records owner identifiers."
 
+# Path allowlist:
+#   - generated artefacts (templates, drafts, this config)
+#   - meta/decisions/0001-anonymity-policy.md is the *only* document where
+#     owner identifiers are intentionally recorded (per ADR 0001 itself);
+#     scanning it would flag the very text it is the source of truth for.
+# Other document trees (README.md, the rest of meta/*.md, principles/, etc.)
+# are scanned in full so that any *new* personal identifier added elsewhere
+# is detected.
 paths = [
-  '''README\.md''',
-  '''.*/README\.md''',
-  '''docs/.*\.md''',
-  '''meta/.*\.md''',
   '''adapters/claude-code/project-templates/.*''',
   '''adapters/claude-code/project-fragments/.*''',
   '''adapters/claude-code/user-level/settings\.json\.template''',
@@ -23,6 +33,7 @@ paths = [
   '''.*\.md\.draft''',
   '''.*\.gitleaks\.toml''',
   '''.gitleaks\.toml''',
+  '''meta/decisions/0001-anonymity-policy\.md''',
 ]
 
 regexes = [
