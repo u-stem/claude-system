@@ -15,9 +15,11 @@ claude-system における設計上の重大な意思決定を記録する場所
 
 | 例 | 意味 |
 |----|------|
-| `0001-anonymity-policy.md` | 第 1 号 ADR、匿名性ポリシー |
-| `0002-monorepo-fragment-strategy.md` | 第 2 号 ADR、monorepo fragment 戦略 |
-| `0042-supersede-anonymity-policy.md` | 0001 を上書きする新方針(Status は Accepted、0001 の Status は Superseded by 0042) |
+| `0001-anonymity-policy.md` | 第 1 号 ADR、匿名性ポリシー(実在) |
+| `0099-some-future-policy.md` | 仮想例: 将来の新規 ADR は連番末尾に追加 |
+| `0099-supersede-anonymity-policy.md` | 仮想例: 0001 を上書きする新方針(Status は Accepted、0001 の Status は Superseded by 0099) |
+
+実在 ADR の一覧は本ファイル末尾「既存 ADR」表を参照。
 
 ## Status の語彙
 

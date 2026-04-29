@@ -79,7 +79,7 @@ claude-system では **`auto memory` + `episodic-memory` の 2 層**を記憶ア
 
 - 旧 `Memory MCP` のデータは**移行しない**(過去データの再利用価値が低く、移行コストが上回るため捨てる判断)
 - `auto memory` のディレクトリ構成はハーネス(Claude Code)側の現行運用に従う(本システム側で構造を強制しない)
-- `episodic-memory` プラグインのバージョン更新は通常の plugin 更新フロー(`/update-check` 等、Phase 4 以降の `update-check` skill 参照)に従う
+- `episodic-memory` プラグインのバージョン更新は通常の plugin 更新フロー(adapter 層の更新確認手順、Phase 4 以降に整備した能力単位を経由)に従う
 
 ## Related
 

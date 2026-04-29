@@ -6,6 +6,14 @@ claude-system で用いる用語の定義。
 
 ---
 
+## システム本体
+
+| 用語 | 定義 |
+|------|------|
+| **claude-system** | 本リポジトリ自体の名称。AI 協働開発のためのメタリポジトリで、principles / practices / adapters / projects の 4 層構造を持つ。`~/ws/claude-system/` に固定配置される(別パスは許容しない、ADR 0004) |
+
+---
+
 ## 層
 
 | 用語 | 定義 |

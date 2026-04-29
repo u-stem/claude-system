@@ -71,7 +71,7 @@ jq -r '.category' ~/.claude/projects/*/failure-log.jsonl 2>/dev/null | sort | un
 
 ## 月内のレトロイベント
 
-(マイルストーン閉じ、Epic 終了、リリース等。kairous の運用パターン参照)
+(マイルストーン閉じ、Epic 終了、リリース等の節目があれば書き起こす)
 
 | 日付 | イベント | 学び | アクション |
 |---|---|---|---|

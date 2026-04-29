@@ -10,7 +10,9 @@ slash command は Claude Code の `/<name>` 入力で発火する短いプロン
 
 旧 `~/ws/claude-settings/commands/` の 4 件はマイグレーションインベントリで A 分類(直接取り込み)とされていたが、Phase 4 で漏れていたため Phase 6 でバックフィルした。
 
-## 全 command 一覧(2026-04-26 時点)
+## 全 command 一覧
+
+(直近の更新は `git log` を参照)
 
 | name | description | 旧資産との対応 |
 |------|-------------|----------------|

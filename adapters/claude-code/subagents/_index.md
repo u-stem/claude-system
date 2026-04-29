@@ -5,7 +5,9 @@ Phase 10 で `~/.claude/agents/` にシンボリックリンクされる。
 
 subagent は独立コンテキストを持つ専門タスク実行単位(根拠は [`principles/01-context-economy.md`](~/ws/claude-system/principles/01-context-economy.md) の委譲基準と [`practices/session-handoff.md`](~/ws/claude-system/practices/session-handoff.md))。
 
-## 全 subagent 一覧(2026-04-26 時点)
+## 全 subagent 一覧
+
+(直近の更新は `git log` を参照)
 
 | name | description | tools | model | 旧 agents/ との対応 |
 |------|-------------|-------|-------|---------------------|

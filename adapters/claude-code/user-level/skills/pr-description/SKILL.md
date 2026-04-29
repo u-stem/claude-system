@@ -56,7 +56,7 @@ Pull Request の本文を、**レビュアが 30 秒で本質を把握できる*
 
 - 「Issue #123 を解決」だけでは Why にならない(Issue を開かないと分からない)
 - 制約(時間 / 互換性 / 既存設計との整合)、捨てた代替案、なぜこの実装に落ち着いたか
-- ADR がある場合はリンク([ADR 0003](../../meta/decisions/0003-memory-architecture.md) のように相対パス)
+- ADR がある場合はリンク(PR の本文では各リポジトリのデフォルトに従う。記法の例: `[ADR 0003](../../meta/decisions/0003-memory-architecture.md)`)
 
 ### 4. Test plan はチェックボックスで
 

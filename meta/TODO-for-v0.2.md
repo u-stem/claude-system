@@ -144,7 +144,7 @@ Phase 9 検証では重複の実害は確認できなかったため継続保留
 
 ### 低優先候補
 
-略([`TODO-for-phase-9.md`](#) で旧記載、必要時に history から復元)。中優先候補も同様に v0.2 で再評価。
+低優先候補リストは `meta/TODO-for-phase-9.md`(Phase 9 完了とともに retire 済み)に記載されていた。必要があれば `git log -- meta/TODO-for-phase-9.md` から復元する。中優先候補も同様に v0.2 で再評価。
 
 ---
 

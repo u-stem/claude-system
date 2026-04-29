@@ -5,7 +5,9 @@ Phase 10 で `~/.claude/skills/` にシンボリックリンクされる。
 
 skill は段階的開示で読み込まれる「能力単位」(根拠は [`principles/03-skill-composition.md`](~/ws/claude-system/principles/03-skill-composition.md) と [`principles/04-progressive-disclosure.md`](~/ws/claude-system/principles/04-progressive-disclosure.md))。
 
-## 全 skill 一覧(2026-04-26 時点)
+## 全 skill 一覧
+
+(直近の更新は `git log` を参照)
 
 ### Tier 1: 必ず採用
 
