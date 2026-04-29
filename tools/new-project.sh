@@ -362,17 +362,32 @@ fi
 cs_step "Creating project at $PROJ_DIR (template=$TEMPLATE_NAME)"
 mkdir -p "$PROJ_DIR"
 
+# Cleanup partial state if creation aborts. `rmdir` fails silently when the
+# directory is non-empty (which is exactly the case after partial template
+# expansion), so use `rm -rf` scoped to $PROJ_DIR. The trap is removed on
+# normal completion below so the new project is preserved on success.
+cleanup_partial_project() {
+  if [[ -d "$PROJ_DIR" ]]; then
+    rm -rf "$PROJ_DIR"
+    cs_info "中止: 部分的に作成されたディレクトリ $PROJ_DIR を削除しました。"
+  fi
+}
+trap cleanup_partial_project EXIT
+
 if [[ "$TEMPLATE_NAME" == "none" ]] || [[ "$TEMPLATE_NAME" == "0" ]]; then
   if cs_confirm "ゼロから始めるモードで最小骨格を作成しますか?"; then
     create_zero_skeleton "$PROJ_DIR" "$PROJECT_NAME"
   else
-    rmdir "$PROJ_DIR" 2>/dev/null || true
     cs_info "中止しました。"
     exit 0
   fi
 else
   create_from_template "$PROJ_DIR" "$PROJECT_NAME" "$TEMPLATE_NAME"
 fi
+
+# Reaching this point means template expansion succeeded; release the trap
+# so the project survives.
+trap - EXIT
 
 # Companion projects/ entry in claude-system (gitignored).
 PROJECTS_ENTRY="$CS_ROOT/projects/$PROJECT_NAME"

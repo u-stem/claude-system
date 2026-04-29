@@ -230,7 +230,7 @@ Claude Code 本体の更新時に適用する。
 ~/ws/claude-system/tools/cleanup-backups.sh --dry-run # 削除候補を表示のみ
 ```
 
-migration-*` は永続保管対象で削除されない(`cleanup-backups.sh` の対象外)。
+`migration-*` は永続保管対象で削除されない(`cleanup-backups.sh` の対象外)。
 
 ---
 

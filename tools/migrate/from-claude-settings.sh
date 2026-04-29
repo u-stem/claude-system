@@ -51,7 +51,10 @@ done
 cs_require_macos
 cs_require_root_dir
 
-cs_acquire_lock migrate >/dev/null
+# Lock-acquisition order: explicit `|| exit 1` before installing the trap
+# so that a failed acquisition does not leave a partial trap pointing at a
+# lock we never owned.
+cs_acquire_lock migrate >/dev/null || exit 1
 trap 'cs_release_lock migrate' EXIT
 
 cs_ensure_backup_dir

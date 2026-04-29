@@ -58,7 +58,11 @@ for ((i=0; i<count; i++)); do
     continue
   fi
 
-  if echo "$EXISTING" | grep -q "^${name}\b"; then
+  # Detect "already registered" via exact name match on the first whitespace-
+  # separated column of `claude mcp list` output. `grep -qF` avoids regex
+  # surprises if the name contains regex metacharacters, and the explicit
+  # awk match guards against substring collisions with other server names.
+  if printf '%s\n' "$EXISTING" | awk -v target="$name" '$1 == target { found=1 } END { exit found ? 0 : 1 }'; then
     cs_success "$name: already registered (skip)"
     continue
   fi
