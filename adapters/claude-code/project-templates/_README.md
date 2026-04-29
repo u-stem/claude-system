@@ -101,4 +101,4 @@
 - [`adapters/claude-code/project-fragments/README.md`](../project-fragments/README.md) — fragment 側(参照される)
 - [`practices/project-bootstrap.md`](~/ws/claude-system/practices/project-bootstrap.md) — 立ち上げ手順の抽象
 - [`adapters/claude-code/user-level/skills/skill-creation/SKILL.md`](~/ws/claude-system/adapters/claude-code/user-level/skills/skill-creation/SKILL.md) — skeleton を肉付ける手順の準用元
-- [`meta/TODO-for-phase-7a.md`](~/ws/claude-system/meta/TODO-for-phase-7a.md) — `tools/new-project.sh` 設計メモ
+- [`tools/new-project.sh`](~/ws/claude-system/tools/new-project.sh) — テンプレートを使った新規プロジェクト立ち上げスクリプト

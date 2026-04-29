@@ -122,5 +122,5 @@ skill 内・subagent 内の同一 skill/subagent ディレクトリ内の参照(
 - [`practices/`](../../practices/) — 本層が翻訳元とする抽象パターン
 - [`meta/forbidden-words.txt`](../../meta/forbidden-words.txt) — principles / practices に混入してはならない語
 - [`meta/migration-inventory.md`](../../meta/migration-inventory.md) — 旧 claude-settings からの取り込み判断
-- [`meta/TODO-for-phase-7b.md`](../../meta/TODO-for-phase-7b.md) — hooks 実装の取り込み対象
+- [`meta/CHANGELOG.md`](../../meta/CHANGELOG.md) — Phase 7b で取り込んだ hooks 実装の経緯
 - [`meta/decisions/0003-memory-architecture.md`](../../meta/decisions/0003-memory-architecture.md) — `enabledPlugins.episodic-memory` の根拠

@@ -8,7 +8,7 @@ recommended_model: opus
 
 実装変更・依存追加・PR レビュー時のセキュリティ観点チェック skill。
 抽象は [`practices/secure-coding-patterns.md`](~/ws/claude-system/practices/secure-coding-patterns.md) と [`practices/supply-chain-hygiene.md`](~/ws/claude-system/practices/supply-chain-hygiene.md)。
-詳細レビューは subagent `security-reviewer`(Phase 5)に委譲する選択肢もある。
+詳細レビューは subagent `security-auditor`(Phase 5)に委譲する選択肢もある。
 
 ## 目的
 
@@ -83,7 +83,7 @@ recommended_model: opus
 
 ## 委譲判断
 
-- レビュー対象が**変更行 200 行超 or 5 ファイル超**なら subagent `security-reviewer`(Phase 5)に委譲してメインコンテキストを保護(`principles/01-context-economy.md`)
+- レビュー対象が**変更行 200 行超 or 5 ファイル超**なら subagent `security-auditor`(Phase 5)に委譲してメインコンテキストを保護(`principles/01-context-economy.md`)
 - 委譲時は「対象 PR 番号 / 変更ファイル / 重点観点」を明示
 
 ## 関連
