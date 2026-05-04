@@ -3,13 +3,18 @@
 # Run only after Phase 9 verification is complete (Phase 10 execution).
 #
 # Behavior:
+#   - Detects dangling symlinks in the source tree (preflight) and offers to
+#     remove them before backup. Non-interactive shells warn and continue;
+#     Step 4 then skips any remaining dangling links. (ADR 0007)
 #   - Backs up current ~/.claude/ to ~/.claude-system-backups/migration-<TIMESTAMP>/
-#     (preserved permanently — not removed by cleanup-backups.sh).
+#     using a robust per-entry copy (resolves resolvable symlinks, skips
+#     dangling ones with a warning). Preserved permanently — not removed by
+#     cleanup-backups.sh.
 #   - Removes ~/.claude/.
 #   - Recreates ~/.claude/ as a directory with symlinks to claude-system:
 #       CLAUDE.md / skills / hooks / commands / agents
-#   - Leaves ~/.claude/settings.json for manual placement (template is at
-#     adapters/claude-code/user-level/settings.json.template).
+#   - Delegates ~/.claude/settings.json deployment to tools/sync.sh
+#     (machine-local cp-deploy; see ADR 0007 for the boundary rationale).
 #   - Verifies via tools/doctor.sh.
 #
 # Usage:
@@ -64,6 +69,42 @@ ADAPTER_ROOT="$CS_ROOT/adapters/claude-code"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 BACKUP_DIR="$CS_BACKUP_ROOT/migration-${TIMESTAMP}"
 
+# ---------------------------------------------------------------------------
+# Local helper: robust per-entry copy for the symlink-resolution backup.
+#
+# Replaces the prior `cp -L -R` (which aborts on the first dangling link).
+# Walks the source tree with `find -print0`, dispatches per entry kind:
+#   - dangling symlink     -> skip + warn  (ADR 0007: tolerate runtime cruft)
+#   - resolvable symlink   -> cp -L         (preserve old -L semantics)
+#   - directory (non-link) -> mkdir         (recreate structure)
+#   - regular file         -> cp            (plain copy)
+# Prints the count of skipped dangling entries on stdout.
+# ---------------------------------------------------------------------------
+cs_robust_copy_resolved() {
+  local src="$1"
+  local dest="$2"
+  local skipped=0
+  mkdir -p "$dest"
+  while IFS= read -r -d '' entry; do
+    [[ "$entry" == "$src" ]] && continue
+    local rel="${entry#"$src"/}"
+    local target="$dest/$rel"
+    if [[ -L "$entry" ]] && [[ ! -e "$entry" ]]; then
+      cs_warn "  Skipping dangling symlink: $entry"
+      skipped=$((skipped + 1))
+      continue
+    fi
+    if [[ -d "$entry" ]] && [[ ! -L "$entry" ]]; then
+      mkdir -p "$target"
+    elif [[ -L "$entry" ]]; then
+      cp -L "$entry" "$target" 2>/dev/null || cs_warn "  Copy failed: $entry"
+    else
+      cp "$entry" "$target" 2>/dev/null || cs_warn "  Copy failed: $entry"
+    fi
+  done < <(find "$src" -print0)
+  echo "$skipped"
+}
+
 cs_step "from-claude-settings.sh ($([[ $DRY_RUN -eq 1 ]] && echo DRY-RUN || echo APPLY))"
 cs_info "CLAUDE_HOME = $CLAUDE_HOME"
 cs_info "CS_ROOT     = $CS_ROOT"
@@ -100,6 +141,44 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 2.5. Preflight: detect dangling symlinks in the source tree (ADR 0007)
+# ---------------------------------------------------------------------------
+# Runtime-derived dangling links (e.g., debug/latest pointing at a removed
+# session) caused the prior `cp -L -R` to fail mid-run. Detect them here and
+# offer interactive removal; non-interactive shells warn and continue, and
+# Step 4's robust copy will skip whatever remains.
+cs_step "Step 2.5: Preflight — dangling symlink scan"
+SCAN_ROOT=""
+case "$CURRENT_KIND" in
+  symlink)   SCAN_ROOT="$(readlink "$CLAUDE_HOME")" ;;
+  directory) SCAN_ROOT="$CLAUDE_HOME" ;;
+  missing)   SCAN_ROOT="" ;;
+esac
+
+if [[ -n "$SCAN_ROOT" ]] && [[ -d "$SCAN_ROOT" ]]; then
+  DANGLING_LIST="$(find "$SCAN_ROOT" -type l ! -exec test -e {} \; -print 2>/dev/null || true)"
+  if [[ -z "$DANGLING_LIST" ]]; then
+    cs_success "  No dangling symlinks under $SCAN_ROOT"
+  else
+    DANGLING_COUNT="$(printf '%s\n' "$DANGLING_LIST" | wc -l | tr -d ' ')"
+    cs_warn "  Detected $DANGLING_COUNT dangling symlink(s):"
+    printf '%s\n' "$DANGLING_LIST" | sed 's/^/    /' >&2
+    if [[ "$DRY_RUN" == "1" ]]; then
+      cs_info "  (dry-run) would offer to delete dangling links before backup"
+    elif [[ -t 0 ]] && cs_confirm "Delete these dangling symlinks before backup?"; then
+      while IFS= read -r link; do
+        [[ -z "$link" ]] && continue
+        rm -f "$link" && cs_success "  Removed: $link"
+      done <<<"$DANGLING_LIST"
+    else
+      cs_warn "  Continuing — Step 4 will skip dangling links and warn."
+    fi
+  fi
+else
+  cs_info "  No source tree to scan (CURRENT_KIND=$CURRENT_KIND)"
+fi
+
+# ---------------------------------------------------------------------------
 # 3. Confirm with user
 # ---------------------------------------------------------------------------
 if [[ "$DRY_RUN" == "0" ]]; then
@@ -116,7 +195,7 @@ if [[ "$DRY_RUN" == "0" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 4. Backup
+# 4. Backup (robust per-entry copy, ADR 0007)
 # ---------------------------------------------------------------------------
 cs_step "Step 4: Backing up current ~/.claude/..."
 if [[ "$DRY_RUN" == "1" ]]; then
@@ -125,13 +204,21 @@ else
   mkdir -p "$BACKUP_DIR"
   case "$CURRENT_KIND" in
     symlink)
-      # Resolve symlink target and copy contents
-      cp -L -R "$CLAUDE_HOME" "$BACKUP_DIR/dot-claude-resolved"
-      printf 'symlink\n%s\n' "$(readlink "$CLAUDE_HOME")" > "$BACKUP_DIR/_kind.txt"
+      # Resolve symlink target and copy contents per entry, tolerating
+      # dangling links that may remain after Step 2.5.
+      src_resolved="$(readlink "$CLAUDE_HOME")"
+      skipped="$(cs_robust_copy_resolved "$src_resolved" "$BACKUP_DIR/dot-claude-resolved")"
+      printf 'symlink\n%s\n' "$src_resolved" > "$BACKUP_DIR/_kind.txt"
+      if [[ "$skipped" -gt 0 ]]; then
+        cs_warn "  $skipped dangling symlink(s) were skipped during backup"
+      fi
       ;;
     directory)
-      cp -R "$CLAUDE_HOME" "$BACKUP_DIR/dot-claude-direct"
+      skipped="$(cs_robust_copy_resolved "$CLAUDE_HOME" "$BACKUP_DIR/dot-claude-direct")"
       printf 'directory\n' > "$BACKUP_DIR/_kind.txt"
+      if [[ "$skipped" -gt 0 ]]; then
+        cs_warn "  $skipped dangling symlink(s) were skipped during backup"
+      fi
       ;;
     missing)
       printf 'missing\n' > "$BACKUP_DIR/_kind.txt"
@@ -191,20 +278,25 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 7. settings.json: manual placement
+# 7. settings.json: delegated to tools/sync.sh (ADR 0007)
 # ---------------------------------------------------------------------------
-cs_step "Step 7: settings.json (manual)"
-SETTINGS_TEMPLATE="$ADAPTER_ROOT/user-level/settings.json.template"
-SETTINGS_TARGET="$CLAUDE_HOME/settings.json"
+# settings.json holds machine-local values (API keys etc.) and cannot be a
+# symlink. Its cp-deploy is the responsibility of tools/sync.sh (which is the
+# canonical Phase 10 follow-up step per tools/setup.sh). This script handles
+# the one-shot structural switch only.
+cs_step "Step 7: settings.json (delegated to tools/sync.sh)"
 
 if [[ "$DRY_RUN" == "1" ]]; then
-  cs_info "  (dry-run) would NOT auto-deploy settings.json. Run after migration:"
-  cs_info "    cp $SETTINGS_TEMPLATE $SETTINGS_TARGET"
-  cs_info "    \$EDITOR $SETTINGS_TARGET"
+  cs_info "  (dry-run) settings.json deployment is delegated to tools/sync.sh."
+  cs_info "  Run next:"
+  cs_info "    tools/sync.sh --dry-run"
+  cs_info "    CLAUDE_SYSTEM_ALLOW_SYNC=1 tools/sync.sh --force"
 else
-  cs_warn "  Manually deploy settings.json after this script:"
-  cs_warn "    cp $SETTINGS_TEMPLATE $SETTINGS_TARGET"
-  cs_warn "    \$EDITOR $SETTINGS_TARGET   # fill machine-local TODO sections"
+  cs_info "  settings.json deployment is delegated to tools/sync.sh"
+  cs_info "  (machine-local cp-deploy; see ADR 0007 for boundary rationale)."
+  cs_info "  Run next:"
+  cs_info "    tools/sync.sh --dry-run"
+  cs_info "    CLAUDE_SYSTEM_ALLOW_SYNC=1 tools/sync.sh --force"
 fi
 
 # ---------------------------------------------------------------------------
@@ -232,6 +324,7 @@ else
   cs_step "Migration complete!"
   cs_info "  Backup (permanent): $BACKUP_DIR"
   cs_info "  Old claude-settings: ~/ws/claude-settings/ (archive)"
-  cs_info "  Next step: place ~/.claude/settings.json from template, then test 'claude' in a project."
+  cs_info "  Next step: deploy settings.json via 'tools/sync.sh' (ADR 0007),"
+  cs_info "             then test 'claude' in a project."
   cs_info "  Rollback if needed: tools/migrate/rollback-from-claude-system.sh"
 fi

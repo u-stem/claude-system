@@ -2,6 +2,35 @@
 
 このリポジトリの変更履歴。Phase 単位でセクション化する。
 
+## Phase 10 follow-up 1: migrate スクリプトの堅牢性と責務境界(2026-05-04)
+
+Phase 10 実行中に発見された 2 つの観測 — `from-claude-settings.sh` が壊れた symlink で停止した点と、Step 7 の文言が `sync.sh` の自動配置と矛盾していた点 — を、再実行可能性と責務境界という共通テーマで一体的に対処した。`meta/TODO-for-v0.2.md` 項目 12, 13 を消化。
+
+### ADR 起票
+
+- `0007-phase10-migration-script-robustness-and-boundary.md`
+  - 堅牢性方針: preflight で dangling symlink を検出 → 対話環境では削除選択、非対話環境では警告のみで続行 / Step 4 を `find -print0` ベースの局所関数に置換し dangling は skip + warn(両案併用)
+  - 責務境界: `from-claude-settings.sh` = 1 回限りの構造変更、`tools/sync.sh` = 再実行可能な値配置(machine-local cp-deploy)。settings.json の cp は `sync.sh` の責務であることを明文化(案 X、文言整合)
+
+### 実装
+
+- `tools/migrate/from-claude-settings.sh`:
+  - 冒頭ヘッダコメントを ADR 0007 の 3 つの挙動(preflight / robust copy / delegated settings.json)に揃えて書き換え
+  - 局所関数 `cs_robust_copy_resolved` を新設(dangling skip + 解決可能 symlink は `cp -L`、ディレクトリは mkdir、ファイルは `cp`)
+  - **Step 2.5(新規)**: dangling symlink scan + 対話削除選択(非対話は警告のみで続行)
+  - **Step 4**: `cp -L -R` を `cs_robust_copy_resolved` に置換、skip 件数を末尾でサマリ表示
+  - **Step 7**: 「manual placement」を撤回、「次に `tools/sync.sh` を実行」に書換(設計と挙動の整合)
+  - Summary の Next step 表示を `tools/sync.sh` への誘導に書換
+- `meta/decisions/README.md`: 既存 ADR 表に 0007 を追加
+
+### 検証
+
+- `tools/doctor.sh`: clean(error 0)
+- `shellcheck -S warning`: pass(warning level)
+- 挙動シミュレーション: dry-run で Step 2.5 / Step 4 / Step 7 の出力を目視確認
+
+---
+
 ## Phase 10: 旧設定からの移行(2026-05-04)
 
 `~/.claude/` を `~/ws/claude-settings/` への symlink から claude-system 配下を指す構成へ切り替えた。新システムでの Claude Code 起動を確認。
