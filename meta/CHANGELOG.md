@@ -2,6 +2,31 @@
 
 このリポジトリの変更履歴。Phase 単位でセクション化する。
 
+## Phase 10: 旧設定からの移行(2026-05-04)
+
+`~/.claude/` を `~/ws/claude-settings/` への symlink から claude-system 配下を指す構成へ切り替えた。新システムでの Claude Code 起動を確認。
+
+### 実行
+
+- `tools/migrate/from-claude-settings.sh` は Phase 9 の `79901da`(2026-04-29 17:31)で配置済、Phase 10(2026-05-04 16:25)で実行
+- 新構成: `~/.claude/{CLAUDE.md, skills, hooks, commands, agents}` が `claude-system/adapters/claude-code/` 配下への symlink
+- `~/.claude/settings.json` は template と一致した状態で配置(10858 bytes)
+- 永続バックアップ: `~/.claude-system-backups/migration-20260504-162515/dot-claude-resolved/`(移行前は `~/ws/claude-settings` への symlink)
+- 旧 `~/ws/claude-settings/` はアーカイブ扱い(読み取り専用)
+
+### 遭遇した issue
+
+- Step 4 のバックアップ(`cp -L -R`)が `~/ws/claude-settings/debug/latest` の壊れた symlink(消えた実体を指す dangling link)で exit 1。当該 symlink を手動削除してリトライし復旧した
+- 移行中に発見された改善点 2 件は [`TODO-for-v0.2.md`](./TODO-for-v0.2.md) に記録(migrate スクリプトの壊れた symlink 耐性 / Phase 10 手順における settings.json 配置の責務整合)
+
+### 検証
+
+- `from-claude-settings.sh` 内蔵の Step 8 で `tools/doctor.sh` 自動実行 → clean
+- 新システムで Claude Code が起動し、CLAUDE.md / skills / hooks / commands / agents の解決を確認
+- 切替後の `~/.claude/settings.json` と `adapters/claude-code/user-level/settings.json.template` を `diff` で比較 → 完全一致
+
+---
+
 ## [v0.1.0-rc2] — 2026-04-29
 
 rc1 のレビュー対応で「`.gitleaks.toml` の email literal は ADR 0001 違反」として複雑な対応(paths 除外 / allowlist regexes / hooks 環境変数)が入ったが、本質的な対策は「そもそもユーザー識別子を claude-system に書かない」だったと再評価。新たに ADR 0006 を起票して原則を確立し、rc1 で導入した過剰反応を簡素化した。

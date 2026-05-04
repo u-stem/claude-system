@@ -255,8 +255,50 @@ drawzzz 再開時:
 
 ---
 
+## 12. migrate スクリプトの壊れた symlink 耐性
+
+### 経緯
+
+Phase 10(2026-05-04)で `tools/migrate/from-claude-settings.sh` を実行した際、Step 4 のバックアップ(`cp -L -R "$CLAUDE_HOME" "$BACKUP_DIR/dot-claude-resolved"`)が `~/ws/claude-settings/debug/latest` の壊れた symlink(消えた実体を指す)で exit 1 して失敗した。手動で当該 symlink を削除してリトライし復旧。`-L` で symlink を辿る挙動と、claude-settings 側に蓄積していたランタイム由来の dangling symlink との相性問題。
+
+### 提案
+
+- 案 (a) preflight 強化: Step 1 ないし Step 2 に `find "$CLAUDE_HOME" -type l ! -exec test -e {} \; -print` を走らせ、検出されたら警告して継続可否を `cs_confirm` で問う。再実行する利用者に「事前に消すか、続行する」の選択肢を提示。
+- 案 (b) Step 4 を堅牢化: `cp -L -R` を諦めて壊れた symlink をスキップするコピー実装に切替(例: `find ... -print0 | while read; do ...` で個別判定)。または `cp -R`(symlink を symlink のままコピー)に変更し、`_kind.txt` 側でその旨を記録。
+- 両案併用も可。preflight で検知 → 修復後に堅牢化された Step 4 で安全側に倒す。
+
+### トリガー
+
+- 別マシンで `from-claude-settings.sh` を再実行する機会
+- 旧 claude-settings を持たない新規環境向けに migrate スクリプトを汎用化する判断時
+- v0.2 に向けて migrate 系を触る次の機会
+
+---
+
+## 13. Phase 10 手順における settings.json 配置の責務整合
+
+### 経緯
+
+Phase 10 実行時、`tools/migrate/from-claude-settings.sh` Step 7 は「settings.json は manual placement」と表示するが、設計上の続きの手順 `tools/sync.sh`(`tools/setup.sh:68` で正規手順として案内)が `tools/sync.sh:118-134` で template → `~/.claude/settings.json` を自動 `cp` する。結果として settings.json は実際には自動配置される。`from-claude-settings.sh` の文言だけ見ると挙動と矛盾する。
+
+Phase 10 実行直後の `~/.claude/settings.json`(10858 bytes)は `adapters/claude-code/user-level/settings.json.template` と byte-perfect 一致していたため、template からの機械的コピーが行われたのは確実。
+
+### 判断軸
+
+- 案 X: `from-claude-settings.sh` Step 7 の表示を「次に `tools/sync.sh` を走らせる」に書き換え、sync.sh が cp する旨を明記する(文言修正、最小変更)
+- 案 Y: `from-claude-settings.sh` 内で settings.json をコピーまでやってしまい、sync.sh の該当ブロックは別用途(再同期・再配置)に限定する(責務集約)
+- 案 Z: 逆に sync.sh の cp ロジックを削除して文字通り「manual」を強制し、ユーザーに `cp` を打たせる(責務削減)
+
+### トリガー
+
+- 別マシン・新環境で再実行する次の機会
+- rc3 リリース判断時
+- 項目 12 と同タイミングでまとめて対応するのが筋
+
+---
+
 ## 関連
 
-- [`CHANGELOG.md`](./CHANGELOG.md) — Phase 0-9 完了履歴
+- [`CHANGELOG.md`](./CHANGELOG.md) — Phase 0-10 完了履歴
 - [`decisions/`](./decisions/) — ADR
 - [`integration-trace.md`](./integration-trace.md) — Phase 9 統合テストシミュレーション
