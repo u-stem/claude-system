@@ -2,6 +2,42 @@
 
 このリポジトリの変更履歴。Phase 単位でセクション化する。
 
+## Phase 10 follow-up 2: ユーザー識別子パスの機械検出(2026-05-04)
+
+ADR 0006 が「user identifiers literal を tree に書かない」を規範化していたが、絶対パス内ユーザー名(`/Users/<name>/`)については機械検出が空白だった。Phase 10 follow-up 1 のレビュー過程で `/Users/<name>/...` literal の混入が手動 grep で発見されたことを契機に、規範の第一防衛線を機械担保で補強する第二防衛線を追加。
+
+### ADR 起票
+
+- `0008-mechanical-detection-of-user-identifier-paths.md`
+  - 二段階防衛: 編集時 warn(`post-edit-validate.sh`)+ commit 時 block(`.gitleaks.toml` custom rule)。レベル分けは「編集中の試行錯誤を妨げず、commit 段階では確実に止める」両立のため
+  - 自己参照回避: 検出パターン自身が `/Users/` literal を含むため、検出器の定義ファイル群(`hooks/` 配下、`.gitleaks.toml` 自身)は paths allowlist で個別除外
+  - ADR 0006 自身の例外節は無修正(ADR 0007 で確定した「禁じ手」方針との一貫性)
+  - macOS 前提で実装、multi-OS 対応時の検出パターン拡張は Negative に明記して将来再判断
+
+### 実装
+
+- `adapters/claude-code/user-level/hooks/post-edit-validate.sh`:
+  - 第 3 検出器として `/Users/[a-zA-Z0-9._-]+/` の grep 検出を追加(SKILL.md / forbidden-words に並列)
+  - 編集対象が `adapters/claude-code/user-level/hooks/*` 配下の場合はスキップ(自己参照回避)
+- `.gitleaks.toml`:
+  - custom rule `[[rules]] id = "user-identifier-path"` を追加(commit 時 block レイヤ)
+  - 既存 `[allowlist].paths` に hooks ディレクトリ (`adapters/claude-code/user-level/hooks/.*`) とランタイム生成物 (`\.claude/.*`) を統合追記
+- `meta/integration-trace.md`:
+  - Phase 9 シミュレーションログ(`sync.sh --dry-run` 出力例)の line 167-177 を `/Users/<name>/...` から `~/...` チルダ表記に置換。新規違反を allowlist で逃がす誘惑を断ち切るための既存修正(ADR 0008 の起票時に initial detection で発見)
+- `meta/decisions/README.md`: 既存 ADR 表に 0008 を追加
+
+### 検証
+
+- 自己テスト(literal 一時挿入 → 4 段階確認 → 復元):
+  - warn 検出: post-edit-validate.sh が `[hook][WARN] user-identifier path ... (ADR 0008)` を stderr 出力 → OK
+  - block 検出: `git add` 後 `gitleaks` が exit 1 + custom rule `user-identifier-path` ヒット → OK
+  - byte-perfect 復元: `diff -q` 完全一致 → OK
+  - clean 復帰: 復元後 `gitleaks` exit 0 + `no leaks found` → OK
+- `gitleaks detect --no-git --config .gitleaks.toml`: no leaks found(誤検出ゼロ)
+- `shellcheck -S warning`: pass
+
+---
+
 ## Phase 10 follow-up 1: migrate スクリプトの堅牢性と責務境界(2026-05-04)
 
 Phase 10 実行中に発見された 2 つの観測 — `from-claude-settings.sh` が壊れた symlink で停止した点と、Step 7 の文言が `sync.sh` の自動配置と矛盾していた点 — を、再実行可能性と責務境界という共通テーマで一体的に対処した。`meta/TODO-for-v0.2.md` 項目 12, 13 を消化。

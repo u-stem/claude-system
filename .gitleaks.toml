@@ -8,24 +8,41 @@
 # detector has nothing to false-positive on and there is nothing to
 # allowlist. Detection is now a pure last-resort: anything matched in
 # README.md / meta/*.md is a real new leak.
+#
+# rc3 (ADR 0008): adds a custom rule for /Users/<name>/ absolute paths as the
+# commit-time block layer of the two-stage defense (warn layer is
+# post-edit-validate.sh). The hooks directory is added to the paths allowlist
+# because it embeds the pattern definition itself — the same self-reference
+# avoidance applied to .gitleaks.toml in earlier rc.
 
 title = "claude-system gitleaks config"
 
 [extend]
 useDefault = true
 
-[allowlist]
-description = "Suppress false positives in templates, drafts, and intentional placeholders only. User identifiers are kept out of the tree per ADR 0006, so no path-level allowlist is needed for them."
+# Custom rule: block absolute paths of the form /Users/<name>/... at commit
+# time. ADR 0008 establishes this as the second defense layer behind the
+# post-edit-validate warn. macOS-specific by design (ADR 0008 Negative);
+# multi-OS extension is deferred until TODO item 9 is taken up.
+[[rules]]
+id = "user-identifier-path"
+description = "Absolute path containing macOS username (/Users/<name>/...) leaks operator identity — ADR 0008"
+regex = '''/Users/[a-zA-Z0-9._-]+/'''
 
-# Path allowlist: only generated artefacts / templates / drafts / this config.
-# Documentation trees (README.md, meta/*.md, principles/, ADRs themselves)
-# are scanned in full — the assumption is that the tree contains no literal
-# user identifiers (ADR 0006).
+[allowlist]
+description = "Suppress false positives in templates, drafts, intentional placeholders, and the hook scripts that hold the ADR 0008 pattern definition itself."
+
+# Path allowlist: only generated artefacts / templates / drafts / hook scripts
+# / this config. Documentation trees (README.md, meta/*.md, principles/, ADRs
+# themselves) are scanned in full — the assumption is that the tree contains
+# no literal user identifiers (ADR 0006).
 paths = [
   '''adapters/claude-code/project-templates/.*''',
   '''adapters/claude-code/project-fragments/.*''',
   '''adapters/claude-code/user-level/settings\.json\.template''',
   '''adapters/claude-code/user-level/mcp/servers\.template\.json''',
+  '''adapters/claude-code/user-level/hooks/.*''',
+  '''\.claude/.*''',
   '''.*\.template''',
   '''.*\.md\.draft''',
   '''.*\.gitleaks\.toml''',

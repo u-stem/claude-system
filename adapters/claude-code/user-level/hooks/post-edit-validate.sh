@@ -45,4 +45,22 @@ case "$PATH_FIELD" in
     ;;
 esac
 
+# 3. User-identifier path detection (ADR 0008, warn layer of two-stage defense).
+# Absolute paths of the form /Users/<name>/... leak the operator identity.
+# Skip hook scripts themselves: this very file embeds the pattern literal
+# below and would self-trigger. .gitleaks.toml is intentionally NOT skipped
+# here even though ADR 0008 Decision 3 enumerates it as a file that holds
+# the pattern literal — warn is non-blocking, the commit-time gitleaks
+# block layer (whose paths allowlist already contains '.gitleaks\.toml')
+# is the real defense for that file, and adding a second skip rule would
+# broaden the warn-layer allowlist surface for a harmless false-positive.
+case "$PATH_FIELD" in
+  */adapters/claude-code/user-level/hooks/*) ;;
+  *)
+    if /usr/bin/grep -qE '/Users/[a-zA-Z0-9._-]+/' "$PATH_FIELD"; then
+      hk_warn "user-identifier path '/Users/<name>/' present in $PATH_FIELD (ADR 0008)"
+    fi
+    ;;
+esac
+
 exit 0

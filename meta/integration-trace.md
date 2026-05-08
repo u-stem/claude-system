@@ -164,17 +164,17 @@ test -f AGENTS.md && wc -l AGENTS.md
 
 ```
 ==> sync.sh plan (DRY-RUN)
-[INFO] CLAUDE_HOME = /Users/mikiya/.claude
-[INFO] CS_ROOT     = /Users/mikiya/ws/claude-system
-[WARN] Existing /Users/mikiya/.claude/CLAUDE.md will be moved to /Users/mikiya/.claude-system-backups/CLAUDE.md.backup-20260429-170257
-[WARN] Existing /Users/mikiya/.claude/skills will be moved to /Users/mikiya/.claude-system-backups/skills.backup-20260429-170257
-[WARN] Existing /Users/mikiya/.claude/hooks will be moved to /Users/mikiya/.claude-system-backups/hooks.backup-20260429-170257
-[WARN] Existing /Users/mikiya/.claude/commands will be moved to /Users/mikiya/.claude-system-backups/commands.backup-20260429-170257
-[WARN] Existing /Users/mikiya/.claude/agents will be moved to /Users/mikiya/.claude-system-backups/agents.backup-20260429-170257
+[INFO] CLAUDE_HOME = ~/.claude
+[INFO] CS_ROOT     = ~/ws/claude-system
+[WARN] Existing ~/.claude/CLAUDE.md will be moved to ~/.claude-system-backups/CLAUDE.md.backup-20260429-170257
+[WARN] Existing ~/.claude/skills will be moved to ~/.claude-system-backups/skills.backup-20260429-170257
+[WARN] Existing ~/.claude/hooks will be moved to ~/.claude-system-backups/hooks.backup-20260429-170257
+[WARN] Existing ~/.claude/commands will be moved to ~/.claude-system-backups/commands.backup-20260429-170257
+[WARN] Existing ~/.claude/agents will be moved to ~/.claude-system-backups/agents.backup-20260429-170257
 
 ==> settings.json deployment plan
-[INFO] settings.json already exists at /Users/mikiya/.claude/settings.json; manual diff/merge required.
-[INFO] Phase 10 procedure: review, then cp or merge from /Users/mikiya/ws/claude-system/adapters/claude-code/user-level/settings.json.template
+[INFO] settings.json already exists at ~/.claude/settings.json; manual diff/merge required.
+[INFO] Phase 10 procedure: review, then cp or merge from ~/ws/claude-system/adapters/claude-code/user-level/settings.json.template
 
 ==> Dry-run complete. No changes applied.
 ```

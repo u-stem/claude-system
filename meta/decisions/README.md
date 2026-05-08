@@ -80,6 +80,7 @@ claude-system における設計上の重大な意思決定を記録する場所
 | [0005](./0005-bootstrap-completion-and-deferral.md) | Bootstrap Completion (v0.1.0-rc1) and Phase 10 Deferral | Accepted (2026-04-29) | Phase 9 完了で機能完成、`v0.1.0-rc1` リリース候補化。Phase 10 切り替えは検証期間確保のため遅延、完了時に `v0.1.0` 付与 |
 | [0006](./0006-no-user-identifiers-in-system.md) | No User Identifiers Inside the System | Accepted (2026-04-29) | ADR 0001 の具体実装。本名 / 個人 email / GitHub handle の literal を claude-system に書かない(URL 内の自動参照・LICENSE Copyright holder・プレースホルダは例外)。`.gitleaks.toml` の allowlist 設計や hooks の許容アドレス除外を簡素化する |
 | [0007](./0007-phase10-migration-script-robustness-and-boundary.md) | Phase 10 Migration Script — Robustness and Responsibility Boundary | Accepted (2026-05-04) | Phase 10 経験から得た 2 つの教訓を再実行可能性と責務境界という共通テーマで一体化。`from-claude-settings.sh` の preflight + Step 4 を堅牢化し dangling symlink を skip。settings.json の cp-deploy は `sync.sh` の責務として明文化 |
+| [0008](./0008-mechanical-detection-of-user-identifier-paths.md) | Mechanical Detection of User-Identifier Paths | Accepted (2026-05-04) | ADR 0006 の機械担保。絶対パス内ユーザー名(`/Users/<name>/`)を二段階で検出 — `post-edit-validate.sh` で編集時 warn、`.gitleaks.toml` custom rule で commit 時 block。自己参照回避は paths allowlist で対処 |
 
 ## ADR を書くタイミング
 
