@@ -72,7 +72,7 @@ model: haiku
 - 一回の探索で **10 ファイル以上**読む見込み
 - メインコンテキストが既に大きく、追加読み込みで信号比が落ちる
 - 同じ探索を**複数回**繰り返す可能性がある(キャッシュ的に分離)
-- Opus 4.7 期は単発の小タスクはメインで直接実行が原則([`adapters/claude-code/user-level/CLAUDE.md`](~/ws/claude-system/adapters/claude-code/user-level/CLAUDE.md) §6 作業フロー、5 クエリ超で委譲)
+- Opus 4.8 期は並列ファンアウトが安価・確実なため、境界では委譲を選ぶ。単発の小タスクはメイン直接実行、広範な探索(多数ファイル / 命名規則の横断)は早めに委譲([`adapters/claude-code/user-level/CLAUDE.md`](~/ws/claude-system/adapters/claude-code/user-level/CLAUDE.md) §6 作業フロー、5 クエリ超で委譲、[`meta/decisions/0009-opus-48-autonomy-tuning.md`](~/ws/claude-system/meta/decisions/0009-opus-48-autonomy-tuning.md))
 
 ## 関連参照
 

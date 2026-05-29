@@ -80,7 +80,7 @@
 ## 6. 作業フロー
 
 1. 仕様を明確にし、既存コードのパターンを確認
-2. リスクが高い操作のみ事前確認を取る(Opus 4.7 期は自律判断を尊重し、確認プロンプトを抑制)
+2. リスクが高い操作のみ事前確認を取る(Opus 4.8 期は自律判断を尊重し確認プロンプトを抑制。可逆操作は自律実行、不可逆・外向き操作のみ事前確認。詳細は [`meta/decisions/0009-opus-48-autonomy-tuning.md`](../../../meta/decisions/0009-opus-48-autonomy-tuning.md))
 3. Red → Green → Refactor
 4. lint / typecheck / 必要なら test を実行
 5. 上記「完了時の必須報告フォーマット」で報告
