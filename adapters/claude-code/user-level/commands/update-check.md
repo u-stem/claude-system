@@ -36,7 +36,8 @@ claude-system の設定を最新のベストプラクティスに更新するた
 
 ### 5. ガードレール
 
-- gitleaks の新ルール / 新バージョン
+- gitleaks の更新(v8 は feature-complete 宣言済み = 今後はセキュリティパッチのみ。新機能は来ない前提で、セキュリティ修正リリースのみ追従する)
+- gitleaks 後継 / 代替の動向(メンテナは後継プロジェクトへ移行を表明済み。乗り換え要否を継続評価)
 - pre-commit-hooks の新規 hook
 - Phase 7b で実装した hooks との整合
 

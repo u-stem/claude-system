@@ -2,6 +2,24 @@
 
 このリポジトリの変更履歴。Phase 単位でセクション化する。
 
+## 依存・ドキュメントの陳腐化解消(2026-05-29)
+
+`update-check` 観点での棚卸しにより、グローバル基盤側に残っていた版ずれを解消した。
+
+### MCP テンプレートのバージョン更新
+
+- `adapters/claude-code/user-level/mcp/servers.template.json`
+  - `chrome-devtools-mcp`: `0.20.3` → `1.1.1`(メジャーバンプ)。破壊的変更は実行時ツール挙動(`pageId` の必須化、`getSelectedMcpPage` の廃止、シグナルハンドリング刷新)が中心で、起動方法 `npx chrome-devtools-mcp@<version>` および `setup-mcp.sh` の args 受け渡しは不変のため、テンプレートの pin 更新のみで安全と確認
+  - `@playwright/mcp`: `0.0.70` → `0.0.75`(minor)
+  - `sequential-thinking`(`2025.12.18`)は最新のため据え置き
+
+### ドキュメント修正
+
+- `adapters/claude-code/README.md`: 前提バージョン散文 `現在: 2.1.119` → `2.1.156`(VERSION 本体は ADR 0010 で同期済みだが散文が取り残されていた)
+- `adapters/claude-code/user-level/commands/update-check.md` ガードレール調査項目: gitleaks が feature-complete を宣言(今後はセキュリティパッチのみ、メンテナは後継プロジェクトへ移行表明)した事実を反映し、追従方針を「セキュリティ修正のみ追従 + 後継/代替の動向を継続評価」に更新
+
+---
+
 ## Opus 4.8 自律性チューニング(2026-05-29)
 
 運用モデルが Opus 4.7 から 4.8 に更新されたことを受け、4.7 期に専用 ADR を持たず adapter 層へ散文として点在していた自律性運用方針を ADR として正式化し、4.8 の能力(マルチエージェント・オーケストレーション / background 実行・スケジューリング / 並列ファンアウト / 構造化質問 / 遅延ツールロード)を前提に更新した。
