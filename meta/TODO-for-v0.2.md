@@ -4,6 +4,28 @@ Phase 9(`v0.1.0-rc1` リリース候補化)で消化しきれなかった、ま�
 
 このファイルは `meta/TODO-for-phase-9.md` を継承する。Phase 9 で実施した項目は本ファイルに記載しない([`CHANGELOG.md`](./CHANGELOG.md) Phase 9 セクションを参照)。
 
+## ステータス区分
+
+各項目を鮮度で仕分ける。「解決済み」はクローズ記録(末尾)へ移動済み。
+
+| # | 項目 | 状態 |
+|---|------|------|
+| 1 | 「旧資産からの継承」節の整理判断 | 継続保留 |
+| 2 | テンプレート構造の階層化深化 | トリガー待ち |
+| 3 | テンプレート成熟度の昇格基準 | トリガー待ち |
+| 4 | kairous `rules/*.md` の重複削除(案 X) | トリガー待ち(順序依存) |
+| 5 | Phase 8 で発見された skill 化候補 | トリガー待ち |
+| 6 | AGENTS.md の扱い | 条件待ち(Codex CLI 動向) |
+| 7 | claude-system 自身の Issue 駆動運用 | v0.2 開発開始時 |
+| 8 | drawzzz 取り込み | トリガー待ち(再開時) |
+| 9 | マシン横断のメモリ同期 | 検討(別マシン時) |
+| 10 | レトロ連動の自動化 | トリガー待ち(月次レトロ 3 ヶ月後) |
+| 11 | principles / practices 層の見直し履歴 | 継続保留(四半期見直し定例化後) |
+| 12 | migrate スクリプトの壊れた symlink 耐性 | **解決済み** → クローズ記録 |
+| 13 | settings.json 配置の責務整合 | **解決済み** → クローズ記録 |
+| 14 | ADR 0011 実装(委譲オーケストレーション) | **解決済み** → クローズ記録 |
+| 15 | ADR 0012 実装(トークン経済の機械化) | **解決済み** → クローズ記録 |
+
 ---
 
 ## 1. 「旧資産からの継承」セクションの整理判断(継続保留)
@@ -255,45 +277,16 @@ drawzzz 再開時:
 
 ---
 
-## 12. migrate スクリプトの壊れた symlink 耐性
+## 解決済み(クローズ記録)
 
-### 経緯
+以下は v0.2 を待たず Phase 10 後続作業で解決済み。経緯の全文は ADR と `git show` を参照。
 
-Phase 10(2026-05-04)で `tools/migrate/from-claude-settings.sh` を実行した際、Step 4 のバックアップ(`cp -L -R "$CLAUDE_HOME" "$BACKUP_DIR/dot-claude-resolved"`)が `~/ws/claude-settings/debug/latest` の壊れた symlink(消えた実体を指す)で exit 1 して失敗した。手動で当該 symlink を削除してリトライし復旧。`-L` で symlink を辿る挙動と、claude-settings 側に蓄積していたランタイム由来の dangling symlink との相性問題。
-
-### 提案
-
-- 案 (a) preflight 強化: Step 1 ないし Step 2 に `find "$CLAUDE_HOME" -type l ! -exec test -e {} \; -print` を走らせ、検出されたら警告して継続可否を `cs_confirm` で問う。再実行する利用者に「事前に消すか、続行する」の選択肢を提示。
-- 案 (b) Step 4 を堅牢化: `cp -L -R` を諦めて壊れた symlink をスキップするコピー実装に切替(例: `find ... -print0 | while read; do ...` で個別判定)。または `cp -R`(symlink を symlink のままコピー)に変更し、`_kind.txt` 側でその旨を記録。
-- 両案併用も可。preflight で検知 → 修復後に堅牢化された Step 4 で安全側に倒す。
-
-### トリガー
-
-- 別マシンで `from-claude-settings.sh` を再実行する機会
-- 旧 claude-settings を持たない新規環境向けに migrate スクリプトを汎用化する判断時
-- v0.2 に向けて migrate 系を触る次の機会
-
----
-
-## 13. Phase 10 手順における settings.json 配置の責務整合
-
-### 経緯
-
-Phase 10 実行時、`tools/migrate/from-claude-settings.sh` Step 7 は「settings.json は manual placement」と表示するが、設計上の続きの手順 `tools/sync.sh`(`tools/setup.sh:68` で正規手順として案内)が `tools/sync.sh:118-134` で template → `~/.claude/settings.json` を自動 `cp` する。結果として settings.json は実際には自動配置される。`from-claude-settings.sh` の文言だけ見ると挙動と矛盾する。
-
-Phase 10 実行直後の `~/.claude/settings.json`(10858 bytes)は `adapters/claude-code/user-level/settings.json.template` と byte-perfect 一致していたため、template からの機械的コピーが行われたのは確実。
-
-### 判断軸
-
-- 案 X: `from-claude-settings.sh` Step 7 の表示を「次に `tools/sync.sh` を走らせる」に書き換え、sync.sh が cp する旨を明記する(文言修正、最小変更)
-- 案 Y: `from-claude-settings.sh` 内で settings.json をコピーまでやってしまい、sync.sh の該当ブロックは別用途(再同期・再配置)に限定する(責務集約)
-- 案 Z: 逆に sync.sh の cp ロジックを削除して文字通り「manual」を強制し、ユーザーに `cp` を打たせる(責務削減)
-
-### トリガー
-
-- 別マシン・新環境で再実行する次の機会
-- rc3 リリース判断時
-- 項目 12 と同タイミングでまとめて対応するのが筋
+| 旧# | 項目 | 解決内容 |
+|---|---|---|
+| 12 | migrate スクリプトの壊れた symlink 耐性 | [ADR 0007](./decisions/0007-phase10-migration-script-robustness-and-boundary.md) + commit `8e2ed0d`。`from-claude-settings.sh` に preflight の dangling symlink 検出・除去を追加し、Step 4 のバックアップを `cp -L -R` から `find -print0` ベースの個別判定コピーへ置換(dangling は skip + warn)。再実行可能性を確保 |
+| 13 | settings.json 配置の責務整合 | 同 ADR 0007 + commit `8e2ed0d`。`from-claude-settings.sh` を「1 回限りの構造変更」、`sync.sh` を「再実行可能な値配置」と責務分離し、Step 7 の文言を「`tools/sync.sh` に委譲」へ書き換え。挙動と文言を一致させた |
+| 14 | ADR 0011 実装(委譲オーケストレーション) | [ADR 0011](./decisions/0011-delegation-orchestration-protocol.md)(Accepted)。`practices/delegation-orchestration.md` 新設 + `subagents/_index.md` に委譲プロトコル節を追加。役割分離 / 委譲トリガーの定量基準 / 返却スキーマ / 段階を明文化 |
+| 15 | ADR 0012 実装(トークン経済の機械化) | [ADR 0012](./decisions/0012-token-economy-mechanization.md)(Accepted)。`practices/token-economy.md` 新設 + 出力キャップ hook `pre-bash-output-cap.sh`(PreToolUse + `updatedInput`)を導入・結線。`subagent-log.jsonl` を計測点に位置づけ |
 
 ---
 

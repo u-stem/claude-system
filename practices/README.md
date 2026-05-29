@@ -35,6 +35,8 @@
 | `development-workflow.md` | 開発ワークフロー | 02, 06 |
 | `coding-style-conventions.md` | コーディングスタイル(言語非依存部分) | 03, 02, 01 |
 | `commit-conventions.md` | コミット規約 | 02, 03 |
+| `delegation-orchestration.md` | 委譲とオーケストレーションの規律 | 01, 03, 05 |
+| `token-economy.md` | トークン経済の運用(発動点 → 機構 → 計測) | 01, 04, 05 |
 
 (数字は `principles/0N-…` の番号)
 

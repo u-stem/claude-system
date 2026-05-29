@@ -2,6 +2,32 @@
 
 このリポジトリの変更履歴。Phase 単位でセクション化する。
 
+## リポジトリ棚卸し + 委譲/トークン経済の ADR 起票(2026-05-29)
+
+リポジトリ全体を分析し、stale 情報のクローズと、運用プロトコルが薄かった 2 領域(委譲オーケストレーション / トークン経済)の設計を ADR として起票した。
+
+### 整理(stale クローズ)
+
+- `meta/TODO-for-v0.2.md`: 先頭にステータス区分表を追加(継続保留 / トリガー待ち / 解決済みの仕分け)。項目 12(migrate スクリプトの dangling symlink 耐性)・項目 13(settings.json 配置の責務整合)は ADR 0007 + commit `8e2ed0d` で実装済みのため本文を「解決済み(クローズ記録)」へ移動
+- `CLAUDE.md`「Phase 進行」節: bootstrap(Phase 0-10)完了済み(ADR 0005)の事実を反映し、`~/.claude-system-bootstrap/` を現役手順ではなく歴史的資料と位置づけ。継続課題は TODO-for-v0.2、完了履歴は CHANGELOG を参照する形へ書き換え
+
+### ADR 起票 + 実装(Accepted)
+
+- `0011-delegation-orchestration-protocol.md`: メイン=オーケストレータ規律の明文化。役割分離 / 委譲トリガー(定量基準)/ 渡す情報と返却スキーマ(structured output)/ 単発→ファンアウト→Workflow の段階。ADR 0009 §2(委譲積極化・方針)の運用プロトコル詳細として位置づけ
+  - 実装: `practices/delegation-orchestration.md` 新設、`adapters/claude-code/subagents/_index.md` に「委譲プロトコル」節を追加
+- `0012-token-economy-mechanization.md`: トークン抑制の機械化。圧縮ポイントの因果一覧 / 出力キャップ hook / `subagent-log.jsonl` を計測点に接続。principles/01 の公理を機械実装と計測へ落とす
+  - 実装: `practices/token-economy.md` 新設、出力キャップ hook `pre-bash-output-cap.sh` を導入し `settings.json.template` の PreToolUse(Bash)へ結線
+  - 機構の訂正: 当初 ADR は「PostToolUse でキャップ」と記したが、PostToolUse は実行済み結果を変更できないため **PreToolUse + `hookSpecificOutput.updatedInput.command`**(Claude Code v2.0.10+)でコマンドを実行前に書き換える方式へ変更。test/build/lint の単純コマンドのみ stdout を `tail`、stderr と終了コード(`PIPESTATUS`)は保持
+
+### 文書更新
+
+- `adapters/claude-code/user-level/hooks/_README.md`: 「Phase 3 プレースホルダ / Phase 7b 実装予定」のまま実態と乖離し、未移植の `filter-test-output.sh` を予定として記載し retire 済みの `TODO-for-phase-7b.md` への切れリンクを含んでいたため、実装済み hook 一覧へ全面更新
+- `practices/README.md`: 構成表に 2 practice を追加
+- `meta/decisions/README.md`: 既存 ADR 表に 0011 / 0012 を追加(Accepted)
+- `meta/claude-version-log.md`: 2026-05-29 の棚卸し + ADR 0011/0012 行を追記
+
+---
+
 ## 依存・ドキュメントの陳腐化解消(2026-05-29)
 
 `update-check` 観点での棚卸しにより、グローバル基盤側に残っていた版ずれを解消した。

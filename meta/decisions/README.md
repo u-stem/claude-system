@@ -83,6 +83,8 @@ claude-system における設計上の重大な意思決定を記録する場所
 | [0008](./0008-mechanical-detection-of-user-identifier-paths.md) | Mechanical Detection of User-Identifier Paths | Accepted (2026-05-04) | ADR 0006 の機械担保。絶対パス内ユーザー名(`/Users/<name>/`)を二段階で検出 — `post-edit-validate.sh` で編集時 warn、`.gitleaks.toml` custom rule で commit 時 block。自己参照回避は paths allowlist で対処 |
 | [0009](./0009-opus-48-autonomy-tuning.md) | Opus 4.8 Autonomy Tuning | Accepted (2026-05-29) | Opus 4.8 期の自律性運用方針を初めて正式に ADR 化。確認抑制の線引き(可逆=自律 / 不可逆・外向き=確認)、サブエージェント委譲の積極化、Workflow はユーザー明示オプトイン時のみ、background / スケジューリング指針を集約。散在していた 4.7 前提の運用記述を更新 |
 | [0010](./0010-opus-48-harness-settings-sync.md) | Opus 4.8 Harness Settings Synchronization | Accepted (2026-05-29) | ADR 0009 の機械層同期。`settings.json.template` の model pin を 4.8 に、`VERSION` を実インストール版(2.1.156)に同期。autonomy 方針は文脈依存判断のため hook 強制せず、既存 deny/ask ガードが「不可逆操作は確認」の線引きを部分担保していることを確認・記録 |
+| [0011](./0011-delegation-orchestration-protocol.md) | Delegation / Orchestration Protocol | Accepted (2026-05-29) | ADR 0009 §2(委譲積極化・方針)の運用プロトコル詳細。メイン=オーケストレータ規律(役割分離 / 委譲トリガーの定量基準 / 渡す情報と返却スキーマ / 単発→ファンアウト→Workflow の段階)。`practices/delegation-orchestration.md` + `subagents/_index.md` 委譲プロトコル節として実装済み |
+| [0012](./0012-token-economy-mechanization.md) | Token Economy Mechanization and Measurement | Accepted (2026-05-29) | principles/01 の公理を機械化。圧縮ポイントの因果一覧(`practices/token-economy.md`)、出力キャップ hook(`pre-bash-output-cap.sh`、PreToolUse + `updatedInput` でコマンド書き換え。PostToolUse は結果変更不可と判明し方式変更)、`subagent-log.jsonl` の計測点接続。実装済み |
 
 ## ADR を書くタイミング
 

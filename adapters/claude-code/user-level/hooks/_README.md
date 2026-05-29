@@ -1,7 +1,7 @@
-# user-level hooks(プレースホルダ)
+# user-level hooks
 
 このディレクトリには Claude Code のグローバル hook 用シェルスクリプトを配置する。
-本体実装は **Phase 7b**(Guardrails 層)で行う。本ファイルは Phase 3 時点のプレースホルダ。
+Phase 7b(Guardrails 層)で実装済み。Phase 10 で `~/.claude/hooks/` にシンボリックリンクされる。
 
 ## 配置場所と役割
 
@@ -9,41 +9,44 @@
 - Phase 10 で `~/.claude/hooks/` にシンボリックリンクされる
 - 実行可能ビット(`chmod +x`)を必ず付ける
 - 全スクリプトは `#!/usr/bin/env bash` + `set -euo pipefail` を必須とする(`CLAUDE.md` 絶対ルール)
+- 共通ヘルパは [`_lib.sh`](./_lib.sh) を `source` する(入力読み取り `hk_read_input` / 判定出力 `hk_deny` `hk_ask` / ログ `hk_log` 等)
 
-## Phase 7b で実装予定の hook
+## 実装済み hook 一覧
 
-詳細は [`meta/TODO-for-phase-7b.md`](../../../../meta/TODO-for-phase-7b.md) を参照。以下は概要:
-
-### 必ず取り込む高価値資産(旧資産棚卸しで「A: そのまま取り込み」分類)
+結線は [`settings.json.template`](../settings.json.template) を参照。各 hook は対象外の入力で早期 `exit 0` する。
 
 | ファイル | hook 種別 | 役割 |
 |---------|-----------|------|
+| `pre-bash-guard.sh` | PreToolUse(Bash) | `--no-verify` / 破壊的コマンドを deny |
 | `check-package-age.sh` | PreToolUse(Bash) | typosquatting / 侵害バージョン防御。`PACKAGE_MIN_AGE_DAYS`(既定 7)以内のパッケージを deny |
-| `check-failure-patterns.sh` | SessionStart | `failure-log.jsonl` から繰り返し失敗を検出して通知(自己参照ループの起点) |
+| `pre-bash-output-cap.sh` | PreToolUse(Bash) | token 経済(ADR 0012)。test/build/lint の単純コマンドの stdout を `updatedInput` で `tail -n N` にキャップ。stderr と exit code は保持。`CLAUDE_BASH_OUTPUT_CAP`(既定 200、`0` で無効) |
+| `pre-edit-protect.sh` | PreToolUse(Edit\|Write) | `claude-settings/` / `*.backup-*` への書き込み阻止 + principles/practices への禁止語混入阻止 |
+| `post-edit-validate.sh` | PostToolUse(Edit\|Write) | SKILL.md frontmatter / 禁止語 / ユーザー識別子パス(ADR 0008)の検証 |
+| `post-edit-dispatcher.sh` | PostToolUse(Edit\|Write) | プロジェクト側 `.claude/hooks/post-edit.sh` へ委譲 |
 | `log-bash-failure.sh` | PostToolUse(Bash) | 終了コード ≠ 0 を category(test/check-types/check)判定して `log-failure.sh` に渡す |
 | `log-failure.sh` | (補助) | `.claude/failure-log.jsonl` への JSONL 追記 |
-| `filter-test-output.sh` | PreToolUse(Bash) | テストコマンドを `tail -150` でラップしてコンテキスト圧縮 |
-| `require-review-before-commit.sh` | PreToolUse(Bash) | `REQUIRE_REVIEW_BEFORE_COMMIT=1` 時のみ動作する opt-in ゲート |
-
-### 新規追加検討
-
-- ADR 0001(個人特定情報)/ ADR 0002(Public/Private 境界)を機械検出する hook(`gitleaks` の custom rule または別 lint と相乗り)
-- `--no-verify` / 破壊的 git コマンドの検出(現行 settings.json テンプレートで PreToolUse(Bash) のインライン jq として枠を確保済み)
+| `check-failure-patterns.sh` | SessionStart | `failure-log.jsonl` から繰り返し失敗を検出して通知(自己参照ループの起点) |
+| `stop-session-doctor.sh` | Stop | timeout 付き `doctor.sh` 診断 |
+| `post-stop-dispatcher.sh` | Stop | プロジェクト側 `.claude/hooks/post-stop.sh` へ委譲 |
+| `subagent-stop-record.sh` | SubagentStop | `subagent-log.jsonl` への基本記録(委譲量の計測点、ADR 0012) |
+| `subagent-stop-audit.sh` | SubagentStop | ADR 0001/0002 サニタイゼーション + tools 越権検知(log-only) |
 
 ### post-edit / post-stop dispatcher パターン
 
 - グローバル hook は `if [ -x .claude/hooks/post-edit.sh ]; then .claude/hooks/post-edit.sh; fi` の形式で**プロジェクト側スクリプトに委譲**する
-- 言語固有処理(biome / tsc / ruff / mypy / cargo clippy / go vet 等)は `adapters/claude-code/project-templates/`(Phase 6)に配置
+- 言語固有処理(biome / tsc / ruff / mypy / cargo clippy / go vet 等)は `adapters/claude-code/project-templates/` に配置
 
 ## 設計指針
 
-- 成功時は **silent**、失敗時は **stderr に出力 + exit 2**
+- deny / ask は `_lib.sh` の `hk_deny` / `hk_ask`(JSON を stdout に出して `exit 0`)、警告は stderr
+- 出力を加工する場合は PreToolUse の `updatedInput`(Claude Code v2.0.10+)を使う。PostToolUse は実行済みの結果を変更できない
 - 失敗ログは `${CLAUDE_PROJECT_DIR:-.}/.claude/failure-log.jsonl` に集約しプロジェクト内に閉じる
 - macOS BSD コマンド前提(GNU 互換不要、ただし bash は Homebrew 5.x を許容)
 - 冪等であること(同じ入力で何度呼んでも同じ結果)
+- 緊急停止は [`tools/disable-guardrails.sh`](../../../../tools/disable-guardrails.sh)
 
 ## 関連
 
-- [`meta/TODO-for-phase-7b.md`](../../../../meta/TODO-for-phase-7b.md) — 取り込み対象の詳細
 - [`adapters/claude-code/user-level/settings.json.template`](../settings.json.template) — hook の結線箇所
+- [`meta/decisions/0012-token-economy-mechanization.md`](../../../../meta/decisions/0012-token-economy-mechanization.md) — output-cap / 計測の根拠
 - [`adapters/claude-code/README.md`](../../README.md)

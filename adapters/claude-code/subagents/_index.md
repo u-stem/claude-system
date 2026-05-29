@@ -5,6 +5,37 @@ Phase 10 で `~/.claude/agents/` にシンボリックリンクされる。
 
 subagent は独立コンテキストを持つ専門タスク実行単位(根拠は [`principles/01-context-economy.md`](~/ws/claude-system/principles/01-context-economy.md) の委譲基準と [`practices/session-handoff.md`](~/ws/claude-system/practices/session-handoff.md))。
 
+## 委譲プロトコル(メイン=オーケストレータ)
+
+[`practices/delegation-orchestration.md`](~/ws/claude-system/practices/delegation-orchestration.md) と [ADR 0011](~/ws/claude-system/meta/decisions/0011-delegation-orchestration-protocol.md) を Claude Code の語彙へ落とす。メインは指示出しと統合に徹し、実作業と大量の中間出力を subagent に閉じ込める。
+
+### 役割分離
+
+| 主体 | 担うこと | 担わないこと |
+|------|----------|--------------|
+| メイン Claude | タスク分解、subagent の選定、結論の統合、不可逆操作の判断、ユーザーとの対話 | 広範な探索の実走、大量の中間出力の保持 |
+| subagent | スコープ内の実作業、中間出力の生成と消化 | 役割境界を越えた判断、ユーザーへの直接応答(最終テキストはメインへの戻り値) |
+
+### 委譲トリガー(定量基準)
+
+- 広範な探索: 5 クエリ超 / 10 ファイル以上の横断 → `explorer`(内部)/ `research-summarizer`(外部)
+- 大量出力の予測: ログ走査・全文読解・一括変換 → 専門 subagent
+- 独立並列タスク: 相互依存なし → 1 メッセージで複数の Agent 呼び出し(並列ファンアウト)
+- 既知の 1 点参照・軽微な確認 → メイン直接実行(委譲しない)
+
+### 渡す情報 / 返す情報
+
+- **渡す**: スコープを絞ったタスク + 返却フォーマット指定。生のコンテキストを丸投げしない。
+- **返す**: 構造化された結論のみ(重大度別件数 + 指摘リスト、`file_path:line` 参照と要約)。subagent の `description` 本文に返却フォーマットを明記する(後述「v3 で追加した規約」)。ファイルダンプ・探索ログをメインに戻さない。
+
+### 段階(単発 → 並列ファンアウト → Workflow)
+
+| 段階 | 場面 | 制約 |
+|------|------|------|
+| 単発 subagent(Agent ツール) | 1 つの独立した重いタスク | 既定 |
+| 並列ファンアウト | 独立な複数タスク | 1 メッセージで複数ツール呼び出し |
+| Workflow(決定論的オーケストレーション) | 多段・多数エージェント | **ユーザー明示オプトイン時のみ**([ADR 0009](~/ws/claude-system/meta/decisions/0009-opus-48-autonomy-tuning.md) §3) |
+
 ## 全 subagent 一覧
 
 (直近の更新は `git log` を参照)
