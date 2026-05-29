@@ -2,6 +2,41 @@
 
 このリポジトリの変更履歴。Phase 単位でセクション化する。
 
+## Opus 4.8 自律性チューニング(2026-05-29)
+
+運用モデルが Opus 4.7 から 4.8 に更新されたことを受け、4.7 期に専用 ADR を持たず adapter 層へ散文として点在していた自律性運用方針を ADR として正式化し、4.8 の能力(マルチエージェント・オーケストレーション / background 実行・スケジューリング / 並列ファンアウト / 構造化質問 / 遅延ツールロード)を前提に更新した。
+
+### ADR 起票
+
+- `0009-opus-48-autonomy-tuning.md`(autonomy 方針の初回正式記録。従来 ADR 化されていなかったため supersede 対象なし)
+  - 確認抑制の線引き明文化: 可逆操作は自律実行、不可逆・外向き操作(削除 / `git push` / コミット / 外部送信)は事前確認、durable な承認は当該文脈で再利用
+  - サブエージェント委譲の積極化: 並列ファンアウトが安価・確実なため境界では委譲を選ぶ。独立タスクは 1 メッセージで並列ツール呼び出しを既定化
+  - Workflow(マルチエージェント・オーケストレーション)はユーザー明示オプトイン時のみ起動(token コスト大のため自動・暗黙起動しない)
+  - background 実行 / スケジューリング指針: `run_in_background` は長時間タスク、harness 追跡作業はポーリングしない、`/loop` / scheduled agents は明示要求時のみ
+  - 補足: 「困ったら問い直す」の手段に構造化質問を活用(既定のある選択・検証可能な事実には使わない)
+
+### 文書更新
+
+- `adapters/claude-code/user-level/CLAUDE.md` §6 作業フロー: 「Opus 4.7 期」→「Opus 4.8 期」+ 確認抑制の線引きと ADR 0009 参照を追記
+- `adapters/claude-code/subagents/explorer.md` 起動の判断基準: 「Opus 4.7 期は単発の小タスクはメイン直接実行」→ 4.8 期は委譲寄り、広範な探索は早めに委譲(ADR 0009 参照)
+- `meta/decisions/README.md`: 既存 ADR 表に 0009 を追加
+- `meta/claude-version-log.md`: 2026-05-29 Opus 4.8 行を追記
+
+履歴記録(`migration-inventory.md`、`claude-version-log.md` の過去行、ADR 0003 / 0004 の「4.7 期に構築」等)は時点の事実として変更しない。
+
+### 機械層の同期(ADR 0010)
+
+ADR 0009 が方針層(adapter の散文 + ADR)を更新したのに対し、harness の機械層が 4.7 期の値のまま残存していたため同期した。
+
+- ADR 起票: `0010-opus-48-harness-settings-sync.md`
+  - autonomy 方針(可逆/不可逆の線引き・委譲・Workflow オプトイン)は文脈依存判断のため hook 強制になじまないと判断し、新規 hook を増設しない方針を明記
+  - 既存ガード(`permissions.deny` + `pre-bash-guard.sh` の deny/ask)が「不可逆操作は確認」の線引きを既に部分担保していることを確認・記録
+- `adapters/claude-code/user-level/settings.json.template`: `model` を `claude-opus-4-7` → `claude-opus-4-8`、env コメントの 4.7 期記述に 4.8 期維持を追記
+- `adapters/claude-code/VERSION`: `2.1.119` → `2.1.156`(`claude --version` で確認した実インストール版に pin 同期)
+- permissions allow/deny は据え置き(モデル世代非依存)
+
+---
+
 ## Phase 10 follow-up 2: ユーザー識別子パスの機械検出(2026-05-04)
 
 ADR 0006 が「user identifiers literal を tree に書かない」を規範化していたが、絶対パス内ユーザー名(`/Users/<name>/`)については機械検出が空白だった。Phase 10 follow-up 1 のレビュー過程で `/Users/<name>/...` literal の混入が手動 grep で発見されたことを契機に、規範の第一防衛線を機械担保で補強する第二防衛線を追加。

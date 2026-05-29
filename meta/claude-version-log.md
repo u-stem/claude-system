@@ -12,6 +12,8 @@
 | 2026-04-27 | claude-opus-4-7 (1M context) | Phase 1-7b(principles / practices / adapter / skills / subagents / fragments / templates / tools / hooks / CI) | xhigh effort、各 Phase は別セッション |
 | 2026-04-28 | claude-opus-4-7 (1M context) | Phase 8(kairous 取り込み) | 案 Y(`@web-apps-common.md` 追加のみ) |
 | 2026-04-29 | claude-opus-4-7 (1M context) | Phase 8(sugara 取り込み) / Phase 9(検証 + ドキュメント整備、`v0.1.0-rc1` リリース候補化) | xhigh effort、Phase 9 中に Claude maturity timeline 概念を発見 |
+| 2026-05-29 | claude-opus-4-8 (1M context) | ADR 0009 起票(Opus 4.8 自律性チューニング)、adapter 層の 4.7→4.8 運用記述を更新 | 運用モデル 4.8 へ更新。マルチエージェント / background / 並列ファンアウト前提に調整 |
+| 2026-05-29 | claude-opus-4-8 (1M context) | ADR 0010 起票(harness 機械層の同期)。settings.json.template の model pin / VERSION を 4.8・2.1.156 に同期 | 方針層と機械層の世代整合。autonomy は hook 強制せず既存ガードで部分担保を確認 |
 
 ## モデル切り替え時の注意
 

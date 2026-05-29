@@ -81,6 +81,8 @@ claude-system における設計上の重大な意思決定を記録する場所
 | [0006](./0006-no-user-identifiers-in-system.md) | No User Identifiers Inside the System | Accepted (2026-04-29) | ADR 0001 の具体実装。本名 / 個人 email / GitHub handle の literal を claude-system に書かない(URL 内の自動参照・LICENSE Copyright holder・プレースホルダは例外)。`.gitleaks.toml` の allowlist 設計や hooks の許容アドレス除外を簡素化する |
 | [0007](./0007-phase10-migration-script-robustness-and-boundary.md) | Phase 10 Migration Script — Robustness and Responsibility Boundary | Accepted (2026-05-04) | Phase 10 経験から得た 2 つの教訓を再実行可能性と責務境界という共通テーマで一体化。`from-claude-settings.sh` の preflight + Step 4 を堅牢化し dangling symlink を skip。settings.json の cp-deploy は `sync.sh` の責務として明文化 |
 | [0008](./0008-mechanical-detection-of-user-identifier-paths.md) | Mechanical Detection of User-Identifier Paths | Accepted (2026-05-04) | ADR 0006 の機械担保。絶対パス内ユーザー名(`/Users/<name>/`)を二段階で検出 — `post-edit-validate.sh` で編集時 warn、`.gitleaks.toml` custom rule で commit 時 block。自己参照回避は paths allowlist で対処 |
+| [0009](./0009-opus-48-autonomy-tuning.md) | Opus 4.8 Autonomy Tuning | Accepted (2026-05-29) | Opus 4.8 期の自律性運用方針を初めて正式に ADR 化。確認抑制の線引き(可逆=自律 / 不可逆・外向き=確認)、サブエージェント委譲の積極化、Workflow はユーザー明示オプトイン時のみ、background / スケジューリング指針を集約。散在していた 4.7 前提の運用記述を更新 |
+| [0010](./0010-opus-48-harness-settings-sync.md) | Opus 4.8 Harness Settings Synchronization | Accepted (2026-05-29) | ADR 0009 の機械層同期。`settings.json.template` の model pin を 4.8 に、`VERSION` を実インストール版(2.1.156)に同期。autonomy 方針は文脈依存判断のため hook 強制せず、既存 deny/ask ガードが「不可逆操作は確認」の線引きを部分担保していることを確認・記録 |
 
 ## ADR を書くタイミング
 
