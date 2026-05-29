@@ -102,11 +102,14 @@ Conventional Commits:
 各 Phase で 1 コミット以上残すこと。問題があれば `git revert <commit-id>` で対応。
 Phase 7b のフック有効化以降は `tools/disable-guardrails.sh` で一時無効化可能。
 
-## Phase 進行
+## Phase 進行と現在地
 
-- 全 Phase の構成: `~/.claude-system-bootstrap/00-MASTER-PLAN.md`
-- 各 Phase の詳細仕様: `~/.claude-system-bootstrap/PHASE-*.md`
-- 完了報告は MASTER-PLAN「共通プロトコル」セクションに従う(`git diff` の証跡を必ず添付)
+初期構築(Phase 0-10)は完了済み([`meta/decisions/0005-bootstrap-completion-and-deferral.md`](./meta/decisions/0005-bootstrap-completion-and-deferral.md))。このリポジトリ自体が bootstrap の成果物であり、以降は v0.2 へ向けた継続改善フェーズにある。
+
+- 継続課題・持ち越し事項: [`meta/TODO-for-v0.2.md`](./meta/TODO-for-v0.2.md)
+- 完了履歴(Phase 0-10 の時系列): [`meta/CHANGELOG.md`](./meta/CHANGELOG.md)
+- 初期構築時の Phase 仕様(`~/.claude-system-bootstrap/`)は bootstrap 完了をもって役割を終えた歴史的資料。新規作業の判断単位は ADR(`meta/decisions/`)+ CHANGELOG で記録する
+- 完了報告は user-level [`CLAUDE.md`](./adapters/claude-code/user-level/CLAUDE.md) の「完了時の必須報告フォーマット」に従う(`git diff --stat` の証跡を必ず添付)
 
 ## 関連
 
