@@ -1,7 +1,7 @@
 {
   "//": "Claude Code user-level settings template. Phase 10 で ~/.claude/settings.json として配置される(symlink ではなく cp による配置を推奨。マシン固有値の差し込みのため)。'//' で始まるキーは Claude Code 側で無視されるため JSON コメント代替として使用",
 
-  "// env": "サブプロセスへ機密 env を漏らさない、autocompact 閾値、1h prompt cache 等。EXPERIMENTAL_AGENT_TEAMS は Opus 4.7 期に厳格化(3 PBI 以上 + 完全独立ファイルのみ適用)した上で有効維持",
+  "// env": "サブプロセスへ機密 env を漏らさない、autocompact 閾値、1h prompt cache 等。EXPERIMENTAL_AGENT_TEAMS は Opus 4.7 期に厳格化(3 PBI 以上 + 完全独立ファイルのみ適用)し、Opus 4.8 期も有効維持(ADR 0010)",
   "env": {
     "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB": "1",
     "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "85",
@@ -11,7 +11,7 @@
 
   "respectGitignore": true,
   "language": "japanese",
-  "model": "claude-opus-4-7",
+  "model": "claude-opus-4-8",
   "effortLevel": "xhigh",
   "skipDangerousModePermissionPrompt": true,
   "skipAutoPermissionPrompt": true,
