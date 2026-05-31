@@ -1,10 +1,10 @@
 {
   "//": "Claude Code user-level settings template. Phase 10 で ~/.claude/settings.json として配置される(symlink ではなく cp による配置を推奨。マシン固有値の差し込みのため)。'//' で始まるキーは Claude Code 側で無視されるため JSON コメント代替として使用",
 
-  "// env": "サブプロセスへ機密 env を漏らさない、autocompact 閾値、1h prompt cache 等。EXPERIMENTAL_AGENT_TEAMS は Opus 4.7 期に厳格化(3 PBI 以上 + 完全独立ファイルのみ適用)し、Opus 4.8 期も有効維持(ADR 0010)",
+  "// env": "サブプロセスへ機密 env を漏らさない、autocompact 閾値、1h prompt cache 等。EXPERIMENTAL_AGENT_TEAMS は Opus 4.7 期に厳格化(3 PBI 以上 + 完全独立ファイルのみ適用)し、Opus 4.8 期も有効維持(ADR 0010)。AUTOCOMPACT_PCT_OVERRIDE は 85→70 に引き下げ(2026-05): 巨大コンテキスト(1M 窓の高%保持)が 'tool call could not be parsed' を誘発しやすいため早めに圧縮する。安易に戻さないこと",
   "env": {
     "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB": "1",
-    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "85",
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "70",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "ENABLE_PROMPT_CACHING_1H": "1"
   },
@@ -241,10 +241,6 @@
 
   "// mcpServers": "API キーを要しない MCP のみテンプレートに含める。github / その他キー必須の MCP は配置時に手動で追加し、本テンプレートには含めない(secrets-handling 原則)",
   "mcpServers": {
-    "chrome-devtools": {
-      "command": "npx",
-      "args": ["chrome-devtools-mcp@0.20.3"]
-    },
     "playwright": {
       "command": "npx",
       "args": ["@playwright/mcp@0.0.70"]
