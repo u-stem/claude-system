@@ -219,7 +219,13 @@
         ]
       }
     ],
-    "StopFailure": [],
+    "StopFailure": [
+      {
+        "hooks": [
+          {"type": "command", "command": "$HOME/ws/claude-system/adapters/claude-code/user-level/hooks/notify-stop-failure.sh"}
+        ]
+      }
+    ],
     "SubagentStop": [
       {
         "hooks": [
