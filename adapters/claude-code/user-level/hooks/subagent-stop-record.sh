@@ -20,10 +20,31 @@ agent_id="$(printf '%s' "$INPUT" | jq -r '.subagent.id // .agent_id // empty' 2>
 transcript_path="$(printf '%s' "$INPUT" | jq -r '.subagent.transcript_path // .agent_transcript_path // empty' 2>/dev/null || true)"
 exit_code="$(printf '%s' "$INPUT" | jq -r '.subagent.exit_code // .exit_code // 0' 2>/dev/null || echo 0)"
 
+# Backfill measurement fields the SubagentStop payload often omits. ADR 0012
+# makes this log the cost-measurement point, but ~69% of records historically
+# had an empty agent_type and no model, leaving per-role usage invisible. The
+# sidecar meta.json carries agentType; the transcript carries the actual model
+# id (verified: `model:` frontmatter is honored, e.g. sonnet -> claude-sonnet-4-6).
+if [[ -n "$transcript_path" ]]; then
+  meta_path="${transcript_path%.jsonl}.meta.json"
+  if [[ -z "$agent_type" && -f "$meta_path" ]]; then
+    agent_type="$(jq -r '.agentType // empty' "$meta_path" 2>/dev/null || true)"
+  fi
+fi
+
+# Most frequent model id across the transcript = the model the subagent ran on.
+model=""
+if [[ -n "$transcript_path" && -f "$transcript_path" ]]; then
+  model="$(grep -o '"model":"[^"]*"' "$transcript_path" 2>/dev/null \
+    | sed 's/^"model":"//; s/"$//' | sort | uniq -c | sort -rn | head -1 \
+    | awk '{print $2}')"
+fi
+
 ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-printf '{"ts":"%s","agent_type":%s,"agent_id":%s,"transcript_path":%s,"exit_code":%s}\n' \
+printf '{"ts":"%s","agent_type":%s,"model":%s,"agent_id":%s,"transcript_path":%s,"exit_code":%s}\n' \
   "$ts" \
   "$(printf '%s' "$agent_type" | jq -Rs .)" \
+  "$(printf '%s' "$model" | jq -Rs .)" \
   "$(printf '%s' "$agent_id" | jq -Rs .)" \
   "$(printf '%s' "$transcript_path" | jq -Rs .)" \
   "${exit_code:-0}" >> "$log_file"

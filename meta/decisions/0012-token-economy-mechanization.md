@@ -59,9 +59,16 @@ principles 層は変更しない(principles/01 が公理を既に与えている
 - **Negative**: 新規 practice + 新規 hook + settings.json への結線を実施済み(本 ADR と同一作業)。hook は対象コマンド判定を誤ると有用な出力まで切る恐れがあるため、複合コマンドをスキップし単純コマンドに限定した。キャップ行数(既定 200)とマッチャは運用しながら調整する。`updatedInput` の都合上、書き換え時は `permissionDecision: allow` を伴うが、対象を非破壊カテゴリ(test/build/lint)の単純コマンドに限定しているため deny 対象とは交差しない。
 - **Neutral**: 計測の自動化は段階導入とし、本 ADR では `subagent-log.jsonl` を観測点と位置づけるに留める(自動レポート化は TODO-for-v0.2 項目 10 と合わせて判断)。
 
+## Update (2026-06-05): 計測点の盲点を塞ぐ
+
+`subagent-log.jsonl` を観測点に据えたものの、実データ検証で **記録の約 69%(drowsy-unity 406 件中 281 件)で `agent_type` が空**であり、`model` も未記録だったことが判明した。SubagentStop payload が型を載せない経路があるため、「どのロールがどの model でどれだけ走ったか」が見えず、ロール別 model 選択(ADR 0013)の費用対効果を評価できない状態だった。これが「model 分けが効いている実感が無い」の正体である(model 分け自体は honor されている。transcript の実モデルが宣言通り: `research-summarizer`→`claude-sonnet-4-6`、haiku ロール→`claude-haiku-4-5` と確認済み)。
+
+対処: `subagent-stop-record.sh` を改修し、payload が薄いときも sidecar `*.meta.json` の `agentType` と transcript 内の最頻 `model` id を補完して記録するようにした(前進方向の記録のみ。揮発済み transcript の遡及補完は対象外)。これによりロール別・model 別の使用量が観測可能になり、ロール構成の剪定判断(死蔵ロールの統合・削除)を勘でなくデータで行う前提が整う。
+
 ## Related
 
 - [ADR 0011](./0011-delegation-orchestration-protocol.md) — 委譲プロトコル(本 ADR の主要な抑制手段)
+- [ADR 0013](./0013-role-based-effort-modulation.md) — ロール別 model 選択(本計測が費用対効果評価の前提)
 - [ADR 0009](./0009-opus-48-autonomy-tuning.md) — Autonomy Tuning(委譲積極化の方針)
 - [`principles/01-context-economy.md`](../../principles/01-context-economy.md) — 抑制の公理
 - [`principles/04-progressive-disclosure.md`](../../principles/04-progressive-disclosure.md) — 段階的開示
