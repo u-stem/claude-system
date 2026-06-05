@@ -94,10 +94,11 @@ Decision §5 の前提(「`effort:` はスキーマ外・ハーネス対応未�
 
 判断の核: 同じ「沈黙の品質劣化」軸でも **頻度 × 検証可能性 × 致命度の積で結論が反転**する。高頻度の code-reviewer は安定(完走=品質)を取り sonnet+high、低頻度・致命の security-auditor は opus を維持。code-reviewer の opus 級検出力は、単発でなく**反復レビュー(毎回新規エージェント)+ 最終 opus ゲート**で別途確保する([`practices/iterative-review.md`](../../practices/iterative-review.md))。
 
-### 未検証の load-bearing 前提(配置後に監視)
+### load-bearing 前提の検証状況(2026-06-05 更新)
 
-- `effort` のモデル別上限(haiku=〜medium / sonnet=〜high / opus=〜max)は「目安」であり**実機未検証**。haiku が medium を受けない場合は low へフォールバック。
-- 「opus+high なら parse-error 安全、xhigh/max が危険」も未検証の共有仮定。`high` 自体が誘発閾値の可能性が残るため、opus ロール(security-auditor/refactor-planner)は配置後に parse-error 発生率を監視し、頻発時は effort 降格 or model 降格する。
+- **受理可否: 検証済み(実機)**。haiku/medium・sonnet/high・opus/high の 3 組を実エージェント(explorer・research-summarizer・security-auditor)で起動し、いずれも frontmatter 拒否なく完走。無効な effort 値なら load 時に弾かれるため、これら 3 組の**受理は確定**。haiku=medium のフォールバック(low)は当面不要。
+- **parse-error 安全性: 未検証(統計的性質ゆえ単発検証不能)**。「opus+high なら安全、xhigh/max が危険」「`high` 自体が誘発閾値の可能性」は依然として共有仮定。opus ロール(security-auditor/refactor-planner)は配置後に発生率を監視し、頻発時は effort 降格 or model 降格する。
+- 補足: 受理 ≠ 反映の保証。effort が silently ignore されてもセッション effort にフォールバックするだけで害はない(リスクは拒否のみで、それは消えた)。
 
 検証点は ADR 0012 で修復した subagent-log.jsonl(model 記録)で観測する。
 
