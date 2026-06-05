@@ -86,6 +86,7 @@ claude-system における設計上の重大な意思決定を記録する場所
 | [0011](./0011-delegation-orchestration-protocol.md) | Delegation / Orchestration Protocol | Accepted (2026-05-29) | ADR 0009 §2(委譲積極化・方針)の運用プロトコル詳細。メイン=オーケストレータ規律(役割分離 / 委譲トリガーの定量基準 / 渡す情報と返却スキーマ / 単発→ファンアウト→Workflow の段階)。`practices/delegation-orchestration.md` + `subagents/_index.md` 委譲プロトコル節として実装済み |
 | [0012](./0012-token-economy-mechanization.md) | Token Economy Mechanization and Measurement | Accepted (2026-05-29) | principles/01 の公理を機械化。圧縮ポイントの因果一覧(`practices/token-economy.md`)、出力キャップ hook(`pre-bash-output-cap.sh`、PreToolUse + `updatedInput` でコマンド書き換え。PostToolUse は結果変更不可と判明し方式変更)、`subagent-log.jsonl` の計測点接続。実装済み |
 | [0013](./0013-role-based-effort-modulation.md) | Role-Based Effort Modulation via Delegation and Model Selection | Accepted (2026-05-31) | effort のロール別可変化を、検証済み機構(委譲 + subagent の `model` 選択)で実現すると決定。メインループ effort は単一グローバル値を維持(タスク単位自動切替はハーネス機能ギャップ)、実効 effort は複雑度に追従させ委譲で変調。`effort:` frontmatter はスキーマ外・対応未確認のため不採用(`model` を代理)。model-selection.md の「役割固定ルール化しない」を継承 |
+| [0014](./0014-tool-call-parse-error-resilience.md) | Tool-Call Parse-Error Resilience | Accepted (2026-06-05) | `tool call could not be parsed (retry also failed)` を上流(`area:model`)の根絶不能事象と前提化。in-band 自動回復は不可と確定(API error は `Stop` でなく `StopFailure` を発火、その出力は無視される)。三層対処: 層0=機械タスクを sonnet/低 effort へルーティング(ADR 0013 適用)、層A=`StopFailure` 通知フック(`notify-stop-failure.sh`、副作用のみ)実装済み、層B=cmux watchdog 自動継続は不可逆操作リスクのため Deferred |
 
 ## ADR を書くタイミング
 
