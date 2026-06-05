@@ -31,8 +31,14 @@ description: 指定ファイルの簡易コードレビュー
 変更行 100 行超 / 5 ファイル超なら `code-reviewer` subagent を起動推奨
 ```
 
+## 反復レビューが要るとき
+
+設計級の差分(100 行超 / 5 ファイル超、境界・契約変更、セキュリティ感受面)は単発でなく
+[`/review-loop`](./review-loop.md)(レビュー→修正→レビューの反復 + 最終ゲート)を使う。
+
 ## 関連
 
+- command: `/review-loop`(反復レビューループ)
 - subagent: `code-reviewer`(詳細レビュー)
 - skill: `security-audit`(セキュリティ観点)
 - skill: `pr-description`(PR 本文側)
