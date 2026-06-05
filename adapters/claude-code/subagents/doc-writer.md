@@ -3,6 +3,7 @@ name: doc-writer
 description: コード変更に伴うドキュメント更新を提案・適用する
 tools: [Read, Write, Edit, Grep, Glob]
 model: haiku
+effort: medium
 ---
 
 # Doc Writer Subagent

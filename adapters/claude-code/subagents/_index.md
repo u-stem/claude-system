@@ -40,14 +40,18 @@ subagent は独立コンテキストを持つ専門タスク実行単位(根拠�
 
 (直近の更新は `git log` を参照)
 
-| name | description | tools | model | 旧 agents/ との対応 |
-|------|-------------|-------|-------|---------------------|
-| [`code-reviewer`](./code-reviewer.md) | コードレビューを独立コンテキストで深掘りする | Read, Grep, Glob, Bash | sonnet | 旧 `code-reviewer.md` を簡素化(7 観点維持、出力フォーマット強化) |
-| [`security-auditor`](./security-auditor.md) | セキュリティ観点でコード・依存・設定を独立に監査する | Read, Grep, Glob, Bash | opus | 旧 `security-reviewer.md` を改名 + 監査範囲拡張(supply-chain 含む) |
-| [`doc-writer`](./doc-writer.md) | コード変更に伴うドキュメント更新を提案・適用する | Read, Write, Edit, Grep, Glob | haiku | 旧 `doc-writer.md` を継承 + apply モード追加 |
-| [`refactor-planner`](./refactor-planner.md) | リファクタリング計画を立案する(実装はしない) | Read, Grep, Glob | opus | 旧 `refactor-planner.md` を継承 + 出力フォーマット強化 |
-| [`explorer`](./explorer.md) | コードベースを独立コンテキストで探索し要約を返す | Read, Grep, Glob | haiku | 旧 `explorer.md` を継承 + 起動判断基準を明示 |
-| [`research-summarizer`](./research-summarizer.md) | 外部資料を WebSearch / WebFetch で調査し要約を返す | WebSearch, WebFetch, Read | sonnet | **新規**(v3 マスタープラン由来。`explorer` と内外で対比) |
+model / effort 校正の根拠は [ADR 0013](~/ws/claude-system/meta/decisions/0013-role-based-effort-modulation.md)(2026-06-05 改訂: `effort` フィールド対応判明 + 校正パネル)。
+
+| name | description | tools | model | effort | 旧 agents/ との対応 |
+|------|-------------|-------|-------|--------|---------------------|
+| [`code-reviewer`](./code-reviewer.md) | コードレビューを独立コンテキストで深掘りする | Read, Grep, Glob, Bash | sonnet | high | 旧 `code-reviewer.md` を簡素化(7 観点維持、出力フォーマット強化) |
+| [`security-auditor`](./security-auditor.md) | セキュリティ観点でコード・依存・設定を独立に監査する | Read, Grep, Glob, Bash | opus | high | 旧 `security-reviewer.md` を改名 + 監査範囲拡張(supply-chain 含む) |
+| [`doc-writer`](./doc-writer.md) | コード変更に伴うドキュメント更新を提案・適用する | Read, Write, Edit, Grep, Glob | haiku | medium | 旧 `doc-writer.md` を継承 + apply モード追加 |
+| [`refactor-planner`](./refactor-planner.md) | リファクタリング計画を立案する(実装はしない) | Read, Grep, Glob | opus | high | 旧 `refactor-planner.md` を継承 + 出力フォーマット強化 |
+| [`explorer`](./explorer.md) | コードベースを独立コンテキストで探索し要約を返す | Read, Grep, Glob | haiku | medium | 旧 `explorer.md` を継承 + 起動判断基準を明示 |
+| [`research-summarizer`](./research-summarizer.md) | 外部資料を WebSearch / WebFetch で調査し要約を返す | WebSearch, WebFetch, Read | sonnet | high | **新規**(v3 マスタープラン由来。`explorer` と内外で対比) |
+
+校正の含意: `code-reviewer` は最多用ロールゆえ opus+high の parse-error 露出を避け sonnet+high とし、opus 級の検出力は反復レビュー(毎回新規エージェント)+ 最終 opus ゲートで別途確保する([`practices/iterative-review.md`](~/ws/claude-system/practices/iterative-review.md))。`security-auditor` は低頻度 + 致命度最大のため opus+high を維持。`effort` 上限はモデル依存(haiku は xhigh/max 不可)で、値は未検証前提を含むため配置後に parse-error 発生率を監視する。
 
 ### Phase 3 予告 / v3 マスタープラン / 旧 agents との差分整理
 
@@ -86,6 +90,7 @@ subagent は独立コンテキストを持つ専門タスク実行単位(根拠�
   description : <50 字以内、改行禁止>       # いつこの subagent を呼ぶべきか
   tools       : [<必要最小限のツールのみ列挙>]  # YAML 配列形式
   model       : opus | sonnet | haiku       # practices/model-selection.md の判断基準
+  effort      : low | medium | high | xhigh | max  # 任意。セッション effort を上書き。上限はモデル依存(ADR 0013)
   ---
 ```
 

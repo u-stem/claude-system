@@ -3,6 +3,7 @@ name: refactor-planner
 description: リファクタリング計画を立案する(実装はしない)
 tools: [Read, Grep, Glob]
 model: opus
+effort: high
 ---
 
 # Refactor Planner Subagent

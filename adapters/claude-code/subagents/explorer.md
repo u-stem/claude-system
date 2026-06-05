@@ -3,6 +3,7 @@ name: explorer
 description: コードベースを独立コンテキストで探索し要約を返す
 tools: [Read, Grep, Glob]
 model: haiku
+effort: medium
 ---
 
 # Explorer Subagent

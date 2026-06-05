@@ -3,6 +3,7 @@ name: code-reviewer
 description: コードレビューを独立コンテキストで深掘りする
 tools: [Read, Grep, Glob, Bash]
 model: sonnet
+effort: high
 ---
 
 # Code Reviewer Subagent

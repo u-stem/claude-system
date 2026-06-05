@@ -3,6 +3,7 @@ name: security-auditor
 description: セキュリティ観点でコード・依存・設定を独立に監査する
 tools: [Read, Grep, Glob, Bash]
 model: opus
+effort: high
 ---
 
 # Security Auditor Subagent

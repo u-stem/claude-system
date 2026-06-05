@@ -3,6 +3,7 @@ name: research-summarizer
 description: 外部資料を WebSearch / WebFetch で調査し要約を返す
 tools: [WebSearch, WebFetch, Read]
 model: sonnet
+effort: high
 ---
 
 # Research Summarizer Subagent
