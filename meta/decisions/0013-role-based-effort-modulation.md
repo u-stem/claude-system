@@ -71,6 +71,36 @@
 - model-selection.md は既に複雑度判断を規定しており、本 ADR はそれを effort 文脈へ明示接続する(次に同 practice を触る機会に相互参照を追補)。
 - 出所となった auto memory: `effort-per-role-wish`。
 
+## Update (2026-06-05): effort frontmatter のサポート判明と校正パネル
+
+Decision §5 の前提(「`effort:` はスキーマ外・ハーネス対応未確認」)が**覆った**。公式ドキュメント(`code.claude.com/docs/ja/sub-agents` のサポートされているフロントマターフィールド表)で、`effort` が正式フィールドとして記載されていることを確認した:
+
+> `effort` — このサブエージェントがアクティブな場合の努力レベル。セッション努力レベルをオーバーライドします。デフォルト：セッションから継承。オプション：`low`/`medium`/`high`/`xhigh`/`max`。**利用可能なレベルはモデルに依存します**。
+
+これにより §5(`model` を effort の代理とする)は **superseded**。effort をロール別に**直接**指定でき、`model` と `effort` の二軸で実効計算量を制御する。Decision §2 の「委譲 + model 選択」は引き続き有効で、そこに `effort` 軸が加わる形。
+
+### 校正の決定(3視点パネル + Devil's Advocate 反証)
+
+6 ロールの (model, effort) を、cost / quality / parse-error-resilience の 3 視点で独立提案 → Devil's Advocate が反証 → 統合して決定した:
+
+| ロール | model | effort | 要点 |
+|--------|-------|--------|------|
+| explorer | haiku | medium | 列挙の欠落は親が検出不能(非対称)。死蔵理由の low を避け medium |
+| doc-writer | haiku | medium | 唯一の writer。誤文書コミットのダウンサイドが非対称 |
+| research-summarizer | sonnet | high | 原典は外部 URL で親が再照合しない。haiku 格下げは沈黙劣化(却下) |
+| code-reviewer | sonnet | high | 最多用ロール。opus+high は parse-error 露出が最大。検出力は反復レビューで担保 |
+| refactor-planner | opus | high | 設計は opus の差が実在。xhigh は parse-error 誘発で high 上限 |
+| security-auditor | opus | high | 低頻度 + 致命度最大。opus 維持、effort は high で parse-error 回避 |
+
+判断の核: 同じ「沈黙の品質劣化」軸でも **頻度 × 検証可能性 × 致命度の積で結論が反転**する。高頻度の code-reviewer は安定(完走=品質)を取り sonnet+high、低頻度・致命の security-auditor は opus を維持。code-reviewer の opus 級検出力は、単発でなく**反復レビュー(毎回新規エージェント)+ 最終 opus ゲート**で別途確保する([`practices/iterative-review.md`](../../practices/iterative-review.md))。
+
+### 未検証の load-bearing 前提(配置後に監視)
+
+- `effort` のモデル別上限(haiku=〜medium / sonnet=〜high / opus=〜max)は「目安」であり**実機未検証**。haiku が medium を受けない場合は low へフォールバック。
+- 「opus+high なら parse-error 安全、xhigh/max が危険」も未検証の共有仮定。`high` 自体が誘発閾値の可能性が残るため、opus ロール(security-auditor/refactor-planner)は配置後に parse-error 発生率を監視し、頻発時は effort 降格 or model 降格する。
+
+検証点は ADR 0012 で修復した subagent-log.jsonl(model 記録)で観測する。
+
 ## Related
 
 - [ADR 0009](./0009-opus-48-autonomy-tuning.md) §2 — サブエージェント委譲の積極化
