@@ -27,15 +27,9 @@ Python のテストフレームワーク(pytest 中心)・実行・モック作�
 - `unittest` は標準ライブラリ依存縛りがある場合のみ
 - 非同期: `pytest-asyncio` または `anyio` プラグイン
 - HTTP モック: `respx`(httpx 用)/ `responses`(requests 用)
-- DB: 実 PostgreSQL / SQLite を docker / fixture で立てる(モック禁止、`practices/testing-strategy.md`)
+- DB: 実 PostgreSQL / SQLite を docker / fixture で立てる
 
-### 2. ファイル配置
-
-- ソースの隣 or `tests/` ディレクトリ(プロジェクトで統一)
-- 命名: `test_<module>.py` または `<module>_test.py`(pytest が自動収集)
-- フィクスチャは `conftest.py` で共有
-
-### 3. 命名
+### 2. 命名と基本構造
 
 ```python
 def test_returns_user_when_input_has_valid_id_and_email():
@@ -44,11 +38,6 @@ def test_returns_user_when_input_has_valid_id_and_email():
 def test_raises_validation_error_when_id_is_missing():
     ...
 ```
-
-- 振る舞いベース、実装関数名を含めない
-- 1 関数 1 アサーション
-
-### 4. Arrange-Act-Assert
 
 ```python
 def test_returns_zero_when_items_is_empty():
@@ -62,10 +51,9 @@ def test_returns_zero_when_items_is_empty():
     assert total == 0
 ```
 
-- `assert` は 1 回
-- テスト内に分岐・繰り返しを書かない
+振る舞いベースの命名と Arrange-Act-Assert は [`practices/testing-strategy.md`](~/ws/claude-system/practices/testing-strategy.md) を参照。Python では `assert` 1 回。
 
-### 5. fixture とパラメタライズ
+### 3. fixture とパラメタライズ
 
 ```python
 import pytest
@@ -81,14 +69,14 @@ def test_normalize_price(price, expected):
 
 - 重複データはパラメタライズで列挙(各ケースが独立した 1 アサーション)
 
-### 6. モック方針
+### 4. モック方針
 
-- 純粋ロジックはモックなし
-- 外部 I/O は統合テストで実物(SQLite / 実 PostgreSQL / ローカル HTTP サーバー)
+一般戦略は [`practices/testing-strategy.md`](~/ws/claude-system/practices/testing-strategy.md) を参照。Python 固有：
+
 - 真に外部な API 呼び出しのみ `respx` / `responses` でモック
-- Date / Random は依存注入(`freezegun` は最終手段)
+- Date / Random は依存注入で固定可能に設計(`freezegun` は最終手段)
 
-### 7. 実行コマンド
+### 5. 実行コマンド
 
 ```bash
 uv run pytest                       # 全実行
@@ -99,13 +87,13 @@ uv run pytest --cov=<pkg>           # カバレッジ
 uv run pytest -n auto               # pytest-xdist で並列
 ```
 
-### 8. 型 / 静的解析との整合
+### 6. 型 / 静的解析との整合
 
 - テストコードも `mypy --strict`(または `pyright`)を通す
 - `Any` を散らさない
 - `# type: ignore` には理由コメント
 
-### 9. CI / hook 連携
+### 7. CI / hook 連携
 
 - post-edit hook(Phase 6)で affected ファイルのテストのみ実行
 - post-stop hook(Phase 6)で `git status` から変更モジュールのテストを実行
@@ -121,14 +109,12 @@ uv run pytest -n auto               # pytest-xdist で並列
 - [ ] `uv run pytest` が緑
 - [ ] `mypy --strict`(または `pyright`)がエラー 0
 
-## アンチパターン
+## アンチパターン(Python 固有)
 
-- Red を踏まずに実装から始める
-- 1 関数で複数の振る舞いを検証
-- 統合テストで DB をモック(境界の挙動が見えない)
-- `skip` / `xfail` で失敗を放置
-- fixture のスコープ(`function` / `module` / `session`)を意識せず副作用が漏れる
-- カバレッジ %% を目標化して意味のないテストを濫造
+一般的なアンチパターンは [`practices/testing-strategy.md`](~/ws/claude-system/practices/testing-strategy.md) を参照。Python 特有の陥りやすい例：
+
+- fixture のスコープ(`function` / `module` / `session`)を意識せず副作用がテスト間で漏れる(DB トランザクション、グローバル状態)
+- パラメタライズした複数ケースで 1 つが失敗すると、その行だけスキップされ、失敗テストが残る(`xfail` 無しで放置しない)
 
 ## 関連
 

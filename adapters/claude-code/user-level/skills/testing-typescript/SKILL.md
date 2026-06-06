@@ -33,13 +33,7 @@ TypeScript のテストフレームワーク選定・実行・モック作法。
 
 迷ったら `bun test` → Vitest の順。
 
-### 2. ファイル配置
-
-- ソースの隣に置く: `foo.ts` + `foo.test.ts`(`__tests__/` ディレクトリは使わない)
-- E2E のみ `e2e/` 配下にまとめる
-- フィクスチャは `<scope>.fixtures.ts` の隣接配置
-
-### 3. 命名
+### 2. 命名と基本構造
 
 ```ts
 describe('parseUser', () => {
@@ -47,11 +41,6 @@ describe('parseUser', () => {
   it('throws ValidationError when id is missing', () => { /* ... */ });
 });
 ```
-
-- `describe` は対象、`it` は「対象が条件下でどう動くか」を英語で記述
-- 実装関数名で命名しない、振る舞いベースで
-
-### 4. Arrange-Act-Assert
 
 ```ts
 it('returns 0 when items is empty', () => {
@@ -66,18 +55,18 @@ it('returns 0 when items is empty', () => {
 });
 ```
 
+- `describe` は対象、`it` は振る舞いを英語で記述(抽象戦略は [`practices/testing-strategy.md`](~/ws/claude-system/practices/testing-strategy.md))
 - 1 テスト 1 アサーション(`expect()` を 1 回)
-- テスト内に if / for を書かない(分岐は別テストに)
 
-### 5. モック方針
+### 3. モック方針
 
-- 純粋ロジックはモックなし(unit)
-- 外部 I/O(DB / HTTP / file)を含む処理は**統合テストでは実物**を使う(`practices/testing-strategy.md` 「境界ではモックしない」)
+一般戦略は [`practices/testing-strategy.md`](~/ws/claude-system/practices/testing-strategy.md) を参照。TypeScript 固有：
+
 - 外部 SaaS への呼び出しのみモック(MSW / nock)
 - Supabase は `@supabase/supabase-js` をモックせず、ローカル Supabase(`supabase start`)で実行
-- Date / Random はテスト時に固定可能な依存注入で書く(`vi.useFakeTimers()` 等は最終手段)
+- Date / Random は依存注入で固定可能に設計する(`vi.useFakeTimers()` 等は最終手段)
 
-### 6. 実行コマンド
+### 4. 実行コマンド
 
 ```bash
 # bun
@@ -95,14 +84,14 @@ bunx vitest --coverage
 bunx jest --runInBand          # CI で安定させたい場合
 ```
 
-### 7. CI / hook 連携
+### 5. CI / hook 連携
 
 - post-edit hook(Phase 6)で affected ファイルのテストのみ実行(monorepo は filter)
 - post-stop hook(Phase 6)で `git status` から変更パッケージのテストを実行
 - `failure-log.jsonl` に失敗を記録(Phase 7b の `log-failure.sh`)
 - `tail -150` でテスト出力を切り詰める(Phase 7b の `filter-test-output.sh`)
 
-### 8. 型と整合
+### 6. 型と整合
 
 - テストファイルも `tsconfig` の strict 配下(別 tsconfig で緩めない)
 - `expect(x).toBe(y)` の型不一致をコンパイラが拾う(`@ts-ignore` でテストをすり抜けさせない)
@@ -119,15 +108,12 @@ bunx jest --runInBand          # CI で安定させたい場合
 - [ ] `bun test` / `vitest run` / `jest` が緑
 - [ ] tsconfig の strict 配下でテストも型エラー 0
 
-## アンチパターン
+## アンチパターン(TypeScript 固有)
 
-- 失敗するテストを書かずに実装から始める(Red を踏まないと Green の意味が薄れる)
-- 1 テストで複数の振る舞いを検証(壊れたとき原因特定不能)
-- 実装関数名でテスト命名(リファクタで一斉に壊れる)
-- 統合テストで DB / HTTP をモック(境界の挙動が検証されない)
-- `skip` / `xit` で失敗テストを残す(直すか削除する)
-- `expect(true).toBe(true)` 等のトートロジー
-- カバレッジ %% を目標化して意味のないテストを濫造する
+一般的なアンチパターンは [`practices/testing-strategy.md`](~/ws/claude-system/practices/testing-strategy.md) を参照。TypeScript 特有の陥りやすい例：
+
+- 型エラーを無視して `@ts-ignore` を散らす。テスト本体も strict tsconfig の対象に置く
+- モック内で型ガードが甘いため、モックが実装と別の引数型を受けている(テストが通ってもランタイムで失敗)
 
 ## 関連
 
