@@ -92,6 +92,13 @@ Decision §5 の前提(「`effort:` はスキーマ外・ハーネス対応未�
 | refactor-planner | opus | high | 設計は opus の差が実在。xhigh は parse-error 誘発で high 上限 |
 | security-auditor | opus | high | 低頻度 + 致命度最大。opus 維持、effort は high で parse-error 回避 |
 
+2026-06-06、委譲チェーン整備([ADR 0015](./0015-delegation-chain-and-mandatory-delegation.md))に伴い 2 ロールを追加し、同じ校正ロジックを適用した:
+
+| ロール | model | effort | 要点 |
+|--------|-------|--------|------|
+| implementer | sonnet | high | 一般的実装は複雑度中位。設計は上流(親 / refactor-planner)で確定済み。高頻度ゆえ完走確実性を優先し sonnet+high。品質は下流の test hook + code-reviewer で担保 |
+| devil-advocate | opus | high | 批判的思考・前提検証は判断が重く、低頻度・高致命(重い意思決定の直前に起動)。refactor-planner / security-auditor と同プロファイルで opus+high。xhigh は parse-error 誘発で見送り |
+
 判断の核: 同じ「沈黙の品質劣化」軸でも **頻度 × 検証可能性 × 致命度の積で結論が反転**する。高頻度の code-reviewer は安定(完走=品質)を取り sonnet+high、低頻度・致命の security-auditor は opus を維持。code-reviewer の opus 級検出力は、単発でなく**反復レビュー(毎回新規エージェント)+ 最終 opus ゲート**で別途確保する([`practices/iterative-review.md`](../../practices/iterative-review.md))。
 
 ### load-bearing 前提の検証状況(2026-06-05 更新)

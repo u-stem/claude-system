@@ -50,6 +50,8 @@ model / effort 校正の根拠は [ADR 0013](~/ws/claude-system/meta/decisions/0
 | [`refactor-planner`](./refactor-planner.md) | リファクタリング計画を立案する(実装はしない) | Read, Grep, Glob | opus | high | 旧 `refactor-planner.md` を継承 + 出力フォーマット強化 |
 | [`explorer`](./explorer.md) | コードベースを独立コンテキストで探索し要約を返す | Read, Grep, Glob | haiku | medium | 旧 `explorer.md` を継承 + 起動判断基準を明示 |
 | [`research-summarizer`](./research-summarizer.md) | 外部資料を WebSearch / WebFetch で調査し要約を返す | WebSearch, WebFetch, Read | sonnet | high | **新規**(v3 マスタープラン由来。`explorer` と内外で対比) |
+| [`implementer`](./implementer.md) | 確定した計画に従いコードを実装する | Read, Grep, Glob, Edit, Write, Bash | sonnet | high | **新規**(唯一のコード writer。`refactor-planner` の計画を実装) |
+| [`devil-advocate`](./devil-advocate.md) | 意思決定・計画・主張を反証し代替案を出す | Read, Grep, Glob | opus | high | **新規**(反証専門。ADR 0013 校正で使った反証視点を常設化) |
 
 校正の含意: `code-reviewer` は最多用ロールゆえ opus+high の parse-error 露出を避け sonnet+high とし、opus 級の検出力は反復レビュー(毎回新規エージェント)+ 最終 opus ゲートで別途確保する([`practices/iterative-review.md`](~/ws/claude-system/practices/iterative-review.md))。`security-auditor` は低頻度 + 致命度最大のため opus+high を維持。`effort` 上限はモデル依存(haiku は xhigh/max 不可)で、値は未検証前提を含むため配置後に parse-error 発生率を監視する。
 
@@ -65,6 +67,8 @@ model / effort 校正の根拠は [ADR 0013](~/ws/claude-system/meta/decisions/0
 | `research-summarizer` | — | ◯ | — | **採用** | 外部調査専門、原典 URL 付き要約 |
 | `test-runner` | ◯ | — | ◯ | **不採用** | Phase 7b の post-edit / post-stop hook が自動テストを担うため subagent 化の優位性が薄い。必要時に `skill-creation` 手順で追加可能 |
 | `adr-drafter` | — | ◯ | — | **不採用** | Phase 4 `adr-writing` skill で著者ワークフローを支援できる。on-demand のドラフト生成は一回性が高く subagent の常設価値が低い |
+| `implementer` | — | — | — | **採用(新規)** | 委譲チェーン(計画→実装→レビュー)の実装担当。唯一のコード writer。[ADR 0015](~/ws/claude-system/meta/decisions/0015-delegation-chain-and-mandatory-delegation.md) |
+| `devil-advocate` | — | — | — | **採用(新規)** | 委譲チェーンの反証担当。重い判断の前に前提を攻める。[ADR 0015](~/ws/claude-system/meta/decisions/0015-delegation-chain-and-mandatory-delegation.md) |
 
 ## subagent と skill の責務分離マトリクス
 
@@ -76,6 +80,8 @@ model / effort 校正の根拠は [ADR 0013](~/ws/claude-system/meta/decisions/0
 | ドキュメント追従 | `doc-writer` | `japanese-tech-writing` | skill = 文章作法、subagent = コード差分追従の提案 / 適用。出力文も skill の作法に従う |
 | リファクタ | `refactor-planner` | (なし、将来 `refactor` skill 追加余地) | subagent = 計画専門、実装しない。段階的ステップ + テスト戦略まで出力 |
 | コードベース探索 | `explorer` | (なし、将来 `investigate` skill 追加余地) | subagent = 大量探索を別コンテキストで実行、要約のみ親に返す |
+| 実装(コード書き) | `implementer` | (なし、`testing-*` で作法) | subagent = 確定計画をコードに落とす唯一の writer。設計判断はしない(親 / `refactor-planner` が担う) |
+| 反証 / 意思決定検証 | `devil-advocate` | (なし) | subagent = 計画・決定・主張を別コンテキストから攻める。コード品質ではなく判断そのものを疑う |
 | 外部調査 | `research-summarizer` | (なし) | subagent = WebSearch / WebFetch 主体、原典 URL 付き要約。本人手の Web 検索を圧縮 |
 | ADR 起票 | (なし、Phase 4 で吸収) | `adr-writing` | skill のみで完結 |
 | テスト実行 | (なし、hook 化) | `testing-typescript` / `testing-python` | skill = TDD 設計、Phase 7b の post-edit / post-stop hook が自動実行 |
@@ -114,6 +120,8 @@ model / effort 校正の根拠は [ADR 0013](~/ws/claude-system/meta/decisions/0
 | `refactor-planner` | Read, Grep, Glob | Edit, Write, Bash | 計画専門、実装はしない |
 | `explorer` | Read, Grep, Glob | Edit, Write, Bash | 探索専門、編集も shell も不要 |
 | `research-summarizer` | WebSearch, WebFetch, Read | Edit, Write, Grep, Glob, Bash | 外部 Web 専門、ローカルへの書き込み禁止 |
+| `implementer` | Read, Grep, Glob, Edit, Write, Bash | (なし) | 実装担当。コード writer ゆえ Edit/Write/Bash を許可する唯一の subagent |
+| `devil-advocate` | Read, Grep, Glob | Edit, Write, Bash | 反証専門、判断材料を返すのみでコードは編集しない |
 
 ## 自己検証
 
