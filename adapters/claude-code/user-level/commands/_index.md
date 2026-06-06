@@ -37,13 +37,24 @@ slash command は Claude Code の `/<name>` 入力で発火する短いプロン
 `recommended_model` / `tools` / `model` フィールドは slash command には不要(skill / subagent と異なる仕様)。
 引数を取る場合は本文中で `$ARGUMENTS` を参照。
 
+## command 責務の使い分け
+
+### `/check` vs `/test`
+
+| コマンド | 用途 | タイミング |
+|---------|------|-----------|
+| **`/check`** | lint + 型チェック + テストを一括実行 | コミット前の最終品質ゲート |
+| **`/test`** | テストのみを即時実行 | TDD の赤・緑サイクルで頻用 |
+
+`/test` は軽量で即座に実行でき、TDD ワークフローに適している。コミット直前に全項目を確認したいなら `/check` を使う。
+
 ## skill / subagent との使い分け
 
 | 使い方 | 推奨 |
 |--------|------|
 | 「lint・型・test を回したい」(明示的・即時) | slash command `/check` |
 | 「コードを書く方針を確認したい」(段階的開示) | skill(LLM が起動判断) |
-| 「PR を別コンテキストで深掘りレビュー」(委譲) | subagent `code-reviewer` |
+| 「PR を別コンテキストで深掘りレビュー」(委譲、差分 100 行超 or 5 ファイル超) | subagent `code-reviewer` |
 | 「変更コードに doc を追従させたい」(別コンテキストで適用) | subagent `doc-writer` |
 
 ## 自己検証
