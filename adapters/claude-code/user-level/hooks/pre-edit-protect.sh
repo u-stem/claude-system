@@ -32,16 +32,10 @@ case "$PATH_FIELD" in
     NEW_CONTENT="$(printf '%s' "$INPUT" | jq -r '.tool_input.content // .tool_input.new_string // empty' 2>/dev/null || true)"
     if [[ -n "$NEW_CONTENT" ]]; then
       WORDS_FILE="$CS_ROOT/meta/forbidden-words.txt"
-      if [[ -f "$WORDS_FILE" ]]; then
-        while IFS= read -r word; do
-          [[ -z "$word" ]] && continue
-          case "$word" in \#*) continue ;; esac
-          if printf '%s' "$NEW_CONTENT" | /usr/bin/grep -qi "$word"; then
-            hk_log pre-edit-protect "forbidden word '$word' in $PATH_FIELD"
-            hk_deny PreToolUse "principles/practices に禁止語 '$word' が含まれています($PATH_FIELD)。adapters/ 以下に移動してください。"
-          fi
-        done < "$WORDS_FILE"
-      fi
+      while IFS= read -r found_word; do
+        hk_log pre-edit-protect "forbidden word '$found_word' in $PATH_FIELD"
+        hk_deny PreToolUse "principles/practices に禁止語 '$found_word' が含まれています($PATH_FIELD)。adapters/ 以下に移動してください。"
+      done < <(printf '%s' "$NEW_CONTENT" | hk_check_forbidden_words "$WORDS_FILE" -)
     fi
     ;;
 esac

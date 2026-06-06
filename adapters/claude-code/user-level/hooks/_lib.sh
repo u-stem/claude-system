@@ -102,3 +102,76 @@ hk_read_input() {
   fi
   head -c 1048576
 }
+
+# ---------------------------------------------------------------------------
+# Project hook dispatcher
+# ---------------------------------------------------------------------------
+
+# hk_dispatch_project_hook <hook-name>
+# Reads the Claude Code JSON payload from stdin, then delegates to the
+# project-local .claude/hooks/<hook-name>.sh when it exists and is executable.
+# Forwards stdin verbatim to the project hook. Propagates the project hook's
+# exit code on failure. Silent no-op when the project hook is absent.
+#
+# Usage (from a dispatcher script):
+#   hk_dispatch_project_hook post-edit
+#   exit 0
+hk_dispatch_project_hook() {
+  local hook_name="$1"
+  local input
+  input="$(hk_read_input)"
+  local proj_hook="${PROJECT_ROOT}/.claude/hooks/${hook_name}.sh"
+  if [[ -x "$proj_hook" ]]; then
+    printf '%s' "$input" | "$proj_hook" || {
+      local rc=$?
+      hk_log "${hook_name}-dispatcher" "project hook failed rc=${rc}"
+      exit "$rc"
+    }
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Forbidden-words helpers
+# ---------------------------------------------------------------------------
+
+# hk_check_forbidden_words <words-file> <input-source>
+# Prints each forbidden word found in the input to stdout, one word per line.
+# <input-source>: a file path to check on disk, or "-" to read from stdin.
+# Silently returns 0 (no output) when words-file does not exist.
+# Empty lines and comment lines (# ...) in words-file are skipped.
+# Case-insensitive match via grep -i.
+#
+# Usage examples:
+#   # check new content (stdin mode — caller pipes the content):
+#   while IFS= read -r found; do
+#     hk_deny PreToolUse "forbidden word '$found' in $path"
+#   done < <(printf '%s' "$new_content" | hk_check_forbidden_words "$words_file" -)
+#
+#   # check a file on disk:
+#   while IFS= read -r found; do
+#     hk_warn "forbidden word '$found' in $path"
+#   done < <(hk_check_forbidden_words "$words_file" "$path")
+hk_check_forbidden_words() {
+  local words_file="$1"
+  local input_source="$2"
+  [[ -f "$words_file" ]] || return 0
+
+  local _hcfw_content=""
+  if [[ "$input_source" == "-" ]]; then
+    _hcfw_content="$(cat)"
+  fi
+
+  while IFS= read -r word; do
+    [[ -z "$word" ]] && continue
+    case "$word" in \#*) continue ;; esac
+    if [[ "$input_source" == "-" ]]; then
+      if printf '%s' "$_hcfw_content" | /usr/bin/grep -qi "$word"; then
+        printf '%s\n' "$word"
+      fi
+    else
+      if /usr/bin/grep -qi "$word" "$input_source"; then
+        printf '%s\n' "$word"
+      fi
+    fi
+  done < "$words_file"
+}

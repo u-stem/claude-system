@@ -33,15 +33,9 @@ fi
 case "$PATH_FIELD" in
   */principles/*|*/practices/*)
     WORDS_FILE="$CS_ROOT/meta/forbidden-words.txt"
-    if [[ -f "$WORDS_FILE" ]]; then
-      while IFS= read -r word; do
-        [[ -z "$word" ]] && continue
-        case "$word" in \#*) continue ;; esac
-        if /usr/bin/grep -qi "$word" "$PATH_FIELD"; then
-          hk_warn "forbidden word '$word' present in $PATH_FIELD (post-edit-validate)"
-        fi
-      done < "$WORDS_FILE"
-    fi
+    while IFS= read -r found_word; do
+      hk_warn "forbidden word '$found_word' present in $PATH_FIELD (post-edit-validate)"
+    done < <(hk_check_forbidden_words "$WORDS_FILE" "$PATH_FIELD")
     ;;
 esac
 
