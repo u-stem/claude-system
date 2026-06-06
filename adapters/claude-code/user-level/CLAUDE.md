@@ -56,8 +56,7 @@
 
 - 個人開発者、日本拠点
 - 複数のプロダクトを並行運用
-- 主要スタック: TypeScript / Next.js / Supabase / Vercel
-- パッケージ管理: JS/TS は `bun`、Python は `uv`
+- 主要スタック: TypeScript / Next.js / Supabase / Vercel(パッケージ管理は §5 に集約)
 - 副次関心: 創作・ゲーム設計
 
 ## 4. 言語規約
