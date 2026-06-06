@@ -32,6 +32,16 @@ for pat in "${DENY_PATTERNS[@]}"; do
   fi
 done
 
+# Ban `cd`: the session already starts in the working directory, so `cd` is
+# unnecessary and slows things down. Repeatedly used despite instructions, so
+# enforce mechanically here (applies to subagent Bash calls too). Matches `cd`
+# at a command position: start, or after ; & | ( { (covers `&& cd`, `| cd`,
+# `(cd ...)`). Does NOT match substrings like `cdk` / paths containing "cd".
+if printf '%s' "$CMD" | /usr/bin/grep -qE '(^|[;&|({])[[:space:]]*cd([[:space:]]|$)'; then
+  hk_log pre-bash-guard "deny cd (cmd: $CMD)"
+  hk_deny PreToolUse "cd は禁止です(既にカレントディレクトリで起動済み)。絶対パス、または git -C <dir> / make -C <dir> / bun --cwd <dir> 等の cwd 指定フラグを使ってください。コマンド: $CMD"
+fi
+
 # Patterns to ask user (destructive but sometimes intentional).
 declare -a ASK_PATTERNS=(
   'git[[:space:]]+reset[[:space:]]+--hard'

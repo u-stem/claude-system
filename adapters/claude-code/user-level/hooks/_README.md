@@ -17,7 +17,7 @@ Phase 7b(Guardrails 層)で実装済み。Phase 10 で `~/.claude/hooks/` にシ
 
 | ファイル | hook 種別 | 役割 |
 |---------|-----------|------|
-| `pre-bash-guard.sh` | PreToolUse(Bash) | `--no-verify` / 破壊的コマンドを deny |
+| `pre-bash-guard.sh` | PreToolUse(Bash) | `--no-verify` / 破壊的コマンド / `cd` を deny(`cd` は eval 形も正規表現で捕捉。通常形・複合形・subagent は settings.json `permissions.deny` の `Bash(cd)` / `Bash(cd *)` が session 全体でカバー) |
 | `check-package-age.sh` | PreToolUse(Bash) | typosquatting / 侵害バージョン防御。`PACKAGE_MIN_AGE_DAYS`(既定 7)以内のパッケージを deny |
 | `pre-bash-output-cap.sh` | PreToolUse(Bash) | token 経済(ADR 0012)。test/build/lint の単純コマンドの stdout を `updatedInput` で `tail -n N` にキャップ。stderr と exit code は保持。`CLAUDE_BASH_OUTPUT_CAP`(既定 200、`0` で無効) |
 | `pre-edit-protect.sh` | PreToolUse(Edit\|Write) | `claude-settings/` / `*.backup-*` への書き込み阻止 + principles/practices への禁止語混入阻止 |
