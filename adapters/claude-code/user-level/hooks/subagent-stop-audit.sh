@@ -18,8 +18,12 @@ source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 INPUT="$(hk_read_input)"
 [[ -z "$INPUT" ]] && exit 0
 
-agent_type="$(printf '%s' "$INPUT" | jq -r '.subagent.type // .agent_type // empty' 2>/dev/null || true)"
-transcript_path="$(printf '%s' "$INPUT" | jq -r '.subagent.transcript_path // .agent_transcript_path // empty' 2>/dev/null || true)"
+# Extract fields using the public SubagentStop schema (2.x).
+# .subagent.type and .subagent.transcript_path are non-existent keys in the
+# official payload; using them caused transcript_path to always be empty,
+# which made the early-exit guard at line 38 skip the entire audit body.
+agent_type="$(printf '%s' "$INPUT" | jq -r '.agent_type // empty' 2>/dev/null || true)"
+transcript_path="$(printf '%s' "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null || true)"
 
 mkdir -p "$HOOK_LOG_DIR"
 audit_log="$HOOK_LOG_DIR/subagent-audit.jsonl"
@@ -44,12 +48,12 @@ fi
 # here is a real leak — no allowlist is needed and the previous
 # SUBAGENT_AUDIT_KNOWN_EMAILS env-var has been removed.
 if /usr/bin/grep -qE '[A-Za-z0-9._%+-]+@(gmail\.com|icloud\.com|outlook\.com)' "$transcript_path"; then
-  emit_finding personal-email-shape "$transcript_path"
+  emit_finding personal-email-shape "$(basename "$transcript_path")"
 fi
 
 # 2. ADR 0002: claude-settings / private-host references.
 if /usr/bin/grep -qE 'claude-settings|github\.com/[^/]+/private|gitlab\.[^/]+/private' "$transcript_path"; then
-  emit_finding private-resource-link "$transcript_path"
+  emit_finding private-resource-link "$(basename "$transcript_path")"
 fi
 
 # 3. tools overreach: cross-check the subagent definition's `tools` frontmatter
@@ -89,7 +93,7 @@ if [[ -n "$agent_type" ]]; then
         fi
       done
       if [[ $matched -eq 0 ]]; then
-        emit_finding tool-overreach "${agent_type}: used $tool not declared in $agent_def"
+        emit_finding tool-overreach "${agent_type}: used $tool not declared in $(basename "$agent_def")"
       fi
     done <<<"$used_tools"
   fi
