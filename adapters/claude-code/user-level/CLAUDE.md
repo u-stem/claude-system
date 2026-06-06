@@ -85,6 +85,15 @@
 4. lint / typecheck / 必要なら test を実行
 5. 上記「完了時の必須報告フォーマット」で報告
 
+### 委譲ファースト(チーム連鎖)
+
+実作業は**原則として対応する subagent に委譲**し、メインは分解・選定・統合・不可逆操作の判断に徹する([ADR 0015](../../../meta/decisions/0015-delegation-chain-and-mandatory-delegation.md) / [`practices/delegation-orchestration.md`](../../../practices/delegation-orchestration.md))。
+
+- 探索 → `explorer`(内部)/ `research-summarizer`(外部)
+- 計画 → `refactor-planner`、反証 → `devil-advocate`、実装 → `implementer`、レビュー → `code-reviewer`(反復は `/review-loop`)、最終ゲート → `security-auditor`、文書追従 → `doc-writer`
+- 連鎖は**メイン主導の単層**(subagent は再委譲できない構造制約)。固定順序で回すなら `/team` command を使う。
+- **例外**: 軽微・可逆・1 点参照はメイン直接実行でよい(委譲の固定費が利得を上回るため。機械的に全作業を委譲しない)。
+
 ## 7. 「困ったら問い直す」
 
 - 仕様が曖昧 → 問い返す

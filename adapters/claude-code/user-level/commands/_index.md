@@ -20,6 +20,8 @@ slash command は Claude Code の `/<name>` 入力で発火する短いプロン
 | [`review`](./review.md) | 指定ファイルの簡易コードレビュー | 旧 `commands/review.md` を継承 + `code-reviewer` subagent への委譲条件を追加 |
 | [`test`](./test.md) | テストを実行して結果を報告 | 旧 `commands/test.md` を継承 |
 | [`update-check`](./update-check.md) | Claude Code の最新情報を調査し、設定の更新提案を行う | 旧 `commands/update-check.md` を継承 + `research-summarizer` subagent への委譲を推奨 |
+| [`review-loop`](./review-loop.md) | レビュー→修正→レビューの反復ループ(立て直し + 最終ゲート) | **新規**(`practices/iterative-review.md` の実装) |
+| [`team`](./team.md) | 委譲チェーン(計画→反証→実装→レビュー→ゲート)をメイン主導で回す | **新規**([ADR 0015](~/ws/claude-system/meta/decisions/0015-delegation-chain-and-mandatory-delegation.md) の実装) |
 
 ## frontmatter 規約
 
