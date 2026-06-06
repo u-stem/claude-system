@@ -100,4 +100,4 @@ High / Critical が出たら**マージ前に対処**(更新 / 別パッケー�
 
 - [`practices/supply-chain-hygiene.md`](~/ws/claude-system/practices/supply-chain-hygiene.md) — 抽象戦略
 - [`adapters/claude-code/user-level/skills/security-audit/SKILL.md`](~/ws/claude-system/adapters/claude-code/user-level/skills/security-audit/SKILL.md) — 4 軸チェック内の依存関係軸
-- [`meta/TODO-for-phase-7b.md`](~/ws/claude-system/meta/TODO-for-phase-7b.md) — `check-package-age.sh` 取り込み計画
+- [`hooks/check-package-age.sh`](~/ws/claude-system/adapters/claude-code/user-level/hooks/check-package-age.sh) — 新興・typosquatting パッケージを実行前に検出するフック(実装済み)

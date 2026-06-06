@@ -26,7 +26,7 @@ AI 協働開発のためのメタリポジトリ。
 | パス | 役割 | 詳細 |
 |------|------|------|
 | [`principles/`](./principles/README.md) | 不変の根本原則(ツール非依存) | 7 ファイル / 5 年後も成立する原則のみ |
-| [`practices/`](./practices/README.md) | 抽象的な実践パターン | 14 ファイル / トリガー・手順・判断基準を整理 |
+| [`practices/`](./practices/README.md) | 抽象的な実践パターン | 17 ファイル / トリガー・手順・判断基準を整理 |
 | [`adapters/claude-code/`](./adapters/claude-code/README.md) | Claude Code 固有の翻訳層 | skills / subagents / hooks / commands / fragments / templates |
 | [`adapters/codex/`](./adapters/codex/) | OpenAI Codex CLI 用の枠(将来) | 現状プレースホルダ |
 | `projects/` | プロジェクト個別の統合情報 | gitignore 対象、中身は Private |
