@@ -38,8 +38,12 @@ emit_finding() {
     >> "$audit_log"
 }
 
-# Skip if the transcript file is missing or unreadable. Audit is best-effort.
+# Skip if the transcript file is missing or unreadable. Audit is best-effort,
+# but log the skip so a future SubagentStop schema change cannot silently
+# disable the whole audit again (basename only — output hygiene, ADR 0001).
 if [[ -z "$transcript_path" || ! -r "$transcript_path" ]]; then
+  hk_log subagent-stop-audit \
+    "skip: transcript empty/unreadable agent=${agent_type:-?} tp=${transcript_path:+$(basename "$transcript_path")}"
   exit 0
 fi
 
@@ -60,7 +64,10 @@ fi
 # against tool-call markers in the transcript. Heuristic only (transcript
 # format may evolve); failures are logged, not blocking.
 if [[ -n "$agent_type" ]]; then
-  agent_def="$CS_ROOT/adapters/claude-code/subagents/${agent_type}.md"
+  # basename the payload-derived agent_type before path construction so a
+  # crafted "../" value cannot traverse out of the subagents directory.
+  safe_agent_type="$(basename "$agent_type")"
+  agent_def="$CS_ROOT/adapters/claude-code/subagents/${safe_agent_type}.md"
   if [[ -f "$agent_def" ]]; then
     declared_tools="$(awk '/^---$/{c++; next} c==1 && /^tools:/{sub(/^tools:[[:space:]]*/,""); print; exit}' "$agent_def" || true)"
     # Tool names in the transcript appear like "tool: Read" or {"tool":"Bash"}.

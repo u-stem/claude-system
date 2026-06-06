@@ -14,6 +14,8 @@
 #   (F) hk_check_forbidden_words: detects forbidden word in a file
 #   (G) hk_check_forbidden_words: no output when file content is clean
 #   (H) hk_check_forbidden_words: silent no-op when words file is absent
+#   (I) hk_check_forbidden_words: a "." in a forbidden word is a literal,
+#       not a regex wildcard (fixed-string match)
 #
 # Fixtures: synthetic scripts and word lists in mktemp dirs.
 # CS_BACKUP_ROOT is overridden per test to keep hook logs in tmpdir.
@@ -207,6 +209,32 @@ found_h="$(
   || err "Test H: expected exit 0 when words file absent, got $exit_h"
 [[ -z "$found_h" ]] \
   || err "Test H: expected empty output when words file absent, got '$found_h'"
+
+# ---------------------------------------------------------------------------
+# Test I: hk_check_forbidden_words — "." in a word is literal, not a wildcard
+# ---------------------------------------------------------------------------
+
+# "claude.md" must match the literal string only, NOT "claudeXmd" (which a
+# BRE "." would match). Regression guard for the grep -F fix.
+printf 'claude.md\n' > "$TMPDIR_TEST/dot-words.txt"
+
+found_i_match="$(
+  printf 'see the claude.md file' \
+    | run_lib_fn \
+        "CS_BACKUP_ROOT=$TMPDIR_TEST/i/bk" \
+        "hk_check_forbidden_words \"$TMPDIR_TEST/dot-words.txt\" -"
+)"
+[[ "$found_i_match" == "claude.md" ]] \
+  || err "Test I [literal]: expected 'claude.md' to match itself, got '$found_i_match'"
+
+found_i_nomatch="$(
+  printf 'this mentions claudeXmd only' \
+    | run_lib_fn \
+        "CS_BACKUP_ROOT=$TMPDIR_TEST/i/bk" \
+        "hk_check_forbidden_words \"$TMPDIR_TEST/dot-words.txt\" -"
+)"
+[[ -z "$found_i_nomatch" ]] \
+  || err "Test I [wildcard]: '.' must be literal — 'claudeXmd' must NOT match 'claude.md', got '$found_i_nomatch'"
 
 # ---------------------------------------------------------------------------
 # Summary

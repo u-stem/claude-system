@@ -123,8 +123,10 @@ hk_dispatch_project_hook() {
   local proj_hook="${PROJECT_ROOT}/.claude/hooks/${hook_name}.sh"
   if [[ -x "$proj_hook" ]]; then
     printf '%s' "$input" | "$proj_hook" || {
+      # NB: keep `local rc=$?` on one line. `local rc; rc=$?` would clobber $?
+      # because the bare `local` runs first and resets $? to 0.
       local rc=$?
-      hk_log "${hook_name}-dispatcher" "project hook failed rc=${rc}"
+      hk_log "${hook_name}-dispatcher" "project hook failed rc=${rc} ($(basename "$proj_hook"))"
       exit "$rc"
     }
   fi
@@ -139,7 +141,9 @@ hk_dispatch_project_hook() {
 # <input-source>: a file path to check on disk, or "-" to read from stdin.
 # Silently returns 0 (no output) when words-file does not exist.
 # Empty lines and comment lines (# ...) in words-file are skipped.
-# Case-insensitive match via grep -i.
+# Case-insensitive fixed-string match via grep -iF: forbidden words are
+# literals (e.g. "claude.md", "settings.json"), not regex, so a BRE "." must
+# not match an arbitrary character.
 #
 # Usage examples:
 #   # check new content (stdin mode — caller pipes the content):
@@ -165,11 +169,11 @@ hk_check_forbidden_words() {
     [[ -z "$word" ]] && continue
     case "$word" in \#*) continue ;; esac
     if [[ "$input_source" == "-" ]]; then
-      if printf '%s' "$_hcfw_content" | /usr/bin/grep -qi "$word"; then
+      if printf '%s' "$_hcfw_content" | /usr/bin/grep -qiF "$word"; then
         printf '%s\n' "$word"
       fi
     else
-      if /usr/bin/grep -qi "$word" "$input_source"; then
+      if /usr/bin/grep -qiF "$word" "$input_source"; then
         printf '%s\n' "$word"
       fi
     fi
