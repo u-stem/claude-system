@@ -79,7 +79,7 @@ Claude Code がアップデートされた場合、以下を順に確認する:
 
 1. Claude Code の changelog / 公式ドキュメントを確認
 2. 上記「影響範囲マップ」の各行を順に点検
-3. `user-level/settings.json.template` を更新
+3. `user-level/settings.json.template` を更新(コミットすると git hook が配置済み `~/.claude/settings.json` へ自動反映する。`tools/sync-settings.sh` / ADR 0017)
 4. 影響を受ける skill / subagent / hook を更新(各 Phase で実装済みの分)
 5. `meta/CHANGELOG.md` に変更点を記録(Why を含めて)
 6. 必要なら ADR を起票(`practices/adr-workflow.md` 参照)

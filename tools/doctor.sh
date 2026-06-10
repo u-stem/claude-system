@@ -37,6 +37,7 @@ Checks:
   - JSON validity of settings.json.template / .gitleaks.toml (informational)
   - gitleaks scan of tracked content (if installed)
   - ADR draft TODO placeholders ({{TODO: ...}}) in *.md.draft files
+  - settings auto-sync wiring and drift (tools/sync-settings.sh --check, ADR 0017)
 EOF
 }
 
@@ -290,6 +291,30 @@ for t in tests/lint-skills.sh tests/lint-principles-language.sh \
     warn "$t not present or not executable"
   fi
 done
+
+# ---------------------------------------------------------------------------
+# 12. settings auto-sync state (informational on machines without deployment)
+# ---------------------------------------------------------------------------
+cs_step "settings auto-sync (ADR 0017)"
+if [[ -f "$CLAUDE_HOME/settings.json" ]]; then
+  hooks_path="$(git config --get core.hooksPath 2>/dev/null || true)"
+  if [[ "$hooks_path" == "tools/githooks" ]]; then
+    ok "core.hooksPath -> tools/githooks"
+  else
+    warn "core.hooksPath not wired (auto-sync inactive); run tools/setup.sh or: git config core.hooksPath tools/githooks"
+  fi
+  if [[ -x tools/sync-settings.sh ]]; then
+    if tools/sync-settings.sh --check >/dev/null 2>&1; then
+      ok "deployed settings.json in sync with template + overrides"
+    else
+      warn "settings drift detected; review tools/sync-settings.sh (dry-run diff), then --apply"
+    fi
+  else
+    warn "tools/sync-settings.sh missing or not executable"
+  fi
+else
+  ok "~/.claude/settings.json not deployed on this machine (informational)"
+fi
 
 # ---------------------------------------------------------------------------
 # Summary

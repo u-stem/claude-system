@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Versioned git hook — wired via `git config core.hooksPath tools/githooks`
+# (done idempotently by tools/setup.sh; see ADR 0017).
+# After a commit that touches the settings template, re-render the deployed
+# ~/.claude/settings.json. Never fails the git operation.
+
+set -euo pipefail
+
+root="$(git rev-parse --show-toplevel)"
+template="adapters/claude-code/user-level/settings.json.template"
+
+# First commit in a repo has no parent; nothing to compare.
+git rev-parse -q --verify 'HEAD~1' >/dev/null 2>&1 || exit 0
+
+if git -C "$root" diff --name-only 'HEAD~1..HEAD' -- "$template" | grep -q .; then
+  "$root/tools/sync-settings.sh" --apply || {
+    echo "[claude-system] WARN: settings auto-sync failed; run tools/sync-settings.sh manually" >&2
+  }
+fi

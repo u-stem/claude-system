@@ -2,6 +2,17 @@
 
 このリポジトリの変更履歴。Phase 単位でセクション化する。
 
+## settings.json 自動反映機構(2026-06-10)
+
+ADR 0010/0016 で Neutral 事項として繰り越し続けた「template 更新が配置済み `~/.claude/settings.json` に自動反映されない」ギャップを解消した。判断の本体は [ADR 0017](./decisions/0017-settings-auto-sync.md)。
+
+- **レンダリングモデル**: 配置ファイル = `jq` deep-merge(`settings.json.template` ⊕ `~/.claude/settings.machine-overrides.json`)。配置ファイルは手編集禁止のビルド成果物(`"// managed"` マーカー焼き込み)
+- `tools/sync-settings.sh` 新設: dry-run(正規化 diff)/ `--apply`(バックアップ + 原子的書き込み)/ `--check`(ドリフト時 exit 1)。settings.json 配置の責務を `sync.sh` から移管(ADR 0007 の境界更新)
+- `tools/githooks/{post-commit,post-merge}` 新設: template に触れたコミット / pull で `--apply` を自動実行(fail-open、git 操作は阻害しない)。結線は `setup.sh` の冪等ステップ `git config core.hooksPath tools/githooks`
+- `tools/doctor.sh`: hooksPath 結線とドリフトのチェックを追加(配置のないマシン / CI では informational)
+- `tests/test-sync-settings.sh` 新設: マージ優先順位・冪等性・ドリフト検知・バックアップ生成を使い捨て HOME で検証
+- 初回移行: 実機の意図的ローカル値(`agentPushNotifEnabled` / `effortLevel` / `remoteControlAtStartup` / `skipWorkflowUsageWarning`)を overrides へ抽出し、陳腐化分(deny エントリ・MCP pin の遅れ)はレンダリングで解消
+
 ## Fable 5 / Claude Code 2.1.170 への harness 同期(2026-06-10)
 
 `update-check` skill による調査(research-summarizer 4 並列委譲 + claude-code-guide での設定キー裏取り)に基づき、機械層を Fable 5 GA(2026-06-09)/ Claude Code 2.1.170 に同期した。判断の本体は [ADR 0016](./decisions/0016-fable-5-harness-settings-sync.md)。

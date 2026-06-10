@@ -123,8 +123,8 @@ cs_step "settings.json deployment plan"
 if [[ ! -f "$SETTINGS_TEMPLATE" ]]; then
   cs_warn "Template missing: $SETTINGS_TEMPLATE"
 elif [[ -f "$SETTINGS_TARGET" ]]; then
-  cs_info "settings.json already exists at $SETTINGS_TARGET; manual diff/merge required."
-  cs_info "Phase 10 procedure: review, then cp or merge from $SETTINGS_TEMPLATE"
+  cs_info "settings.json already exists at $SETTINGS_TARGET; deployment is owned by tools/sync-settings.sh (template + machine overrides, ADR 0017)."
+  cs_info "Review drift with: tools/sync-settings.sh   /   apply with: tools/sync-settings.sh --apply"
 else
   cs_info "Will copy $SETTINGS_TEMPLATE -> $SETTINGS_TARGET (manual placeholder fill needed)"
   if [[ "$DRY_RUN" == "0" ]]; then

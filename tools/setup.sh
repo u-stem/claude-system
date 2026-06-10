@@ -20,7 +20,8 @@ Steps (all idempotent):
   2. Required commands check (git, gh, bun, uv, gitleaks, jq, shellcheck, tree)
   3. Optional commands (chezmoi) — detection only, no integration here
   4. Ensure ~/.claude-system-backups/ exists
-  5. Run doctor.sh
+  5. Wire repo git hooks (core.hooksPath -> tools/githooks, settings auto-sync)
+  6. Run doctor.sh
 
 Missing tools are reported with `brew install` suggestions; nothing is auto-installed.
 EOF
@@ -58,6 +59,15 @@ fi
 cs_step "Backup directory"
 cs_ensure_backup_dir
 cs_success "Backup root: $CS_BACKUP_ROOT"
+
+cs_step "Git hooks (settings auto-sync, ADR 0017)"
+current_hooks="$(git -C "$CS_ROOT" config --get core.hooksPath || true)"
+if [[ "$current_hooks" == "tools/githooks" ]]; then
+  cs_success "core.hooksPath already set to tools/githooks"
+else
+  git -C "$CS_ROOT" config core.hooksPath tools/githooks
+  cs_success "core.hooksPath -> tools/githooks (post-commit/post-merge auto-sync)"
+fi
 
 cs_step "Run doctor"
 "$CS_ROOT/tools/doctor.sh" || cs_warn "doctor.sh reported issues; review above."

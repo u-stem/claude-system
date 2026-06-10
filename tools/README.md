@@ -17,7 +17,8 @@
 | script | 用途 | 冪等 | ロック |
 |--------|------|------|--------|
 | [`_lib.sh`](./_lib.sh) | 共通ライブラリ(source 専用) | — | — |
-| [`sync.sh`](./sync.sh) | `~/.claude/` シンボリックリンク配布(Phase 0-9 は `--dry-run` のみ) | ◯ | sync |
+| [`sync.sh`](./sync.sh) | `~/.claude/` シンボリックリンク配布(Phase 0-9 は `--dry-run` のみ)。settings.json の配置は `sync-settings.sh` へ移管済み | ◯ | sync |
+| [`sync-settings.sh`](./sync-settings.sh) | `~/.claude/settings.json` を template ⊕ マシン固有 overrides から決定論的に再生成(ADR 0017)。dry-run / `--apply` / `--check` | ◯ | sync-settings |
 | [`doctor.sh`](./doctor.sh) | リポジトリ整合性チェック(skill / subagent / command frontmatter / 禁止語 / shellcheck / gitleaks / ADR draft) | ◯ | — |
 | [`setup.sh`](./setup.sh) | 新環境セットアップ(前提ツール検出 / バックアップディレクトリ作成 / doctor.sh 実行) | ◯ | — |
 | [`new-project.sh`](./new-project.sh) | 新規プロジェクト立ち上げ(対話 / 引数 / ゼロから始めるモード) | ◯(既存ディレクトリは拒否) | — |
@@ -47,12 +48,14 @@
 | dir | 用途 |
 |-----|------|
 | [`migrate/`](./migrate/) | Claude Code のバージョン更新に伴う移行スクリプト置き場(命名: `from-vA.B-to-vC.D.sh`) |
+| [`githooks/`](./githooks/) | versioned git hooks(post-commit / post-merge)。template 変更コミットを検知して `sync-settings.sh --apply` を実行。結線は `setup.sh` の `core.hooksPath` 設定(ADR 0017) |
 
 ## 重要な制約
 
 - **`sync.sh` の実行**: Phase 0-9 では `--dry-run` のみ。`--force` は `CLAUDE_SYSTEM_ALLOW_SYNC=1` を要求するセーフガード付き。Phase 10 で初めて実切替する
 - **`cleanup-claude-code-runtime.sh` の実行頻度**: 手動実行のみ(SessionStart hook や定期実行には組み込まない、Phase 7a 設計判断 A1)
 - **`setup.sh` の chezmoi 連携**: 検出のみ(Phase 7a 設計判断 A2)。chezmoi との深い連携は将来検討
+- **`sync-settings.sh` の overrides 運用**: `~/.claude/settings.machine-overrides.json` には `permissions.*` / `hooks.*` 等の方針リストを書かない(jq `*` の配列置換でガードレールが丸ごと差し替わるため。ADR 0017)
 - **`new-project.sh` の skill 連携**: `project-tech-stack-decision` skill の起動はユーザに案内するメッセージで促す(スクリプトから skill を直接起動はできない、Phase 7a 設計判断 A3)
 
 ## 関連
