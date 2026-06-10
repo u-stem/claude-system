@@ -88,6 +88,7 @@ claude-system における設計上の重大な意思決定を記録する場所
 | [0013](./0013-role-based-effort-modulation.md) | Role-Based Effort Modulation via Delegation and Model Selection | Accepted (2026-05-31) | effort のロール別可変化を、検証済み機構(委譲 + subagent の `model` 選択)で実現すると決定。メインループ effort は単一グローバル値を維持(タスク単位自動切替はハーネス機能ギャップ)、実効 effort は複雑度に追従させ委譲で変調。`effort:` frontmatter はスキーマ外・対応未確認のため不採用(`model` を代理)。model-selection.md の「役割固定ルール化しない」を継承 |
 | [0014](./0014-tool-call-parse-error-resilience.md) | Tool-Call Parse-Error Resilience | Accepted (2026-06-05) | `tool call could not be parsed (retry also failed)` を上流(`area:model`)の根絶不能事象と前提化。in-band 自動回復は不可と確定(API error は `Stop` でなく `StopFailure` を発火、その出力は無視される)。三層対処: 層0=機械タスクを sonnet/低 effort へルーティング(ADR 0013 適用)、層A=`StopFailure` 通知フック(`notify-stop-failure.sh`、副作用のみ)実装済み、層B=cmux watchdog 自動継続は不可逆操作リスクのため Deferred |
 | [0015](./0015-delegation-chain-and-mandatory-delegation.md) | 委譲チェーン(チーム連鎖)と委譲ファーストの運用 | Accepted (2026-06-06) | 実作業を原則 subagent に委譲する運用方針。subagent は再委譲できない構造制約のため、連鎖はメイン経由の単層(`main → A → 戻る → B`)に限られ ADR 0011 と一致。反証専門 `devil-advocate` と実装専門 `implementer` を新設し委譲先ロールを拡充。固定順序チェーンは `/team` command で実装、軽微・可逆な作業はメイン直接実行の例外を維持 |
+| [0016](./0016-fable-5-harness-settings-sync.md) | Fable 5 Harness Settings Synchronization | Accepted (2026-06-10) | Fable 5 GA(2026-06-09)/ Claude Code 2.1.170 への機械層同期。model pin を `claude-fable-5` に、`VERSION` を 2.1.170 に更新し、`fallbackModel: ["claude-opus-4-8"]` を新設。effortLevel `xhigh` と subagent tier(opus/sonnet/haiku)は据え置き(計測なき格上げをしない、ADR 0013 踏襲)。autonomy 方針(ADR 0009)は Fable 5 期も継続 |
 
 ## ADR を書くタイミング
 

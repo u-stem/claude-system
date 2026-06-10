@@ -20,7 +20,7 @@
     {
       "name": "chrome-devtools",
       "command": "npx",
-      "args": ["chrome-devtools-mcp@1.1.1"],
+      "args": ["chrome-devtools-mcp@1.2.0"],
       "env_keys": [],
       "requires_secret": false,
       "description": "Chrome DevTools protocol bridge (no secrets)"

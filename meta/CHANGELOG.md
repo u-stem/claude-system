@@ -2,6 +2,34 @@
 
 このリポジトリの変更履歴。Phase 単位でセクション化する。
 
+## Fable 5 / Claude Code 2.1.170 への harness 同期(2026-06-10)
+
+`update-check` skill による調査(research-summarizer 4 並列委譲 + claude-code-guide での設定キー裏取り)に基づき、機械層を Fable 5 GA(2026-06-09)/ Claude Code 2.1.170 に同期した。判断の本体は [ADR 0016](./decisions/0016-fable-5-harness-settings-sync.md)。
+
+### harness 同期(ADR 0016)
+
+- `adapters/claude-code/user-level/settings.json.template`
+  - `model`: `claude-opus-4-8` → `claude-fable-5`(Fable 5 は常時 1M context のため `[1m]` サフィックス不要)
+  - `fallbackModel: ["claude-opus-4-8"]` 新設(v2.1.166 追加キー。過負荷・不達時の縮退先を明示し、安全クラシファイアの自動フォールバック先と整合)
+  - `effortLevel: xhigh` 据え置き(公式 docs で Fable 5 は xhigh をサポート、デフォルトは high)
+  - env コメントの世代表記を「Fable 5 期も有効維持」へ更新。`CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=70` は据え置き
+- `adapters/claude-code/VERSION`: `2.1.156` → `2.1.170`(TODO-for-v0.2 項目 16 をクローズ)
+- `adapters/claude-code/user-level/CLAUDE.md` §6: autonomy 記述を「Opus 4.8 期に確立し Fable 5 期も継続」へ更新(方針の中身は ADR 0009 のまま不変)
+- subagent の model tier(opus/sonnet/haiku)は据え置き。alias は引き続き有効で、Fable 化は `subagent-log.jsonl` の計測根拠が出てから再評価(ADR 0016 §2)
+
+### 依存 pin の更新
+
+- `settings.json.template` の `@playwright/mcp`: `0.0.70` → `0.0.75`(`mcp/servers.template.json` は更新済みだった取り残しを解消。v0.0.72 で `browser_run_code` → `browser_run_code_unsafe` 改名があるが、本リポジトリにツール名への参照はなし)
+- `mcp/servers.template.json` の `chrome-devtools-mcp`: `1.1.1` → `1.2.0`(マイナー。`allowedUrlPattern` / `blockedUrlPattern` 追加、破壊的変更なし)
+- `.github/workflows/secrets-scan.yml` の `gitleaks/gitleaks-action`: `v2` → `v3`(GitHub Actions の Node 20 ランタイムが 2026-09-16 に削除予定のため。gitleaks 本体 8.30.1 は最新で据え置き)
+
+### 調査して見送った項目
+
+- `disableBundledSkills` / `requiredMinimumVersion` 等の新キー、`CLAUDE_CODE_SUBAGENT_MODEL` env: 不採用(理由は ADR 0016 §4)
+- betterleaks(gitleaks 後継、同作者): v1.4.1 まで stable・`.gitleaks.toml` 互換だが、プロジェクト開始 4 ヶ月でコミュニティ実績が浅く様子見。2026 末を目安に再評価
+- 公式 plugin `security-guidance`、MCP `Context7` / GitHub MCP の常設化: 検討候補として記録のみ(既存ガードレール・運用との重複評価が先)
+- episodic-memory v1.4.0 の `/search-conversations` 削除: 本リポジトリ内に同コマンドへの参照はなく対応不要(プラグイン本体の更新はローカル運用側)
+
 ## リポジトリ棚卸し + 委譲/トークン経済の ADR 起票(2026-05-29)
 
 リポジトリ全体を分析し、stale 情報のクローズと、運用プロトコルが薄かった 2 領域(委譲オーケストレーション / トークン経済)の設計を ADR として起票した。

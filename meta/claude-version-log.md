@@ -15,6 +15,7 @@
 | 2026-05-29 | claude-opus-4-8 (1M context) | ADR 0009 起票(Opus 4.8 自律性チューニング)、adapter 層の 4.7→4.8 運用記述を更新 | 運用モデル 4.8 へ更新。マルチエージェント / background / 並列ファンアウト前提に調整 |
 | 2026-05-29 | claude-opus-4-8 (1M context) | ADR 0010 起票(harness 機械層の同期)。settings.json.template の model pin / VERSION を 4.8・2.1.156 に同期 | 方針層と機械層の世代整合。autonomy は hook 強制せず既存ガードで部分担保を確認 |
 | 2026-05-29 | claude-opus-4-8 (1M context) | リポジトリ棚卸し。stale クローズ(TODO 12/13、CLAUDE.md Phase 進行節)+ ADR 0011(委譲オーケストレーション)/ 0012(トークン経済の機械化)起票・実装 | 運用プロトコルが薄かった 2 領域を設計し実装まで完了(practices 2 本 + 出力キャップ hook)。hook 機構は claude-code-guide で検証し PreToolUse `updatedInput` 方式を採用 |
+| 2026-06-10 | claude-fable-5 (1M context) | ADR 0016 起票(Fable 5 / 2.1.170 harness 同期)。model pin・`fallbackModel`・VERSION・MCP pin・gitleaks-action v3 を更新 | Fable 5 GA(2026-06-09)対応。subagent tier は計測根拠が出るまで据え置き(ADR 0013 踏襲)。設定キー構文は claude-code-guide で裏取り |
 
 ## モデル切り替え時の注意
 

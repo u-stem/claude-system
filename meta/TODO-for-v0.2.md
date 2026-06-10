@@ -25,7 +25,7 @@ Phase 9(`v0.1.0-rc1` リリース候補化)で消化しきれなかった、ま�
 | 13 | settings.json 配置の責務整合 | **解決済み** → クローズ記録 |
 | 14 | ADR 0011 実装(委譲オーケストレーション) | **解決済み** → クローズ記録 |
 | 15 | ADR 0012 実装(トークン経済の機械化) | **解決済み** → クローズ記録 |
-| 16 | VERSION pin を実インストール版へ同期 | トリガー待ち(次の harness 同期時) |
+| 16 | VERSION pin を実インストール版へ同期 | **解決済み** → クローズ記録 |
 
 ---
 
@@ -278,31 +278,6 @@ drawzzz 再開時:
 
 ---
 
-## 16. VERSION pin を実インストール版へ同期
-
-### 背景
-
-`adapters/claude-code/VERSION` の pin が `2.1.156`([ADR 0010](./decisions/0010-opus-48-harness-settings-sync.md) で同期した値)のままで、実インストール版に遅れている。2026-05-31 のセッション中に auto-update が `2.1.158` → `2.1.159` と進行し、[ADR 0013](./decisions/0013-role-based-effort-modulation.md) のレビューで顕在化した(独立レビューでも「既知の技術的負債、別タスク」と確認)。
-
-### トリガー
-
-- 次に harness 設定(model pin / `settings.json.template` 等)を同期する機会
-- VERSION 依存の判断(ADR に「実装版 X で確認」と記す等)が再び必要になった時
-
-### 判断軸
-
-- VERSION 更新は ADR 0010(harness settings sync)の手順に従う(VERSION 単体ではなく `settings.json.template` の model pin 等も併せて点検)
-- 差分があれば `meta/claude-version-log.md` に更新行を追記
-
-### 関連
-
-- [ADR 0010](./decisions/0010-opus-48-harness-settings-sync.md) — VERSION / model pin 同期の管轄
-- [ADR 0013](./decisions/0013-role-based-effort-modulation.md) — 本負債が顕在化した経緯
-- [`adapters/claude-code/VERSION`](../adapters/claude-code/VERSION)
-- [`meta/claude-version-log.md`](./claude-version-log.md)
-
----
-
 ## 解決済み(クローズ記録)
 
 以下は v0.2 を待たず Phase 10 後続作業で解決済み。経緯の全文は ADR と `git show` を参照。
@@ -313,6 +288,7 @@ drawzzz 再開時:
 | 13 | settings.json 配置の責務整合 | 同 ADR 0007 + commit `8e2ed0d`。`from-claude-settings.sh` を「1 回限りの構造変更」、`sync.sh` を「再実行可能な値配置」と責務分離し、Step 7 の文言を「`tools/sync.sh` に委譲」へ書き換え。挙動と文言を一致させた |
 | 14 | ADR 0011 実装(委譲オーケストレーション) | [ADR 0011](./decisions/0011-delegation-orchestration-protocol.md)(Accepted)。`practices/delegation-orchestration.md` 新設 + `subagents/_index.md` に委譲プロトコル節を追加。役割分離 / 委譲トリガーの定量基準 / 返却スキーマ / 段階を明文化 |
 | 15 | ADR 0012 実装(トークン経済の機械化) | [ADR 0012](./decisions/0012-token-economy-mechanization.md)(Accepted)。`practices/token-economy.md` 新設 + 出力キャップ hook `pre-bash-output-cap.sh`(PreToolUse + `updatedInput`)を導入・結線。`subagent-log.jsonl` を計測点に位置づけ |
+| 16 | VERSION pin を実インストール版へ同期 | [ADR 0016](./decisions/0016-fable-5-harness-settings-sync.md)(Accepted)。Fable 5 GA / Claude Code 2.1.170 への harness 同期と同一作業で `VERSION` を `2.1.170` へ、model pin を `claude-fable-5` へ更新。`fallbackModel` 新設、MCP pin・gitleaks-action v3 も併せて更新 |
 
 ---
 

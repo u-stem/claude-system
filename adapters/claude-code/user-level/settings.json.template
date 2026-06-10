@@ -1,7 +1,7 @@
 {
   "//": "Claude Code user-level settings template. Phase 10 で ~/.claude/settings.json として配置される(symlink ではなく cp による配置を推奨。マシン固有値の差し込みのため)。'//' で始まるキーは Claude Code 側で無視されるため JSON コメント代替として使用",
 
-  "// env": "サブプロセスへ機密 env を漏らさない、autocompact 閾値、1h prompt cache 等。EXPERIMENTAL_AGENT_TEAMS は Opus 4.7 期に厳格化(3 PBI 以上 + 完全独立ファイルのみ適用)し、Opus 4.8 期も有効維持(ADR 0010)。AUTOCOMPACT_PCT_OVERRIDE は 85→70 に引き下げ(2026-05): 巨大コンテキスト(1M 窓の高%保持)が 'tool call could not be parsed' を誘発しやすいため早めに圧縮する。安易に戻さないこと",
+  "// env": "サブプロセスへ機密 env を漏らさない、autocompact 閾値、1h prompt cache 等。EXPERIMENTAL_AGENT_TEAMS は Opus 4.7 期に厳格化(3 PBI 以上 + 完全独立ファイルのみ適用)し、Fable 5 期も有効維持(ADR 0010 / 0016)。AUTOCOMPACT_PCT_OVERRIDE は 85→70 に引き下げ(2026-05): 巨大コンテキスト(1M 窓の高%保持)が 'tool call could not be parsed' を誘発しやすいため早めに圧縮する。安易に戻さないこと",
   "env": {
     "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB": "1",
     "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "70",
@@ -11,7 +11,9 @@
 
   "respectGitignore": true,
   "language": "japanese",
-  "model": "claude-opus-4-8",
+  "// model": "Fable 5 は常時 1M context のため [1m] サフィックス不要。fallbackModel は過負荷・不達時の縮退先(v2.1.166 追加、配列・最大 3 件)。安全クラシファイアの自動フォールバック先(Opus 4.8)と揃える(ADR 0016)",
+  "model": "claude-fable-5",
+  "fallbackModel": ["claude-opus-4-8"],
   "effortLevel": "xhigh",
   "skipDangerousModePermissionPrompt": true,
   "skipAutoPermissionPrompt": true,
@@ -251,7 +253,7 @@
   "mcpServers": {
     "playwright": {
       "command": "npx",
-      "args": ["@playwright/mcp@0.0.70"]
+      "args": ["@playwright/mcp@0.0.75"]
     }
   }
 }
