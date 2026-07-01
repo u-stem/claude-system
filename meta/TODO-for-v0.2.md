@@ -26,6 +26,7 @@ Phase 9(`v0.1.0-rc1` リリース候補化)で消化しきれなかった、ま�
 | 14 | ADR 0011 実装(委譲オーケストレーション) | **解決済み** → クローズ記録 |
 | 15 | ADR 0012 実装(トークン経済の機械化) | **解決済み** → クローズ記録 |
 | 16 | VERSION pin を実インストール版へ同期 | **解決済み** → クローズ記録 |
+| 17 | MCP 登録経路(インライン / 宣言)の二重管理整理 | トリガー待ち(次の MCP 更新機会) |
 
 ---
 
@@ -275,6 +276,27 @@ drawzzz 再開時:
 
 四半期見直しの定例が運用されたら、見直し記録の保存方針を整理する。
 現状は `meta/CHANGELOG.md` + `meta/decisions/<NNNN>-*.md` で十分だが、四半期見直し独自のフォーマットが必要なら `meta/quarterly-review/<YYYY-Q>.md` 案も検討。
+
+## 17. MCP 登録経路の二重管理整理(トリガー待ち)
+
+### 検討事項
+
+MCP の pin が 2 系統に分散している(ADR 0018 の code review で顕在化):
+
+- インライン: `settings.json.template` の `mcpServers`(Claude Code が起動時に直接読む)— 現在 playwright(`npx`)
+- 宣言: `mcp/servers.template.json`(`tools/setup-mcp.sh` が `claude mcp add` で登録)— sequential-thinking / playwright(`bunx`)/ chrome-devtools
+
+playwright が両系統に重複し、runner も `npx` / `bunx` で不一致(user-level/CLAUDE.md §5 の bun 優先と齟齬)。
+
+### 判断時の論点
+
+- どちらを正とするか(インライン一本化 / 宣言一本化 / 役割分担の明文化)
+- 重複解消時に既存の配置済み環境で MCP が二重登録されていないかの確認手順
+- runner を `bunx` に統一(bun 優先規約との整合)
+
+### トリガー
+
+次に MCP の pin / 構成を触る機会。それまではバージョン更新時に両系統の pin を同一に保つ運用で凌ぐ(README「MCP 登録経路」節に明記済み)。
 
 ---
 

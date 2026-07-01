@@ -18,12 +18,24 @@ VERSION 更新時のチェックリストは [Claude Code 仕様変更時の影�
 | `@<file>` 参照 | 各種ドキュメント内 | 段階的開示の入口 |
 | skill(段階的開示で読まれる能力単位) | `user-level/skills/`(Phase 4) | TDD・debugging・PR レビュー等の能力単位 |
 | subagent(独立コンテキストの補助エージェント) | `subagents/`(Phase 5) | code-reviewer・doc-writer・explorer 等 |
-| settings.json(permissions / hooks / env / mcpServers / enabledPlugins) | `user-level/settings.json.template` | permissions.deny で物理ブロック、hooks で機械的防御(Phase 7b) |
+| settings.json(permissions / hooks / env / mcpServers / enabledPlugins / attribution) | `user-level/settings.json.template` | permissions.deny で物理ブロック、hooks で機械的防御(Phase 7b) |
 | permissions.deny / allow | settings.json 内 | LLM の自制に頼らず物理的に書き込みを拒否 / permission prompt の抑制 |
+| attribution(`commit` / `pr`) | settings.json 内 | commit/PR から claude.ai セッション URL(harness 自動 attribution)を抑止(ADR 0002 / 0018) |
 | hooks(SessionStart / PreToolUse / PostToolUse / Stop / StopFailure / SubagentStop / PreCompact / SessionEnd) | `user-level/hooks/`(Phase 7b) | typosquatting 防御・失敗フィードバックループ・dispatcher パターン |
 | slash command | `user-level/commands/`(Phase 4 検討) | 旧 commands(check / review / test / update-check)を継承予定 |
-| MCP server 設定(`mcpServers`) | settings.json 内 | chrome-devtools / playwright(API キー不要のもののみ template に含める) |
+| MCP server 設定(`mcpServers`) | settings.json 内(playwright)/ `user-level/mcp/servers.template.json`(setup-mcp.sh 用宣言: sequential-thinking / playwright / chrome-devtools) | API キー不要のもののみ含める。2 系統の登録経路については後述の MCP 登録経路を参照 |
 | プラグイン管理(`enabledPlugins`) | settings.json 内 | superpowers / elements-of-style / episodic-memory |
+
+### MCP 登録経路(2 系統)
+
+MCP サーバーの pin は 2 箇所に存在し、更新時は両方を揃える:
+
+| 経路 | ファイル | 反映方法 | 現在の登録 |
+|------|----------|----------|------------|
+| インライン | `user-level/settings.json.template` の `mcpServers` | settings.json を Claude Code が起動時に直接読む | playwright(`npx`) |
+| 宣言 | `user-level/mcp/servers.template.json` | `tools/setup-mcp.sh` が `claude mcp add` で登録(secret 必須は skip) | sequential-thinking / playwright(`bunx`)/ chrome-devtools |
+
+**既知の未整理(cleanup 候補)**: playwright が両系統に重複登録され、runner が `npx`(インライン)と `bunx`(宣言)で不一致(user-level/CLAUDE.md §5 の bun 優先と齟齬)。どちらを正とするかは未確定のため、バージョン更新時は両方の pin を同一に保つこと。整理方針は継続課題として `meta/TODO-for-v0.2.md` を参照。
 
 ## ディレクトリ構成
 
@@ -69,8 +81,9 @@ Claude Code がアップデートされた場合、以下を順に確認する:
 | 利用可能な hook event 種別 | 同上 | 新 event 追加時は guardrail 設計を再評価 |
 | skill の frontmatter 仕様 | `user-level/skills/*/SKILL.md`(Phase 4) | name / description / recommended_model 等のフィールドが廃止・追加されていないか |
 | subagent の frontmatter 仕様 | `subagents/*.md`(Phase 5) | name / description / tools 等のフィールド整合 |
-| MCP server 設定スキーマ | `user-level/settings.json.template` の `mcpServers` | パッケージバージョン更新と引数構文差分 |
+| MCP server 設定スキーマ | `user-level/settings.json.template` の `mcpServers`, `user-level/mcp/servers.template.json` | パッケージバージョン更新と引数構文差分。2 系統の pin を揃える |
 | プラグイン管理(`enabledPlugins`) | 同上 | 採用プラグインの存続確認 |
+| attribution / commit・PR 添付情報の構文 | `user-level/settings.json.template` の `attribution` | セッション URL 抑止方式の変更確認(安定スキーマは `commit` / `pr` のみ、`additionalProperties: false`) |
 | `~/.claude/` 配下のディレクトリ構造 | Phase 10 の symlink 配置 | リンク先パスの妥当性、`tools/setup.sh`(Phase 7a)の更新 |
 | env 変数(`CLAUDE_CODE_*`) | settings.json `env` セクション | 廃止・改名された変数の特定 |
 | デフォルトモデル / effort | settings.json `model` / `effortLevel` | `practices/model-selection.md` の指針と整合 |
