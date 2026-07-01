@@ -21,6 +21,12 @@
     "failIfUnavailable": true
   },
 
+  "// attribution": "Public メタリポの commit/PR に claude.ai セッション URL(harness 自動 attribution)を混入させない(ADR 0002 / 0018)。安定 settings スキーマに sessionUrl キーは存在せず(additionalProperties: false)、commit/pr を空文字にすると当該 attribution ブロックごと抑止される。Co-Authored-By トレーラと 'Generated with Claude Code' は user-level/CLAUDE.md の指示でモデルが別途付与するため失われない",
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+
   "// permissions": "deny は物理ブロック(LLM の自制に頼らない)。allow は良性で頻出するコマンドを列挙して permission prompt を抑制する。両者の整合は Phase 7b で再点検する",
   "// permissions.deny.protected_paths": "旧 claude-settings はアーカイブで読み取り専用。Phase 10 で symlink 切替するまで現運用を維持するため write を物理ブロック",
   "// permissions.deny.backup_files": "*.backup-* は人間が手作業バックアップした原本。LLM が上書きしないよう物理ブロック",
@@ -249,11 +255,11 @@
     "superpowers@superpowers-marketplace": true
   },
 
-  "// mcpServers": "API キーを要しない MCP のみテンプレートに含める。github / その他キー必須の MCP は配置時に手動で追加し、本テンプレートには含めない(secrets-handling 原則)",
+  "// mcpServers": "API キーを要しない MCP のみテンプレートに含める。github / その他キー必須の MCP は配置時に手動で追加し、本テンプレートには含めない(secrets-handling 原則)。pin は ADR 0018(2026-07-01)で最新へ更新",
   "mcpServers": {
     "playwright": {
       "command": "npx",
-      "args": ["@playwright/mcp@0.0.75"]
+      "args": ["@playwright/mcp@0.0.77"]
     }
   }
 }
