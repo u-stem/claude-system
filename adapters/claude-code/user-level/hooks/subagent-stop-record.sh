@@ -36,7 +36,8 @@ exit_code="$(printf '%s' "$INPUT" | jq -r '.exit_code // 0' 2>/dev/null || echo 
 effort="$(printf '%s' "$INPUT" | jq -r '.effort.level // empty' 2>/dev/null || true)"
 
 # Backfill model from transcript: the assistant turns carry a "model":"..." literal
-# (verified: subagent model frontmatter is honored, e.g. sonnet -> claude-sonnet-4-6).
+# (verified: subagent model frontmatter is honored; the alias resolves to the current
+# generation, e.g. sonnet -> claude-sonnet-5 as of Claude Code 2.1.197 / ADR 0018).
 # Use the most-frequent model id across the transcript to handle mixed turns.
 # If the transcript is absent or unreadable, model is left as empty string and
 # we log a debug notice on stderr (basename only — no absolute paths).
