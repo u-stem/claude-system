@@ -26,6 +26,8 @@
 - `adapters/claude-code/README.md`: 新規 `attribution` キーを機能表・影響範囲マップに追加。「MCP 登録経路」節を新設
 - MCP 登録経路の二重管理を解消: playwright を `mcp/servers.template.json` から除去し `settings.json.template` の inline に一本化(常時ロード=インライン / opt-in・secret=宣言)。inline playwright の runner を `npx` → `bunx` に統一(bun 優先 / user-level CLAUDE.md §5)。実環境では宣言側が未登録のため二重ロードの実害は発生前に解消
 
+**確認待ち(smoke-test)**: `attribution: {commit:"", pr:""}` によるセッション URL 抑止の設計根拠は外部 schema(schemastore)に依拠しており、リポジトリ内から実挙動を裏取りできていない(ADR 0018 §2 / Consequences も限定を明記)。次に本リポジトリで実コミット / 実 PR を作る機会に、生成された commit trailer / PR 本文に claude.ai セッション URL が含まれず、かつ `Co-Authored-By` / `Generated with Claude Code` が保持されることを確認する。想定と異なれば ADR 0018 を追補する。
+
 ### 調査して見送った項目
 
 - `sandbox.credentials`(v2.1.187): 不採用。認証情報をサンドボックスへ露出する allowlist で、既定サンドボックスが元々遮断するため不要
