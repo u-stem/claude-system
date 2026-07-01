@@ -12,7 +12,7 @@
     {
       "name": "playwright",
       "command": "bunx",
-      "args": ["-y", "@playwright/mcp@0.0.75"],
+      "args": ["-y", "@playwright/mcp@0.0.77"],
       "env_keys": [],
       "requires_secret": false,
       "description": "Browser automation / E2E (no secrets)"
@@ -20,7 +20,7 @@
     {
       "name": "chrome-devtools",
       "command": "npx",
-      "args": ["chrome-devtools-mcp@1.2.0"],
+      "args": ["chrome-devtools-mcp@1.4.0"],
       "env_keys": [],
       "requires_secret": false,
       "description": "Chrome DevTools protocol bridge (no secrets)"
