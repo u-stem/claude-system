@@ -2,6 +2,31 @@
 
 このリポジトリの変更履歴。Phase 単位でセクション化する。
 
+## Claude Code 2.1.197 への harness 同期(2026-07-01)
+
+`update-check` skill による調査(WebFetch で releases / changelog / gitleaks releases / settings schema を裏取り)に基づき、機械層を Claude Code 2.1.197(2026-06-30。既定モデルが Sonnet 5 / 1M へ)に同期した。判断の本体は [ADR 0018](./decisions/0018-harness-sync-2.1.197.md)。
+
+### harness 同期(ADR 0018)
+
+- `adapters/claude-code/VERSION`: `2.1.170` → `2.1.197`(2.1.170 以降 27 パッチ分の差分を点検)
+- `adapters/claude-code/user-level/settings.json.template`
+  - `attribution: { "commit": "", "pr": "" }` 新設。Public メタリポの commit/PR に claude.ai セッション URL(harness 自動 attribution)を混入させない(ADR 0002)。安定 settings スキーマに `sessionUrl` キーは存在せず(`additionalProperties: false`)、空文字で当該 attribution ブロックごと抑止する。`Co-Authored-By` / `Generated with Claude Code` は `user-level/CLAUDE.md` の指示でモデルが別途付与するため失われない
+  - `@playwright/mcp`: `0.0.75` → `0.0.77`
+- `adapters/claude-code/user-level/mcp/servers.template.json`
+  - `@playwright/mcp`: `0.0.75` → `0.0.77`
+  - `chrome-devtools-mcp`: `1.2.0` → `1.4.0`(マイナー、破壊的変更なし)
+  - `sequential-thinking`(2025.12.18)は最新のため据え置き
+- `.github/workflows/doctor.yml`: `GITLEAKS_VERSION` `8.21.2` → `8.30.1`(ADR 0016 で「本体 8.30.1 が最新」と認識済みだった doctor 用 CLI pin の取り残しを解消。新規検出ルール Bedrock / Looker / Airtable を取り込む)
+- モデル方針は据え置き(`claude-fable-5` / fallback `claude-opus-4-8` / `effortLevel: xhigh`)。Fable 5 は現行最上位のため Sonnet 5 既定化の影響を受けない
+
+### 調査して見送った項目
+
+- `sandbox.credentials`(v2.1.187): 不採用。認証情報をサンドボックスへ露出する allowlist で、既定サンドボックスが元々遮断するため不要
+- `autoMode.classifyAllShell`(v2.1.193): 不採用。allow ルールを全停止し分類器へ回すため、精選 allow-list のトークン経済(ADR 0012)を打ち消す
+- `enforceAvailableModels` / `footerLinksRegexes` / `requiredMinimumVersion` / `disableBundledSkills`: 不採用(ADR 0016 §4 と同旨)
+- `TeamCreate`/`TeamDelete` 削除(v2.1.178)・`CLAUDE_CODE_SUBAGENT_MODEL` スコープ変更(v2.1.147): リポジトリ内参照ゼロ / 既に不採用のため影響なし
+- betterleaks(gitleaks 後継): 実績浅く据え置き。2026 末を目安に再評価(ADR 0016 の記録を継承)
+
 ## settings.json 自動反映機構(2026-06-10)
 
 ADR 0010/0016 で Neutral 事項として繰り越し続けた「template 更新が配置済み `~/.claude/settings.json` に自動反映されない」ギャップを解消した。判断の本体は [ADR 0017](./decisions/0017-settings-auto-sync.md)。
