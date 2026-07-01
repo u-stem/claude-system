@@ -1,5 +1,5 @@
 {
-  "//": "Declarative MCP server template for tools/setup-mcp.sh. Memory MCP intentionally absent (ADR 0003). Servers with requires_secret=true are skipped by setup-mcp.sh; add them manually with secrets injected (ADR 0001 / 0002).",
+  "//": "Declarative MCP server template for tools/setup-mcp.sh (opt-in / secret 必須の MCP 用)。常時ロードの playwright は settings.json.template の mcpServers に inline 宣言済みのため本ファイルには含めない(二重登録回避 / ADR 0018 review follow-up)。Memory MCP intentionally absent (ADR 0003). Servers with requires_secret=true are skipped by setup-mcp.sh; add them manually with secrets injected (ADR 0001 / 0002).",
   "servers": [
     {
       "name": "sequential-thinking",
@@ -8,14 +8,6 @@
       "env_keys": [],
       "requires_secret": false,
       "description": "Stepwise reasoning helper (no secrets)"
-    },
-    {
-      "name": "playwright",
-      "command": "bunx",
-      "args": ["-y", "@playwright/mcp@0.0.77"],
-      "env_keys": [],
-      "requires_secret": false,
-      "description": "Browser automation / E2E (no secrets)"
     },
     {
       "name": "chrome-devtools",

@@ -255,11 +255,11 @@
     "superpowers@superpowers-marketplace": true
   },
 
-  "// mcpServers": "API キーを要しない MCP のみテンプレートに含める。github / その他キー必須の MCP は配置時に手動で追加し、本テンプレートには含めない(secrets-handling 原則)。pin は ADR 0018(2026-07-01)で最新へ更新",
+  "// mcpServers": "常時ロードする非 secret MCP のみ inline 宣言する(決定論・自動同期 / ADR 0017)。opt-in の非 secret(sequential-thinking / chrome-devtools)と secret 必須(github)は mcp/servers.template.json + setup-mcp.sh 経由。playwright の二重登録を解消し runner を bunx に統一(bun 優先 / ADR 0018 の review follow-up)。pin は 2 系統で同一に保つ",
   "mcpServers": {
     "playwright": {
-      "command": "npx",
-      "args": ["@playwright/mcp@0.0.77"]
+      "command": "bunx",
+      "args": ["-y", "@playwright/mcp@0.0.77"]
     }
   }
 }

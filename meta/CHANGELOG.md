@@ -19,6 +19,13 @@
 - `.github/workflows/doctor.yml`: `GITLEAKS_VERSION` `8.21.2` → `8.30.1`(ADR 0016 で「本体 8.30.1 が最新」と認識済みだった doctor 用 CLI pin の取り残しを解消。新規検出ルール Bedrock / Looker / Airtable を取り込む)
 - モデル方針は据え置き(`claude-fable-5` / fallback `claude-opus-4-8` / `effortLevel: xhigh`)。Fable 5 は現行最上位のため Sonnet 5 既定化の影響を受けない
 
+### code review follow-up(2026-07-01)
+
+同期差分を `code-reviewer` subagent でレビューし、doc ギャップと既存の構造的重複を解消(TODO-for-v0.2 項目 17 をクローズ):
+
+- `adapters/claude-code/README.md`: 新規 `attribution` キーを機能表・影響範囲マップに追加。「MCP 登録経路」節を新設
+- MCP 登録経路の二重管理を解消: playwright を `mcp/servers.template.json` から除去し `settings.json.template` の inline に一本化(常時ロード=インライン / opt-in・secret=宣言)。inline playwright の runner を `npx` → `bunx` に統一(bun 優先 / user-level CLAUDE.md §5)。実環境では宣言側が未登録のため二重ロードの実害は発生前に解消
+
 ### 調査して見送った項目
 
 - `sandbox.credentials`(v2.1.187): 不採用。認証情報をサンドボックスへ露出する allowlist で、既定サンドボックスが元々遮断するため不要
