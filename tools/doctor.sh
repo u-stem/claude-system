@@ -276,7 +276,8 @@ fi
 cs_step "delegated lint scripts"
 for t in tests/lint-skills.sh tests/lint-principles-language.sh \
          tests/check-circular-refs.sh tests/validate-frontmatter.sh \
-         tests/test-check-failure-patterns.sh; do
+         tests/test-check-failure-patterns.sh tests/test-subagent-stop-record.sh \
+         tests/test-subagent-stop-audit.sh; do
   if [[ -x "$t" ]]; then
     set +e
     out="$("$t" 2>&1)"

@@ -21,9 +21,25 @@ INPUT="$(hk_read_input)"
 # Extract fields using the public SubagentStop schema (2.x).
 # .subagent.type and .subagent.transcript_path are non-existent keys in the
 # official payload; using them caused transcript_path to always be empty,
-# which made the early-exit guard at line 38 skip the entire audit body.
+# which made the early-exit guard below skip the entire audit body.
+#
+# A second, more subtle mistake was fixed later: the payload's
+# .transcript_path points at the MAIN SESSION's JSONL transcript, not at the
+# subagent's own transcript. Auditing it directly produced near-total false
+# positives, because the main transcript routinely contains instruction-doc
+# references (e.g. "claude-settings") and the operator's own email address in
+# unrelated turns. The real per-agent transcript is resolved via
+# hk_resolve_agent_transcript in _lib.sh (same resolution as
+# subagent-stop-record.sh): prefer the official `.agent_transcript_path`
+# payload field when present and readable, otherwise fall back to
+# `<session_dir>/subagents/agent-<agent_id>.jsonl` derived from the main
+# session transcript path. Harness-internal helper agents have neither and
+# are skipped (not audited) rather than falling back to the main transcript.
 agent_type="$(printf '%s' "$INPUT" | jq -r '.agent_type // empty' 2>/dev/null || true)"
-transcript_path="$(printf '%s' "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null || true)"
+agent_id="$(printf '%s' "$INPUT" | jq -r '.agent_id // empty' 2>/dev/null || true)"
+main_transcript_path="$(printf '%s' "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null || true)"
+
+transcript_path="$(hk_resolve_agent_transcript "$INPUT" "$main_transcript_path" "$agent_id")"
 
 mkdir -p "$HOOK_LOG_DIR"
 audit_log="$HOOK_LOG_DIR/subagent-audit.jsonl"

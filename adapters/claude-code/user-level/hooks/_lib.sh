@@ -104,6 +104,45 @@ hk_read_input() {
 }
 
 # ---------------------------------------------------------------------------
+# SubagentStop transcript resolution (shared by subagent-stop-record.sh and
+# subagent-stop-audit.sh)
+# ---------------------------------------------------------------------------
+
+# hk_resolve_agent_transcript <input_json> <main_transcript_path> <agent_id>
+# Prints the resolved per-agent transcript path on stdout (empty if it
+# cannot be determined). The path is a *candidate* — callers must still
+# check `-f` before reading it, since a harness-internal helper agent has
+# no per-agent transcript on disk at all.
+#
+# Resolution order:
+#   1. The payload's own `.agent_transcript_path` (official field per the
+#      public hooks schema, code.claude.com/docs/en/hooks.md as of 2026-07),
+#      when present AND the file actually exists on disk.
+#   2. The on-disk convention: `<session_dir>/subagents/agent-<agent_id>.jsonl`,
+#      where session_dir is the MAIN session transcript path (the payload's
+#      `.transcript_path`) with its `.jsonl` suffix stripped. Empirically
+#      verified against real payloads; kept as a fallback in case the
+#      official key is absent on some Claude Code versions (an earlier
+#      commit found `.agent_transcript_path` unpopulated and removed it —
+#      2026-06-06 — so both paths are exercised defensively here).
+#
+# The sidecar meta.json for either resolution is always the same basename
+# with `.jsonl` swapped for `.meta.json` (verified against real payloads).
+hk_resolve_agent_transcript() {
+  local input="$1" main_transcript_path="$2" agent_id="$3"
+  local agent_transcript
+  agent_transcript="$(printf '%s' "$input" | jq -r '.agent_transcript_path // empty' 2>/dev/null || true)"
+  if [[ -z "$agent_transcript" || ! -f "$agent_transcript" ]]; then
+    agent_transcript=""
+    if [[ -n "$agent_id" && -n "$main_transcript_path" ]]; then
+      local session_dir="${main_transcript_path%.jsonl}"
+      agent_transcript="$session_dir/subagents/agent-${agent_id}.jsonl"
+    fi
+  fi
+  printf '%s' "$agent_transcript"
+}
+
+# ---------------------------------------------------------------------------
 # Project hook dispatcher
 # ---------------------------------------------------------------------------
 

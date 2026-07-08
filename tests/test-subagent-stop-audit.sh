@@ -2,17 +2,26 @@
 # tests/test-subagent-stop-audit.sh — behavioral tests for the
 # subagent-stop-audit hook (adapters/claude-code/user-level/hooks/).
 #
-# Verifies:
-#   (a) gmail address in transcript → personal-email-shape finding emitted
-#   (b) explorer uses undeclared tool (Bash) → tool-overreach finding emitted
-#   (c) clean transcript (only declared tool, no email/private-link) → zero findings
+# Fixture layout mirrors the real Claude Code session directory shape (same
+# as tests/test-subagent-stop-record.sh):
+#   <tmp>/session.jsonl                                  (main session transcript;
+#                                                          what the payload's .transcript_path
+#                                                          points at — deliberately left "dirty"
+#                                                          in these tests to prove it is NOT audited)
+#   <tmp>/session/subagents/agent-<agent_id>.jsonl        (the subagent's own transcript —
+#                                                          the actual audit target)
 #
-# Fixture: synthetic JSONL transcripts in mktemp directory.
-# Email addresses are obvious dummies (test@gmail.com).
-# No real transcripts or real personal data are used.
+# Verifies:
+#   (a) claude-settings reference in the PER-AGENT transcript -> finding
+#       recorded, with detail set to the per-agent transcript's basename
+#   (b) no per-agent transcript on disk (harness-internal helper agent) ->
+#       zero findings, hook exits 0 (main session transcript is never audited
+#       as a fallback, even though it is readable and "dirty")
 #
 # CS_BACKUP_ROOT is overridden per test to isolate audit logs from the real
-# ~/.claude-system-backups directory.
+# ~/.claude-system-backups directory (see hooks/_lib.sh HOOK_LOG_DIR).
+#
+# Fixture data is synthetic; email addresses are obvious dummies.
 
 set -euo pipefail
 
@@ -31,78 +40,161 @@ fi
 ERRORS=0
 err() { ERRORS=$((ERRORS + 1)); cs_error "$*"; }
 
-# ---------------------------------------------------------------------------
-# Fixture: isolated temp dir, cleaned up on exit
-# ---------------------------------------------------------------------------
-
 TMPDIR_TEST="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR_TEST"' EXIT
 
 # ---------------------------------------------------------------------------
-# Test A: personal-email-shape — gmail address in transcript triggers finding
+# Test A: per-agent transcript contains a private-resource-link ("claude-settings")
+# -> finding recorded, detail is the per-agent transcript's basename
 # ---------------------------------------------------------------------------
 
-TRANSCRIPT_A="$TMPDIR_TEST/ta-transcript.jsonl"
-# Dummy address clearly not real; format matches the regex in the hook.
-printf '{"role":"user","content":"send result to test@gmail.com"}\n' > "$TRANSCRIPT_A"
+AGENT_ID_A="test-a"
+SESSION_A="$TMPDIR_TEST/session-a"
+mkdir -p "$SESSION_A/subagents"
+
+MAIN_TRANSCRIPT_A="$TMPDIR_TEST/session-a.jsonl"
+# Main session transcript is deliberately "dirty" too, to prove it is never audited.
+printf '{"role":"user","content":"see claude-settings for the archive"}\n' > "$MAIN_TRANSCRIPT_A"
+
+AGENT_TRANSCRIPT_A="$SESSION_A/subagents/agent-${AGENT_ID_A}.jsonl"
+printf '{"role":"assistant","content":"reading claude-settings backup"}\n' > "$AGENT_TRANSCRIPT_A"
 
 PAYLOAD_A="$(jq -nc \
-  --arg tp "$TRANSCRIPT_A" \
-  '{"agent_type":"test-agent-noop","transcript_path":$tp,"hook_event_name":"SubagentStop"}')"
+  --arg tp "$MAIN_TRANSCRIPT_A" \
+  --arg aid "$AGENT_ID_A" \
+  '{"agent_type":"test-agent-noop","agent_id":$aid,"transcript_path":$tp,"hook_event_name":"SubagentStop"}')"
 
-CS_BACKUP_ROOT="$TMPDIR_TEST/ta" bash "$HOOK" <<< "$PAYLOAD_A"
+CS_BACKUP_ROOT="$TMPDIR_TEST/backup-a" bash "$HOOK" <<< "$PAYLOAD_A"
 
-AUDIT_A="$TMPDIR_TEST/ta/hook-logs/subagent-audit.jsonl"
+AUDIT_A="$TMPDIR_TEST/backup-a/hook-logs/subagent-audit.jsonl"
 if [[ ! -f "$AUDIT_A" ]]; then
-  err "Test A: audit log not created — personal-email-shape was not detected"
+  err "Test A: audit log not created — private-resource-link was not detected"
 else
   KIND_A="$(grep -o '"kind":"[^"]*"' "$AUDIT_A" | sed 's/"kind":"//;s/"//' | head -1)"
-  [[ "$KIND_A" == "personal-email-shape" ]] \
-    || err "Test A [kind]: expected 'personal-email-shape', got '$KIND_A'"
+  [[ "$KIND_A" == "private-resource-link" ]] \
+    || err "Test A [kind]: expected 'private-resource-link', got '$KIND_A'"
+
+  DETAIL_A="$(grep -o '"detail":"[^"]*"' "$AUDIT_A" | sed 's/"detail":"//;s/"//' | head -1)"
+  EXPECTED_BASENAME_A="$(basename "$AGENT_TRANSCRIPT_A")"
+  [[ "$DETAIL_A" == "$EXPECTED_BASENAME_A" ]] \
+    || err "Test A [detail]: expected per-agent transcript basename '$EXPECTED_BASENAME_A', got '$DETAIL_A'"
 fi
 
 # ---------------------------------------------------------------------------
-# Test B: tool-overreach — explorer uses Bash (not in [Read, Grep, Glob])
+# Test B: no per-agent transcript on disk (harness-internal helper agent) ->
+# zero findings, exit 0. The main session transcript is readable and "dirty"
+# but must NOT be audited as a fallback.
 # ---------------------------------------------------------------------------
 
-TRANSCRIPT_B="$TMPDIR_TEST/tb-transcript.jsonl"
-# "tool":"Bash" matches the grep pattern in the hook; explorer does not declare Bash.
-printf '{"role":"assistant","content":"running command","tool":"Bash"}\n' > "$TRANSCRIPT_B"
+AGENT_ID_B="test-b"
+MAIN_TRANSCRIPT_B="$TMPDIR_TEST/session-b.jsonl"
+printf '{"role":"user","content":"send result to test@gmail.com, see claude-settings"}\n' > "$MAIN_TRANSCRIPT_B"
+# Deliberately no session-b/subagents/ directory created.
 
 PAYLOAD_B="$(jq -nc \
-  --arg tp "$TRANSCRIPT_B" \
-  '{"agent_type":"explorer","transcript_path":$tp,"hook_event_name":"SubagentStop"}')"
+  --arg tp "$MAIN_TRANSCRIPT_B" \
+  --arg aid "$AGENT_ID_B" \
+  '{"agent_type":"","agent_id":$aid,"transcript_path":$tp,"hook_event_name":"SubagentStop"}')"
 
-CS_BACKUP_ROOT="$TMPDIR_TEST/tb" bash "$HOOK" <<< "$PAYLOAD_B"
+CS_BACKUP_ROOT="$TMPDIR_TEST/backup-b" bash "$HOOK" <<< "$PAYLOAD_B"
 
-AUDIT_B="$TMPDIR_TEST/tb/hook-logs/subagent-audit.jsonl"
-if [[ ! -f "$AUDIT_B" ]]; then
-  err "Test B: audit log not created — tool-overreach was not detected"
-else
-  KIND_B="$(grep -o '"kind":"[^"]*"' "$AUDIT_B" | sed 's/"kind":"//;s/"//' | head -1)"
-  [[ "$KIND_B" == "tool-overreach" ]] \
-    || err "Test B [kind]: expected 'tool-overreach', got '$KIND_B'"
+AUDIT_B="$TMPDIR_TEST/backup-b/hook-logs/subagent-audit.jsonl"
+if [[ -f "$AUDIT_B" ]]; then
+  FINDING_COUNT_B="$(wc -l < "$AUDIT_B" | tr -d ' ')"
+  [[ "$FINDING_COUNT_B" -eq 0 ]] \
+    || err "Test B: expected zero findings for internal agent (no per-agent transcript), got ${FINDING_COUNT_B} finding(s)"
 fi
 
 # ---------------------------------------------------------------------------
-# Test C: clean transcript — no findings, exit 0
+# Test C: personal-email-shape — gmail address in the PER-AGENT transcript
 # ---------------------------------------------------------------------------
 
-TRANSCRIPT_C="$TMPDIR_TEST/tc-transcript.jsonl"
-# "tool":"Read" is in explorer's declared [Read, Grep, Glob]. No email or private links.
-printf '{"role":"assistant","content":"reading file","tool":"Read"}\n' > "$TRANSCRIPT_C"
+AGENT_ID_C="test-c"
+SESSION_C="$TMPDIR_TEST/session-c"
+mkdir -p "$SESSION_C/subagents"
+
+MAIN_TRANSCRIPT_C="$TMPDIR_TEST/session-c.jsonl"
+printf '{"role":"user","content":"main session, unrelated"}\n' > "$MAIN_TRANSCRIPT_C"
+
+AGENT_TRANSCRIPT_C="$SESSION_C/subagents/agent-${AGENT_ID_C}.jsonl"
+# Dummy address clearly not real; format matches the regex in the hook.
+printf '{"role":"user","content":"send result to test@gmail.com"}\n' > "$AGENT_TRANSCRIPT_C"
 
 PAYLOAD_C="$(jq -nc \
-  --arg tp "$TRANSCRIPT_C" \
-  '{"agent_type":"explorer","transcript_path":$tp,"hook_event_name":"SubagentStop"}')"
+  --arg tp "$MAIN_TRANSCRIPT_C" \
+  --arg aid "$AGENT_ID_C" \
+  '{"agent_type":"test-agent-noop","agent_id":$aid,"transcript_path":$tp,"hook_event_name":"SubagentStop"}')"
 
-CS_BACKUP_ROOT="$TMPDIR_TEST/tc" bash "$HOOK" <<< "$PAYLOAD_C"
+CS_BACKUP_ROOT="$TMPDIR_TEST/backup-c" bash "$HOOK" <<< "$PAYLOAD_C"
 
-AUDIT_C="$TMPDIR_TEST/tc/hook-logs/subagent-audit.jsonl"
-if [[ -f "$AUDIT_C" ]]; then
-  FINDING_COUNT_C="$(wc -l < "$AUDIT_C" | tr -d ' ')"
-  [[ "$FINDING_COUNT_C" -eq 0 ]] \
-    || err "Test C: expected zero findings for clean transcript, got ${FINDING_COUNT_C} finding(s)"
+AUDIT_C="$TMPDIR_TEST/backup-c/hook-logs/subagent-audit.jsonl"
+if [[ ! -f "$AUDIT_C" ]]; then
+  err "Test C: audit log not created — personal-email-shape was not detected"
+else
+  KIND_C="$(grep -o '"kind":"[^"]*"' "$AUDIT_C" | sed 's/"kind":"//;s/"//' | head -1)"
+  [[ "$KIND_C" == "personal-email-shape" ]] \
+    || err "Test C [kind]: expected 'personal-email-shape', got '$KIND_C'"
+fi
+
+# ---------------------------------------------------------------------------
+# Test D: tool-overreach — explorer uses Bash (not in [Read, Grep, Glob]),
+# detected from the PER-AGENT transcript
+# ---------------------------------------------------------------------------
+
+AGENT_ID_D="test-d"
+SESSION_D="$TMPDIR_TEST/session-d"
+mkdir -p "$SESSION_D/subagents"
+
+MAIN_TRANSCRIPT_D="$TMPDIR_TEST/session-d.jsonl"
+printf '{"role":"user","content":"main session, unrelated"}\n' > "$MAIN_TRANSCRIPT_D"
+
+AGENT_TRANSCRIPT_D="$SESSION_D/subagents/agent-${AGENT_ID_D}.jsonl"
+# "tool":"Bash" matches the grep pattern in the hook; explorer does not declare Bash.
+printf '{"role":"assistant","content":"running command","tool":"Bash"}\n' > "$AGENT_TRANSCRIPT_D"
+
+PAYLOAD_D="$(jq -nc \
+  --arg tp "$MAIN_TRANSCRIPT_D" \
+  --arg aid "$AGENT_ID_D" \
+  '{"agent_type":"explorer","agent_id":$aid,"transcript_path":$tp,"hook_event_name":"SubagentStop"}')"
+
+CS_BACKUP_ROOT="$TMPDIR_TEST/backup-d" bash "$HOOK" <<< "$PAYLOAD_D"
+
+AUDIT_D="$TMPDIR_TEST/backup-d/hook-logs/subagent-audit.jsonl"
+if [[ ! -f "$AUDIT_D" ]]; then
+  err "Test D: audit log not created — tool-overreach was not detected"
+else
+  KIND_D="$(grep -o '"kind":"[^"]*"' "$AUDIT_D" | sed 's/"kind":"//;s/"//' | head -1)"
+  [[ "$KIND_D" == "tool-overreach" ]] \
+    || err "Test D [kind]: expected 'tool-overreach', got '$KIND_D'"
+fi
+
+# ---------------------------------------------------------------------------
+# Test E: clean per-agent transcript — no findings, exit 0
+# ---------------------------------------------------------------------------
+
+AGENT_ID_E="test-e"
+SESSION_E="$TMPDIR_TEST/session-e"
+mkdir -p "$SESSION_E/subagents"
+
+MAIN_TRANSCRIPT_E="$TMPDIR_TEST/session-e.jsonl"
+printf '{"role":"user","content":"main session, unrelated"}\n' > "$MAIN_TRANSCRIPT_E"
+
+AGENT_TRANSCRIPT_E="$SESSION_E/subagents/agent-${AGENT_ID_E}.jsonl"
+# "tool":"Read" is in explorer's declared [Read, Grep, Glob]. No email or private links.
+printf '{"role":"assistant","content":"reading file","tool":"Read"}\n' > "$AGENT_TRANSCRIPT_E"
+
+PAYLOAD_E="$(jq -nc \
+  --arg tp "$MAIN_TRANSCRIPT_E" \
+  --arg aid "$AGENT_ID_E" \
+  '{"agent_type":"explorer","agent_id":$aid,"transcript_path":$tp,"hook_event_name":"SubagentStop"}')"
+
+CS_BACKUP_ROOT="$TMPDIR_TEST/backup-e" bash "$HOOK" <<< "$PAYLOAD_E"
+
+AUDIT_E="$TMPDIR_TEST/backup-e/hook-logs/subagent-audit.jsonl"
+if [[ -f "$AUDIT_E" ]]; then
+  FINDING_COUNT_E="$(wc -l < "$AUDIT_E" | tr -d ' ')"
+  [[ "$FINDING_COUNT_E" -eq 0 ]] \
+    || err "Test E: expected zero findings for clean transcript, got ${FINDING_COUNT_E} finding(s)"
 fi
 
 # ---------------------------------------------------------------------------
