@@ -39,5 +39,9 @@ if [[ -n "$recurring" ]]; then
   # does not honour -e, and even bash builtin behaviour can vary depending on
   # `shopt -s xpg_echo`. printf is the only spec-stable answer.
   printf '%b\n' "$recurring"
-  echo "After addressing, clear the log: rm ${log_file}"
+  archive_month="$(date +%Y-%m)"
+  archive_dir="${log_file%/*}/failure-log.archive"
+  echo "After addressing, archive the log to keep measurement continuity:"
+  echo "  mkdir -p ${archive_dir} && mv ${log_file} ${archive_dir}/${archive_month}.jsonl"
+  echo "Aggregate anytime with: tools/loop-report.sh"
 fi

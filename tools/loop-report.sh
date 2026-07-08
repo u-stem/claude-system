@@ -1,0 +1,247 @@
+#!/usr/bin/env bash
+# tools/loop-report.sh — manual aggregation of observation logs
+# (failure-log.jsonl + subagent-log.jsonl). Minimal implementation of the
+# "aggregation starting point" from ADR 0012. Read-only, idempotent.
+#
+# Reads the canonical per-project paths:
+#   <project>/.claude/failure-log.jsonl (live)
+#   <project>/.claude/failure-log.archive/*.jsonl (archived)
+#   <project>/.claude/subagent-log.jsonl
+#
+# The failure log is merged live+archive and sorted chronologically by `ts`
+# so that archiving (see check-failure-patterns.sh) does not break trend
+# analysis across the archive boundary.
+
+set -euo pipefail
+
+# shellcheck source=./_lib.sh
+source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
+
+cs_print_help() {
+  cat <<'EOF'
+loop-report.sh — aggregate failure-log.jsonl and subagent-log.jsonl.
+
+Usage:
+  tools/loop-report.sh                        Report for $PWD
+  tools/loop-report.sh --project <dir>        Report for a specific project root
+  tools/loop-report.sh --all                  Roll up every ~/ws/*/.claude project
+  tools/loop-report.sh --since YYYY-MM-DD     Only include records at/after this date
+  tools/loop-report.sh --help
+
+Notes:
+  - Read-only. Never modifies or deletes log files.
+  - Missing log files are reported as "no data", not an error (exit 0).
+  - --project and --all are mutually exclusive.
+EOF
+}
+
+cs_show_help_if_requested "${1:-}"
+cs_require_cmd jq
+
+PROJECT_ARG=""
+ALL=0
+SINCE=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --project) PROJECT_ARG="$2"; shift 2 ;;
+    --all) ALL=1; shift ;;
+    --since) SINCE="$2"; shift 2 ;;
+    -h|--help) cs_print_help; exit 0 ;;
+    *) cs_error "Unknown arg: $1"; exit 2 ;;
+  esac
+done
+
+if [[ -n "$PROJECT_ARG" && "$ALL" == "1" ]]; then
+  cs_error "--project and --all are mutually exclusive"
+  exit 2
+fi
+
+if [[ -n "$SINCE" ]]; then
+  # Validate format only; comparisons below use lexical string compare
+  # against ISO 8601 `ts` values, which sorts correctly for date prefixes.
+  # BSD `date -jf` first, GNU `date -d` fallback (see check-package-age.sh).
+  if ! date -jf "%Y-%m-%d" "$SINCE" +%s >/dev/null 2>&1 \
+    && ! date -d "$SINCE" +%s >/dev/null 2>&1; then
+    cs_error "--since must be YYYY-MM-DD: $SINCE"
+    exit 2
+  fi
+fi
+
+WORKDIR="$(mktemp -d)"
+trap 'rm -rf "$WORKDIR"' EXIT
+
+PROJECTS=()
+if [[ "$ALL" == "1" ]]; then
+  shopt -s nullglob
+  for dir in "$HOME"/ws/*/.claude; do
+    PROJECTS+=("$(dirname "$dir")")
+  done
+  shopt -u nullglob
+  if [[ ${#PROJECTS[@]} -eq 0 ]]; then
+    cs_warn "no ~/ws/*/.claude directories found"
+  fi
+else
+  PROJECTS+=("${PROJECT_ARG:-$PWD}")
+fi
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+# Merge live + archived failure-log JSONL for one project, chronologically
+# sorted, optionally filtered by --since. Writes to $2 (may end up empty).
+merge_failure_log() {
+  local claude_dir="$1" out="$2"
+  local files=()
+  [[ -f "$claude_dir/failure-log.jsonl" ]] && files+=("$claude_dir/failure-log.jsonl")
+  if [[ -d "$claude_dir/failure-log.archive" ]]; then
+    while IFS= read -r -d '' f; do
+      files+=("$f")
+    done < <(find "$claude_dir/failure-log.archive" -name '*.jsonl' -print0 2>/dev/null)
+  fi
+  if [[ ${#files[@]} -eq 0 ]]; then
+    : > "$out"
+    return
+  fi
+  if [[ -n "$SINCE" ]]; then
+    jq -sc --arg since "$SINCE" \
+      '[.[] | select((.ts // "") >= $since)] | sort_by(.ts) | .[]' \
+      "${files[@]}" > "$out"
+  else
+    jq -sc 'sort_by(.ts) | .[]' "${files[@]}" > "$out"
+  fi
+}
+
+# Copy subagent-log.jsonl for one project, optionally filtered by --since.
+prep_subagent_log() {
+  local claude_dir="$1" out="$2"
+  local src="$claude_dir/subagent-log.jsonl"
+  if [[ ! -f "$src" ]]; then
+    : > "$out"
+    return
+  fi
+  if [[ -n "$SINCE" ]]; then
+    jq -c --arg since "$SINCE" 'select((.ts // "") >= $since)' "$src" > "$out"
+  else
+    cp "$src" "$out"
+  fi
+}
+
+emit_failure_report() {
+  local file="$1"
+  local total
+  total="$(wc -l < "$file" | tr -d ' ')"
+  if [[ "$total" -eq 0 ]]; then
+    echo "  no data"
+    return
+  fi
+  echo "  total: $total"
+  echo "  by category (desc):"
+  jq -r '.category // "unknown"' "$file" | sort | uniq -c | sort -rn | \
+    while read -r count cat; do
+      printf '    %-15s %s\n' "$cat" "$count"
+    done
+  echo "  recent errors per category (up to 3, most recent last):"
+  local cats
+  cats="$(jq -r '.category // "unknown"' "$file" | sort -u)"
+  while IFS= read -r cat; do
+    [[ -z "$cat" ]] && continue
+    echo "    [$cat]"
+    jq -c --arg c "$cat" 'select((.category // "unknown") == $c)' "$file" | tail -3 | \
+      jq -r '.error // empty' | sed 's/^/      - /'
+  done <<< "$cats"
+  echo "  monthly counts (YYYY-MM):"
+  jq -r '(.ts // null)[0:7] // "unknown"' "$file" | sort | uniq -c | sort -k2 | \
+    while read -r count month; do
+      printf '    %-10s %s\n' "$month" "$count"
+    done
+}
+
+emit_subagent_report() {
+  local file="$1"
+  local total
+  total="$(wc -l < "$file" | tr -d ' ')"
+  if [[ "$total" -eq 0 ]]; then
+    echo "  no data"
+    return
+  fi
+  echo "  total: $total"
+  echo "  by agent_type:"
+  jq -r 'if (.agent_type // "") == "" then "(empty)" else .agent_type end' "$file" | \
+    sort | uniq -c | sort -rn | while read -r count v; do
+      printf '    %-20s %s\n' "$v" "$count"
+    done
+  echo "  by model:"
+  jq -r 'if (.model // "") == "" then "(empty)" else .model end' "$file" | \
+    sort | uniq -c | sort -rn | while read -r count v; do
+      printf '    %-20s %s\n' "$v" "$count"
+    done
+  local nonzero
+  nonzero="$(jq -r '.exit_code // 0' "$file" | grep -vc '^0$' || true)"
+  echo "  exit_code != 0: ${nonzero:-0}"
+  local empty_agent_type empty_model
+  empty_agent_type="$(jq -r '.agent_type // ""' "$file" | grep -c '^$' || true)"
+  empty_model="$(jq -r '.model // ""' "$file" | grep -c '^$' || true)"
+  empty_agent_type="${empty_agent_type:-0}"
+  empty_model="${empty_model:-0}"
+  printf '  empty agent_type rate: %s/%s (%s%%)\n' "$empty_agent_type" "$total" \
+    "$(awk -v a="$empty_agent_type" -v t="$total" 'BEGIN{printf "%.1f", (t>0)?(a/t*100):0}')"
+  printf '  empty model rate: %s/%s (%s%%)\n' "$empty_model" "$total" \
+    "$(awk -v a="$empty_model" -v t="$total" 'BEGIN{printf "%.1f", (t>0)?(a/t*100):0}')"
+}
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+cs_step "loop-report.sh"
+echo "Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+echo "Since filter: ${SINCE:-(none)}"
+
+ALL_FL="$WORKDIR/all-failure.jsonl"
+ALL_SL="$WORKDIR/all-subagent.jsonl"
+: > "$ALL_FL"
+: > "$ALL_SL"
+
+idx=0
+for proj in "${PROJECTS[@]}"; do
+  idx=$((idx + 1))
+  claude_dir="$proj/.claude"
+
+  cs_step "Project: $proj"
+
+  if [[ ! -d "$claude_dir" ]]; then
+    echo "  no .claude directory found (no data)"
+    continue
+  fi
+
+  fl_out="$WORKDIR/fl-$idx.jsonl"
+  sl_out="$WORKDIR/sl-$idx.jsonl"
+  merge_failure_log "$claude_dir" "$fl_out"
+  prep_subagent_log "$claude_dir" "$sl_out"
+
+  echo " -- failure-log --"
+  emit_failure_report "$fl_out"
+  echo " -- subagent-log --"
+  emit_subagent_report "$sl_out"
+
+  cat "$fl_out" >> "$ALL_FL"
+  cat "$sl_out" >> "$ALL_SL"
+done
+
+if [[ "$ALL" == "1" && ${#PROJECTS[@]} -gt 1 ]]; then
+  cs_step "Total (all projects)"
+  # Re-sort the merged failure log chronologically for the rollup's
+  # "recent errors" and "monthly counts" sections.
+  ALL_FL_SORTED="$WORKDIR/all-failure-sorted.jsonl"
+  if [[ -s "$ALL_FL" ]]; then
+    jq -sc 'sort_by(.ts) | .[]' "$ALL_FL" > "$ALL_FL_SORTED"
+  else
+    : > "$ALL_FL_SORTED"
+  fi
+  echo " -- failure-log --"
+  emit_failure_report "$ALL_FL_SORTED"
+  echo " -- subagent-log --"
+  emit_subagent_report "$ALL_SL"
+fi
