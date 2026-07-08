@@ -65,6 +65,16 @@ principles 層は変更しない(principles/01 が公理を既に与えている
 
 対処: `subagent-stop-record.sh` を改修し、payload が薄いときも sidecar `*.meta.json` の `agentType` と transcript 内の最頻 `model` id を補完して記録するようにした(前進方向の記録のみ。揮発済み transcript の遡及補完は対象外)。これによりロール別・model 別の使用量が観測可能になり、ロール構成の剪定判断(死蔵ロールの統合・削除)を勘でなくデータで行う前提が整う。
 
+## Update (2026-07-08): 空フィールドの原因確定と誤帰属の修正
+
+初回レトロ(2026-07)で `agent_type` 空率が上記対処後も改善していない(74%)ことが判明し、原因切り分けを実施した。確定した事実は 3 点:
+
+1. **空 `agent_type` = ハーネス内部の補助エージェント**。空レコードにも `agent_id` / `effort` は入っており実在の agent 実行だが、Agent ツール起動の委譲(検証セッションで 7/7 全件が型付き記録)には対応せず、per-agent transcript / meta.json もディスクに存在しない。つまり **hook の取りこぼしではなく分母の汚染**であり、「69% が計測失敗」という本 Update 冒頭の解釈は範囲の問題(内部エージェントは設計上 `agent_type` を持たない)に訂正される。
+2. **`model` backfill はメインの model を誤帰属していた**。SubagentStop payload の `.transcript_path` は subagent でなく**メインセッションの transcript** を指す(公式 hooks doc で裏取り。subagent 自身は `agent_transcript_path`、実体は `<session>/subagents/agent-<agent_id>.jsonl`)。2026-06-06 の「偽キー修正」(`3e3a352`)はこの前提を誤認し、sidecar 補完の除去と引き換えにメイン transcript の最頻 model を記録していた(例: opus 指定の devil-advocate が `claude-fable-5` と記録)。**本 Update 以前の `model` 列はロール別評価に使えない**。
+3. **`subagent-stop-audit.sh` も同じ偽前提で監査が全件誤検知化していた**。メイン transcript は指示文書経由で `claude-settings` 文字列等を常に含むため、SubagentStop のたびに `private-resource-link` が発火(findings 359 件中 319 件)。
+
+対処: 両 hook の transcript 解決を「公式キー `agent_transcript_path` 優先 + `<session>/subagents/agent-<agent_id>.jsonl` 導出フォールバック」に修正。`agent_type` は per-agent meta.json の `agentType` で補完し、per-agent transcript が存在しない内部エージェントは `"(internal)"` と明示記録(model はメイン transcript から拾わず空のまま — 誤帰属より欠測を選ぶ)。監査は per-agent transcript のみを対象とし、内部エージェントは skip。過去レコードの遡及補正はしない(前進記録のみの方針を維持)。
+
 ## Related
 
 - [ADR 0011](./0011-delegation-orchestration-protocol.md) — 委譲プロトコル(本 ADR の主要な抑制手段)

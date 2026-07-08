@@ -2,6 +2,16 @@
 
 このリポジトリの変更履歴。Phase 単位でセクション化する。
 
+## SubagentStop 計測・監査の是正(2026-07-08)
+
+初回レトロ(下記)の「次月までに着手する 1 つ」だった agent_type 空フィールドの原因切り分けを同日中に完了し、切り分けの過程で発見した 2 つの hook 不具合を修正した。経緯の全文は [ADR 0012 Update (2026-07-08)](./decisions/0012-token-economy-mechanization.md)。
+
+- **切り分けの結論**: 空 agent_type(74%)は Agent ツール起動でないハーネス内部の補助エージェント由来(委譲は全件型付き記録済み = hook の取りこぼしではなく分母の汚染)
+- **発見した不具合 1(model 誤帰属)**: SubagentStop payload の `.transcript_path` はメインセッションの transcript を指す(公式 hooks doc で裏取り)。model backfill がメインの model を記録しており、過去レコードの model 列はロール別評価に使えない状態だった
+- **発見した不具合 2(監査の全件誤検知)**: `subagent-stop-audit.sh` が同じ偽前提でメイン transcript を監査し、findings 359 件中 319 件が `private-resource-link` の誤検知(メイン transcript は指示文書経由で該当文字列を常に含む)
+- **修正**: 両 hook の transcript 解決を「公式キー `agent_transcript_path` 優先 + `<session>/subagents/agent-<agent_id>.jsonl` 導出フォールバック」へ。agent_type は per-agent meta.json の `agentType` で補完、内部エージェントは `"(internal)"` と明示記録(model は誤帰属より欠測を選び空のまま)。監査は per-agent transcript のみ対象。`tests/test-subagent-stop-record.sh` を誤帰属 regression 含めて改修、`test-subagent-stop-audit.sh` を新フィクスチャへ移行 + 2 ケース追加、doctor allowlist に両テストを追加
+- 過去レコードの遡及補正はしない(前進記録のみ)。修正前の監査 findings はノイズとして退避
+
 ## ループエンジニアリングの段階導入(2026-07-08)
 
 「単発のタスク実行の設定」から「ループを中核に据えた開発体験」への進化の第一段(観測の道具化・最小明文化・初回実走)。判断の本体は [ADR 0019](./decisions/0019-loop-engineering-phased-adoption.md)。devil-advocate の反証レビューを経て、初期案から 3 点を修正した(集計のアーカイブ横断化 / feedback-loop practice 新設の撤回 / 初回レトロ実走の追加)。
