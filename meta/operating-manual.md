@@ -13,7 +13,7 @@ claude-system の継続的な運用手順。日常運用は [`daily-routine.md`]
 
 1. `meta/retrospectives/_template.md` をコピーして `meta/retrospectives/YYYY-MM.md` を作成
 2. 過去 1 ヶ月の以下を眺める:
-   - `~/.claude/projects/<scope>/failure-log.jsonl`(プロジェクト毎に蓄積)
+   - `tools/loop-report.sh --all --since <前月初日>` で失敗ログ・委譲ログを横断集計(正準パスは各プロジェクトの `<project>/.claude/failure-log.jsonl` / `subagent-log.jsonl`。アーカイブ `<project>/.claude/failure-log.archive/` も自動で合算される)
    - 各プロジェクトの `git log --since '1 month ago' --oneline`
    - episodic-memory プラグインで `claude` コマンド検索した会話履歴
 3. 以下のテンプレートに沿って書き起こす:

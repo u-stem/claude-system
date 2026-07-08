@@ -269,6 +269,7 @@ drawzzz 再開時:
 ### トリガー
 
 - 月次レトロを 3 ヶ月続けて手動運用した後、定型部分が見えてきたら検討
+- クロック起算: **2026-07**(初回レトロ実走、[ADR 0019](./decisions/0019-loop-engineering-phased-adoption.md))。手動運用の道具(`tools/loop-report.sh`)は同 ADR で整備済み。自動起動の判断は本項目に委ねたまま
 
 ---
 

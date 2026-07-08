@@ -2,6 +2,29 @@
 
 このリポジトリの変更履歴。Phase 単位でセクション化する。
 
+## ループエンジニアリングの段階導入(2026-07-08)
+
+「単発のタスク実行の設定」から「ループを中核に据えた開発体験」への進化の第一段(観測の道具化・最小明文化・初回実走)。判断の本体は [ADR 0019](./decisions/0019-loop-engineering-phased-adoption.md)。devil-advocate の反証レビューを経て、初期案から 3 点を修正した(集計のアーカイブ横断化 / feedback-loop practice 新設の撤回 / 初回レトロ実走の追加)。
+
+### 思想レイヤ(practices)
+
+- `practices/iterative-review.md`: 「収束ループの一般形」節を追加。5 要素(収束条件の事前宣言 / 上限 / 立て直し・継続 / 最終ゲート / 構造化結論)を一般構造として抽出し、決定論的な検査修正への適用は「部分適用」(収束条件 + 振動検出 + ソフト上限)と正確に位置づけ。独立 practice 化は適用 3 文脈到達まで保留
+- `practices/refactoring-trigger.md`: 「失敗パターンの還流」節を追加。還流の 5 段(記録→検出→集約→昇格→検証)と自動化境界(記録・検出・集計は機械 / ドラフトまで機械 / 採否は人間)を規範化。波及は update-propagation、記録は adr-workflow に委ねて真実源を増やさない
+- principles 07(ループの原則)は昇格要件未達のため見送り。再訪条件 3 点を ADR 0019 に明記
+
+### 機械レイヤ(tools / hooks / commands)
+
+- `tools/loop-report.sh` 新設: `failure-log.jsonl`(live + `failure-log.archive/*.jsonl` を横断合算)と `subagent-log.jsonl` の手動集計ツール(ADR 0012「集計の起点」の最小実装)。`--project` / `--all`(全プロジェクト横断)/ `--since`。agent_type・model の空フィールド率も可視化(ADR 0012 の計測品質問題)
+- `adapters/claude-code/user-level/hooks/check-failure-patterns.sh`: 通知末尾の `rm` 促しをアーカイブ促しへ変更(計測の連続性 = 再発率の before/after を測る材料を保全)。hook は通知のみを維持
+- `tests/test-check-failure-patterns.sh` 新設 + `tools/doctor.sh` の delegated lint allowlist に追加
+- `adapters/claude-code/user-level/commands/check.md`: 修正ループ節を追加(収束条件 = 全ステップ通過、主停止条件 = 振動・停滞検出、ソフト上限 5 ラウンド、silent retry 禁止)
+
+### 運用レイヤ(meta)
+
+- `meta/operating-manual.md` / `meta/retrospectives/_template.md`: 月次レトロ手順に loop-report.sh を組み込み。ログパス誤記(`~/.claude/projects/<scope>/` → 正準の `<project>/.claude/`)を是正
+- `meta/retrospectives/2026-07.md`: 初回レトロを実走。TODO 項目 10「レトロ連動の自動化」のクロックを 2026-07 起算(トリガー条件自体は維持)
+- `meta/decisions/README.md`: 索引に 0018(欠落是正)と 0019 を追加
+
 ## Claude Code 2.1.197 への harness 同期(2026-07-01)
 
 `update-check` skill による調査(WebFetch で releases / changelog / gitleaks releases / settings schema を裏取り)に基づき、機械層を Claude Code 2.1.197(2026-06-30。既定モデルが Sonnet 5 / 1M へ)に同期した。判断の本体は [ADR 0018](./decisions/0018-harness-sync-2.1.197.md)。

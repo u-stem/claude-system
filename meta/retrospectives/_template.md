@@ -60,9 +60,11 @@
 集中しているならその領域の hook 追加 / skill 化を検討。
 
 ```bash
-# 集計コマンド例
-jq -r '.category' ~/.claude/projects/*/failure-log.jsonl 2>/dev/null | sort | uniq -c | sort -rn | head
+# 集計コマンド(live + アーカイブ横断、全プロジェクト)
+~/ws/claude-system/tools/loop-report.sh --all --since <前月初日>
 ```
+
+対処済みの失敗記録は削除せずアーカイブする(`<project>/.claude/failure-log.archive/YYYY-MM.jsonl` へ mv)。再発率の before/after を測る材料になる(ADR 0019)。
 
 | カテゴリ | プロジェクト | 出現数 | 推測される原因 |
 |---|---|---|---|
