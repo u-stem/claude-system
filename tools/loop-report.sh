@@ -11,6 +11,12 @@
 # The failure log is merged live+archive and sorted chronologically by `ts`
 # so that archiving (see check-failure-patterns.sh) does not break trend
 # analysis across the archive boundary.
+#
+# subagent-audit.jsonl (recorded by subagent-stop-audit.sh) is NOT scoped
+# per project: it lives under $CS_BACKUP_ROOT/hook-logs (machine-wide,
+# default ~/.claude-system-backups/hook-logs), the same directory the hooks'
+# own HOOK_LOG_DIR resolves to. It is reported once, globally, regardless of
+# --project/--all (there is exactly one such log on the machine).
 
 set -euo pipefail
 
@@ -32,6 +38,8 @@ Notes:
   - Read-only. Never modifies or deletes log files.
   - Missing log files are reported as "no data", not an error (exit 0).
   - --project and --all are mutually exclusive.
+  - The subagent-audit section is machine-wide (not per project) and is
+    always printed once, filtered by --since like the other sections.
 EOF
 }
 
@@ -89,6 +97,18 @@ fi
 # Helpers
 # ---------------------------------------------------------------------------
 
+# Filter a JSONL file down to only its syntactically valid lines, writing the
+# result to $2. Under `set -e`, feeding a file with a malformed line straight
+# into `jq -s`/`jq -c` aborts the whole report (jq exits non-zero on a parse
+# error); reading it one raw line at a time via `-R` and parsing each line
+# individually with `fromjson? // empty` drops bad lines silently instead of
+# failing the pipeline. Every prep_*/merge_* function below sanitizes its
+# input(s) through this before handing them to jq's structured filters.
+jsonl_sanitize() {
+  local src="$1" out="$2"
+  jq -R -c 'fromjson? // empty' "$src" > "$out" 2>/dev/null || : > "$out"
+}
+
 # Merge live + archived failure-log JSONL for one project, chronologically
 # sorted, optionally filtered by --since. Writes to $2 (may end up empty).
 merge_failure_log() {
@@ -104,12 +124,18 @@ merge_failure_log() {
     : > "$out"
     return
   fi
+  local sanitized=() f s
+  for f in "${files[@]}"; do
+    s="$(mktemp "$WORKDIR/sanitize-XXXXXX")"
+    jsonl_sanitize "$f" "$s"
+    sanitized+=("$s")
+  done
   if [[ -n "$SINCE" ]]; then
     jq -sc --arg since "$SINCE" \
       '[.[] | select((.ts // "") >= $since)] | sort_by(.ts) | .[]' \
-      "${files[@]}" > "$out"
+      "${sanitized[@]}" > "$out"
   else
-    jq -sc 'sort_by(.ts) | .[]' "${files[@]}" > "$out"
+    jq -sc 'sort_by(.ts) | .[]' "${sanitized[@]}" > "$out"
   fi
 }
 
@@ -121,10 +147,13 @@ prep_subagent_log() {
     : > "$out"
     return
   fi
+  local sanitized
+  sanitized="$(mktemp "$WORKDIR/sanitize-XXXXXX")"
+  jsonl_sanitize "$src" "$sanitized"
   if [[ -n "$SINCE" ]]; then
-    jq -c --arg since "$SINCE" 'select((.ts // "") >= $since)' "$src" > "$out"
+    jq -c --arg since "$SINCE" 'select((.ts // "") >= $since)' "$sanitized" > "$out"
   else
-    cp "$src" "$out"
+    cp "$sanitized" "$out"
   fi
 }
 
@@ -191,6 +220,44 @@ emit_subagent_report() {
     "$(awk -v a="$empty_model" -v t="$total" 'BEGIN{printf "%.1f", (t>0)?(a/t*100):0}')"
 }
 
+# Copy the machine-wide subagent-audit.jsonl, optionally filtered by --since.
+# Unlike failure-log/subagent-log this file is not per-project: it is always
+# read from $CS_BACKUP_ROOT/hook-logs (see _lib.sh sourced above).
+prep_audit_log() {
+  local out="$1"
+  local src="$CS_BACKUP_ROOT/hook-logs/subagent-audit.jsonl"
+  if [[ ! -f "$src" ]]; then
+    : > "$out"
+    return
+  fi
+  local sanitized
+  sanitized="$(mktemp "$WORKDIR/sanitize-XXXXXX")"
+  jsonl_sanitize "$src" "$sanitized"
+  if [[ -n "$SINCE" ]]; then
+    jq -c --arg since "$SINCE" 'select((.ts // "") >= $since)' "$sanitized" > "$out"
+  else
+    cp "$sanitized" "$out"
+  fi
+}
+
+emit_audit_report() {
+  local file="$1"
+  local total
+  total="$(wc -l < "$file" | tr -d ' ')"
+  if [[ "$total" -eq 0 ]]; then
+    echo "  no data"
+    return
+  fi
+  echo "  total: $total"
+  echo "  by kind (desc):"
+  jq -r '.kind // "unknown"' "$file" | sort | uniq -c | sort -rn | \
+    while read -r count kind; do
+      printf '    %-20s %s\n' "$kind" "$count"
+    done
+  echo "  recent findings (up to 5, most recent last):"
+  tail -5 "$file" | jq -r '"    [\(.kind // "unknown")] \(.ts // "?") \(.detail // "")"'
+}
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -245,3 +312,11 @@ if [[ "$ALL" == "1" && ${#PROJECTS[@]} -gt 1 ]]; then
   echo " -- subagent-log --"
   emit_subagent_report "$ALL_SL"
 fi
+
+# subagent-audit.jsonl is machine-wide, not per-project, so it is reported
+# once here rather than inside the per-project loop above.
+cs_step "Subagent audit (machine-wide, $CS_BACKUP_ROOT/hook-logs)"
+AUDIT_OUT="$WORKDIR/audit.jsonl"
+prep_audit_log "$AUDIT_OUT"
+echo " -- subagent-audit --"
+emit_audit_report "$AUDIT_OUT"

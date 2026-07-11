@@ -74,17 +74,21 @@ printf '%s' "$OUT2" | grep -q '\[check\] 3 failures' \
   || err "Test 2 [category+count]: expected '[check] 3 failures' in output, got: $OUT2"
 
 # ---------------------------------------------------------------------------
-# Test 3: notification text mentions archiving + loop-report.sh, not rm
+# Test 3: notification text points at archive-failure-log.sh + loop-report.sh,
+# not a raw mkdir+mv/rm one-liner
 # ---------------------------------------------------------------------------
 
-printf '%s' "$OUT2" | grep -q 'failure-log.archive' \
-  || err "Test 3 [archive hint]: expected 'failure-log.archive' mentioned, got: $OUT2"
+printf '%s' "$OUT2" | grep -q 'tools/archive-failure-log.sh' \
+  || err "Test 3 [archive hint]: expected 'tools/archive-failure-log.sh' mentioned, got: $OUT2"
 
 printf '%s' "$OUT2" | grep -q 'loop-report.sh' \
   || err "Test 3 [loop-report hint]: expected 'loop-report.sh' mentioned, got: $OUT2"
 
 printf '%s' "$OUT2" | grep -q '^rm ' \
   && err "Test 3 [no rm]: expected no bare 'rm' advice, got: $OUT2"
+
+printf '%s' "$OUT2" | grep -q 'mkdir -p' \
+  && err "Test 3 [no raw mkdir+mv]: expected no raw 'mkdir -p ... && mv' advice, got: $OUT2"
 
 # ---------------------------------------------------------------------------
 # Test 4: loop-report.sh smoke test — live + archive merge, --since filtering
