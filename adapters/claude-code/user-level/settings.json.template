@@ -179,7 +179,7 @@
   "// hooks.PreToolUse.Bash": "破壊的コマンド阻止 + 若いパッケージ阻止(supply-chain)+ 大量出力の末尾キャップ(token 経済、ADR 0012)。各 hook は対象外コマンドで早期 exit する。output-cap は test/build/lint の単純コマンドのみ updatedInput で stdout を tail。CLAUDE_BASH_OUTPUT_CAP=0 で無効化",
   "// hooks.PreToolUse.Edit_Write": "claude-settings/ や *.backup-* への書き込み阻止 + principles/practices への禁止語混入阻止",
   "// hooks.PostToolUse.Edit_Write": "validate(SKILL.md frontmatter / 禁止語) + project dispatcher(.claude/hooks/post-edit.sh)",
-  "// hooks.PostToolUse.Bash": "Bash 失敗を category 判定して failure-log.jsonl に追記(self-referential feedback loop)",
+  "// hooks.PostToolUseFailure.Bash": "Bash 失敗を category 判定して failure-log.jsonl に追記(self-referential feedback loop)。PostToolUse ではなく PostToolUseFailure にバインド: Claude Code は失敗した Bash コマンドで PostToolUse を発火しないため(v2.1.206 で実測確認)",
   "// hooks.Stop": "stop diagnostic(timeout 付き doctor.sh)+ project dispatcher(.claude/hooks/post-stop.sh)",
   "// hooks.SubagentStop": "基本ログ + ADR 0001/0002 サニタイゼーション + tools 越権検知(log-only、Phase 9 で escalation 再評価)",
   "hooks": {
@@ -213,7 +213,9 @@
           {"type": "command", "command": "$HOME/ws/claude-system/adapters/claude-code/user-level/hooks/post-edit-validate.sh"},
           {"type": "command", "command": "$HOME/ws/claude-system/adapters/claude-code/user-level/hooks/post-edit-dispatcher.sh"}
         ]
-      },
+      }
+    ],
+    "PostToolUseFailure": [
       {
         "matcher": "Bash",
         "hooks": [
