@@ -39,6 +39,7 @@
 ## ガードレールの誤検知
 
 `forbidden-words` / `pre-bash-guard.sh` / `pre-edit-protect.sh` / `gitleaks` 等の誤検知。
+loop-report.sh の subagent-audit セクション(ADR 0001/0002 監査ログ、log-only)に検知があれば、誤検知かどうかを併せて見る。
 
 | hook / lint | 誤検知内容 | 該当パターン | 対処 |
 |---|---|---|---|
@@ -64,7 +65,7 @@
 ~/ws/claude-system/tools/loop-report.sh --all --since <前月初日>
 ```
 
-対処済みの失敗記録は削除せずアーカイブする(`<project>/.claude/failure-log.archive/YYYY-MM.jsonl` へ mv)。再発率の before/after を測る材料になる(ADR 0019)。
+対処済みの失敗記録は削除せずアーカイブする(`tools/archive-failure-log.sh --all --month YYYY-MM` で月別に保存)。再発率の before/after を測る材料になる(ADR 0019)。
 
 | カテゴリ | プロジェクト | 出現数 | 推測される原因 |
 |---|---|---|---|

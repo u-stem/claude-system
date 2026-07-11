@@ -6,7 +6,7 @@
 
 ## 前提バージョン
 
-[`./VERSION`](./VERSION) を参照(現在: 2.1.197)。
+[`./VERSION`](./VERSION) を参照(現在: 2.1.206)。
 
 VERSION 更新時のチェックリストは [Claude Code 仕様変更時の影響範囲マップ](#claude-code-仕様変更時の影響範囲マップ) に従う。
 
@@ -21,7 +21,7 @@ VERSION 更新時のチェックリストは [Claude Code 仕様変更時の影�
 | settings.json(permissions / hooks / env / mcpServers / enabledPlugins / attribution) | `user-level/settings.json.template` | permissions.deny で物理ブロック、hooks で機械的防御(Phase 7b) |
 | permissions.deny / allow | settings.json 内 | LLM の自制に頼らず物理的に書き込みを拒否 / permission prompt の抑制 |
 | attribution(`commit` / `pr`) | settings.json 内 | commit/PR から claude.ai セッション URL(harness 自動 attribution)を抑止(ADR 0002 / 0018) |
-| hooks(SessionStart / PreToolUse / PostToolUse / Stop / StopFailure / SubagentStop / PreCompact / SessionEnd) | `user-level/hooks/`(Phase 7b) | typosquatting 防御・失敗フィードバックループ・dispatcher パターン |
+| hooks(SessionStart / PreToolUse / PostToolUse / PostToolUseFailure / Stop / StopFailure / SubagentStop / PreCompact / SessionEnd) | `user-level/hooks/`(Phase 7b) | typosquatting 防御・失敗フィードバックループ・dispatcher パターン |
 | slash command | `user-level/commands/`(Phase 4 検討) | 旧 commands(check / review / test / update-check)を継承予定 |
 | MCP server 設定(`mcpServers`) | settings.json 内(常時: playwright)/ `user-level/mcp/servers.template.json`(opt-in: sequential-thinking / chrome-devtools、secret: github) | API キー不要のもののみ含める。2 系統の登録経路については後述の MCP 登録経路を参照 |
 | プラグイン管理(`enabledPlugins`) | settings.json 内 | superpowers / elements-of-style / episodic-memory |
@@ -80,7 +80,7 @@ Claude Code がアップデートされた場合、以下を順に確認する:
 |--------------|----------------------|----------|
 | `permissions.deny` / `allow` の構文 | `user-level/settings.json.template` | 公式ドキュメントの permissions セクション差分確認 → deny ルールの構文整合 → `jq` で JSON 妥当性 |
 | `hooks.<event>` の matcher / フィールド構文 | `user-level/settings.json.template`, `user-level/hooks/*.sh`(Phase 7b) | 各 hook event のスキーマ差分確認 → 対応 hook の入出力契約の更新 |
-| 利用可能な hook event 種別 | 同上 | 新 event 追加時は guardrail 設計を再評価 |
+| 利用可能な hook event 種別 | 同上 | 新 event 追加時は guardrail 設計を再評価(PostToolUseFailure は v2.1.206 で存在を実測確認、導入バージョンは未特定。log-bash-failure.sh が依存) |
 | skill の frontmatter 仕様 | `user-level/skills/*/SKILL.md`(Phase 4) | name / description / recommended_model 等のフィールドが廃止・追加されていないか |
 | subagent の frontmatter 仕様 | `subagents/*.md`(Phase 5) | name / description / tools 等のフィールド整合 |
 | MCP server 設定スキーマ | `user-level/settings.json.template` の `mcpServers`, `user-level/mcp/servers.template.json` | パッケージバージョン更新と引数構文差分。各サーバーは 1 系統のみに登録(常時=インライン / opt-in・secret=宣言) |

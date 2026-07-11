@@ -2,6 +2,16 @@
 
 このリポジトリの変更履歴。Phase 単位でセクション化する。
 
+## failure 記録 hook の PostToolUseFailure 移行と観測ループの実効化(2026-07-11)
+
+初回レトロが残した「failure-log ゼロ件の原因未切り分け(①失敗が無い/②判定ミスマッチ)」を実測で解決した。真因はどちらでもなく、**Claude Code は失敗したツール呼び出しで PostToolUse を発火しない**こと(イベント接続層の欠陥)。判断の本体は [ADR 0020](./decisions/0020-failure-hook-event-migration.md)。
+
+- `adapters/claude-code/user-level/hooks/log-bash-failure.sh`: バインドを PostToolUse(Bash) → **PostToolUseFailure(Bash)** へ移行(settings.json.template、live へは sync-settings.sh --apply で反映済み)。payload は実測 3 形(docs の `tool_output` / 成功時実測の `tool_response` / v2.1.206 失敗時実測のトップレベル `.error` + `.is_interrupt`)を防御的に多重参照。レコードに `exit_code` / `cmd` を additive 追加(`log-failure.sh` のシグネチャ拡張、`cmd` は秘匿パターンをベストエフォート redaction してから記録)。`tests/test-log-bash-failure.sh` 新設(実測 3 形・keyword 無し stderr・redaction を固定)
+- 入れ子 headless セッションによる e2e で実発火を確認: `{category: "test", exit_code: 1, ...}` が記録され、**記録段が配備以来はじめて機能した**
+- `tools/loop-report.sh`: subagent-audit 集計セクションを追加。`subagent-audit.jsonl` は `$CS_BACKUP_ROOT/hook-logs/` のマシン全体 1 本の共有ログ(実態)のため、プロジェクトループ外の独立セクション(kind 別件数 / 直近 5 件、`--since` のみ適用)とした
+- `tools/archive-failure-log.sh` 新設: アーカイブの道具化(`--project` / `--all` / `--dry-run` / `--month`、同月は append、冪等)。`check-failure-patterns.sh` の促し文面をヘルパー案内へ変更。自動化境界(ADR 0019 §5: 実行は人間)は不変
+- `adapters/claude-code/VERSION`: 2.1.197 → 2.1.206(PostToolUseFailure の実測確認バージョン)。operating-manual / レトロテンプレート / adapters README を追随更新
+
 ## SubagentStop 計測・監査の是正(2026-07-08)
 
 初回レトロ(下記)の「次月までに着手する 1 つ」だった agent_type 空フィールドの原因切り分けを同日中に完了し、切り分けの過程で発見した 2 つの hook 不具合を修正した。経緯の全文は [ADR 0012 Update (2026-07-08)](./decisions/0012-token-economy-mechanization.md)。

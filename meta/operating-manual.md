@@ -13,7 +13,7 @@ claude-system の継続的な運用手順。日常運用は [`daily-routine.md`]
 
 1. `meta/retrospectives/_template.md` をコピーして `meta/retrospectives/YYYY-MM.md` を作成
 2. 過去 1 ヶ月の以下を眺める:
-   - `tools/loop-report.sh --all --since <前月初日>` で失敗ログ・委譲ログを横断集計(正準パスは各プロジェクトの `<project>/.claude/failure-log.jsonl` / `subagent-log.jsonl`。アーカイブ `<project>/.claude/failure-log.archive/` も自動で合算される)
+   - `tools/loop-report.sh --all --since <前月初日>` で失敗ログ・委譲ログ・subagent-audit を横断集計(失敗ログの正準パスは各プロジェクトの `<project>/.claude/failure-log.jsonl` / `subagent-log.jsonl`。アーカイブ `<project>/.claude/failure-log.archive/` も自動で合算される。subagent-audit はマシン全体 1 本の共有ログで `~/.claude-system-backups/hook-logs/subagent-audit.jsonl`)
    - 各プロジェクトの `git log --since '1 month ago' --oneline`
    - episodic-memory プラグインで `claude` コマンド検索した会話履歴
 3. 以下のテンプレートに沿って書き起こす:
@@ -22,8 +22,9 @@ claude-system の継続的な運用手順。日常運用は [`daily-routine.md`]
    - `principles に追加したい原則`(複数文脈で妥当性が確認できた)
    - `ガードレールの誤検知`(発火したが正当な操作だったケース)
    - `次月までに着手する 1 つ`
-4. 必要なら ADR 起票(`tools/new-adr.sh` で連番起票)
-5. `git commit -m "chore(meta): YYYY-MM retrospective"`
+4. 失敗ログをアーカイブ: `tools/archive-failure-log.sh --all --month YYYY-MM`(各プロジェクトの failure-log.jsonl を `failure-log.archive/` に月別に保存し、本体をクリアする)
+5. 必要なら ADR 起票(`tools/new-adr.sh` で連番起票)
+6. `git commit -m "chore(meta): YYYY-MM retrospective"`
 
 ### スキップ判断
 
