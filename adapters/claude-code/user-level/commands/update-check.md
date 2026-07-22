@@ -37,7 +37,7 @@ claude-system の設定を最新のベストプラクティスに更新するた
 ### 5. ガードレール
 
 - gitleaks の更新(v8 は feature-complete 宣言済み = 今後はセキュリティパッチのみ。新機能は来ない前提で、セキュリティ修正リリースのみ追従する)
-- gitleaks 後継 / 代替の動向(メンテナは後継プロジェクトへ移行を表明済み。乗り換え要否を継続評価)
+- gitleaks 後継 / 代替の動向(後継は Betterleaks = `betterleaks/betterleaks`、2026-02 開始・drop-in replacement 標榜。2026-07 時点は若いため見送り中。成熟度・pre-commit 対応・config 互換の実績を継続評価し乗り換え要否を判断する)
 - pre-commit-hooks の新規 hook
 - Phase 7b で実装した hooks との整合
 

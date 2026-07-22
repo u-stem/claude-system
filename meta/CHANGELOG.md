@@ -2,6 +2,20 @@
 
 このリポジトリの変更履歴。Phase 単位でセクション化する。
 
+## Claude Code 2.1.217 への harness 同期(2026-07-22)
+
+`update-check` command による調査(research-summarizer 4 系統委譲 + CHANGELOG raw / 公式 permissions doc / npm registry での一次裏取り)に基づき、機械層を Claude Code 2.1.217 に同期した。計画は devil-advocate の反証レビュー(positive テスト追加・breaking 確認ゲート統一・影響範囲マップ全行走査)を経て確定。判断の本体は [ADR 0021](./decisions/0021-harness-sync-2.1.217.md)。
+
+- `adapters/claude-code/VERSION`: `2.1.206` → `2.1.217`(2.1.213 は欠番、11 パッチ分を点検)
+- `adapters/claude-code/user-level/settings.json.template`
+  - deny から `Write(path)` 形式 7 件を削除。Why: v2.1.210 以降 file permission チェックは `Edit(path)` / `Read(path)` のみ照合し、`Write(path)` ルールは「受理されるがマッチしない」死文となり起動時警告だけを出していた(公式 doc「Edit rules cover all file-editing tools」)。全 7 件に同一パスの `Edit(...)` deny が既存で機能低下なし。削除前に headless セッションで `./.env` への Write が `Edit(./.env)` deny により拒否されることを実測確認(positive テスト)
+  - `@playwright/mcp`: `0.0.77` → `0.0.78`(breaking なし)
+- `adapters/claude-code/user-level/mcp/servers.template.json`
+  - `chrome-devtools-mcp`: `1.4.0` → `1.6.0`(release notes 確認、breaking なし)
+  - `@modelcontextprotocol/server-sequential-thinking`: `2025.12.18` → `2026.7.4`(コミット走査、breaking なし)
+- `adapters/claude-code/user-level/commands/update-check.md`: gitleaks 後継を Betterleaks(`betterleaks/betterleaks`)と具体名で明記し定点観測化(乗り換えは据え置き継続)
+- 記録のみ: subagent のネスト委譲デフォルト無効化 + 同時実行上限(2.1.212 / 2.1.217)により ADR 0015 の「メイン主導の単層連鎖」前提がハーネス既定と一致。gitleaks は 8.30.1 が最新のまま追従漏れなし。新規プラグイン(Context7 / Frontend Design)・新規 MCP・新 UI 系設定は不採用(理由は ADR 0021 §4)
+
 ## failure 記録 hook の PostToolUseFailure 移行と観測ループの実効化(2026-07-11)
 
 初回レトロが残した「failure-log ゼロ件の原因未切り分け(①失敗が無い/②判定ミスマッチ)」を実測で解決した。真因はどちらでもなく、**Claude Code は失敗したツール呼び出しで PostToolUse を発火しない**こと(イベント接続層の欠陥)。判断の本体は [ADR 0020](./decisions/0020-failure-hook-event-migration.md)。
