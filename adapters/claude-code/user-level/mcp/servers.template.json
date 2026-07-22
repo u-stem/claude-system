@@ -4,7 +4,7 @@
     {
       "name": "sequential-thinking",
       "command": "bunx",
-      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking@2025.12.18"],
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking@2026.7.4"],
       "env_keys": [],
       "requires_secret": false,
       "description": "Stepwise reasoning helper (no secrets)"
@@ -12,7 +12,7 @@
     {
       "name": "chrome-devtools",
       "command": "npx",
-      "args": ["chrome-devtools-mcp@1.4.0"],
+      "args": ["chrome-devtools-mcp@1.6.0"],
       "env_keys": [],
       "requires_secret": false,
       "description": "Chrome DevTools protocol bridge (no secrets)"
