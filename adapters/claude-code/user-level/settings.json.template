@@ -32,15 +32,14 @@
   "// permissions.deny.backup_files": "*.backup-* は人間が手作業バックアップした原本。LLM が上書きしないよう物理ブロック",
   "// permissions.deny.destructive_filesystem": "~/.claude/ や claude-system 全体の rm を物理ブロック。Phase 10 のシンボリックリンク切替を保護する。-rf 以外の派生(-r 単独 / sudo / find -delete)も列挙",
   "// permissions.deny.destructive_git": "強制 push と --no-verify は禁止。--no-verify は Phase 7b の PreToolUse hook(jq インライン)でも検出予定の二重防御",
-  "// permissions.deny.secrets": "機密ファイル系の Read/Write/Edit を全面ブロック。Phase 7b で .gitleaks.toml と整合させる。相対パス glob が中心のため絶対パス・~ 展開後のアクセスは hooks 側(pre-edit-protect.sh / pre-bash-guard.sh)で補完する",
+  "// permissions.deny.secrets": "機密ファイル系の Read/Edit を全面ブロック。Phase 7b で .gitleaks.toml と整合させる。相対パス glob が中心のため絶対パス・~ 展開後のアクセスは hooks 側(pre-edit-protect.sh / pre-bash-guard.sh)で補完する",
+  "// permissions.deny.edit_governs_all_edits": "v2.1.210 以降、file permission チェックは Edit(path) / Read(path) ルールのみ照合し、Edit ルールが全編集ツール(Write / NotebookEdit 含む)を統治する。旧 Write(path) deny 7 件は照合対象外の死文となったため削除(ADR 0021)。./.env への Write が Edit(./.env) deny で拒否されることは 2.1.217 で実測確認済み",
   "// permissions.deny.global_secrets": "ホームディレクトリ直下の標準的機密保管箇所を deny。.ssh / .aws / .gnupg / .config の認証系は内容にかかわらず Read を物理ブロック",
   "permissions": {
     "defaultMode": "auto",
     "deny": [
       "Edit(~/ws/claude-settings/**)",
-      "Write(~/ws/claude-settings/**)",
       "Edit(**/*.backup-*)",
-      "Write(**/*.backup-*)",
       "Bash(rm -rf ~/.claude*)",
       "Bash(rm -r ~/.claude*)",
       "Bash(rm -rf ~/ws/claude-system)",
@@ -61,8 +60,6 @@
       "Read(./**/*secret*)",
       "Read(./**/*.pem)",
       "Read(./**/*.key)",
-      "Write(./.env)",
-      "Write(./.env.*)",
       "Edit(./.env)",
       "Edit(./.env.*)",
       "Read(~/.ssh/**)",
@@ -73,9 +70,6 @@
       "Read(~/.npmrc)",
       "Read(~/.cargo/credentials*)",
       "Read(~/.docker/config.json)",
-      "Write(~/.ssh/**)",
-      "Write(~/.aws/**)",
-      "Write(~/.gnupg/**)",
       "Edit(~/.ssh/**)",
       "Edit(~/.aws/**)",
       "Edit(~/.gnupg/**)"
@@ -261,7 +255,7 @@
   "mcpServers": {
     "playwright": {
       "command": "bunx",
-      "args": ["-y", "@playwright/mcp@0.0.77"]
+      "args": ["-y", "@playwright/mcp@0.0.78"]
     }
   }
 }

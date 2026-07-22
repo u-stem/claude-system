@@ -6,7 +6,7 @@
 
 ## 前提バージョン
 
-[`./VERSION`](./VERSION) を参照(現在: 2.1.206)。
+[`./VERSION`](./VERSION) を参照(現在: 2.1.217)。
 
 VERSION 更新時のチェックリストは [Claude Code 仕様変更時の影響範囲マップ](#claude-code-仕様変更時の影響範囲マップ) に従う。
 
