@@ -2,6 +2,21 @@
 
 このリポジトリの変更履歴。Phase 単位でセクション化する。
 
+## Claude Code 2.1.220 への harness 同期とモデル/エフォート方針の見直し(2026-07-25)
+
+`update-check` command による調査(research-summarizer 2 系統委譲 + CHANGELOG raw / 公式 model-config doc / npm registry / headless 実測での一次裏取り)に基づき、機械層を 2.1.220 に同期し、モデル・エフォート方針を見直した。計画は devil-advocate の反証レビューで大幅修正(depth pin 撤回 / fallback 2 件化撤回 / effort 乖離の「記録して維持」案撤回 / 主モデル再評価の追加)、4 つの主要判断は運用者確認済み。判断の本体は [ADR 0022](./decisions/0022-harness-sync-2.1.220.md)。
+
+- `adapters/claude-code/VERSION`: `2.1.217` → `2.1.220`
+- `adapters/claude-code/user-level/settings.json.template`
+  - `model`: `claude-fable-5` → **`claude-opus-5[1m]`**。Why: v2.1.219 で追加された Opus 5 は agentic 系ベンチ(Frontier-Bench 43.3% vs 33.7% 等)で Fable 5 同等以上・半額($5/$25)。長時間自律タスクでの品質不足を再評価トリガーに設定
+  - `effortLevel: xhigh` の**実効化**: 実機 machine-overrides の `effortLevel: medium`(ADR 0017 初回移行の無記録抽出物)を削除。「メイン medium < subagent high」の深度逆転(ADR 0013 §1 違反)を解消
+  - `fallbackModel: ["claude-opus-4-8"]` は値維持、根拠を「既知良品の前世代」へ訂正(ADR 0016 のクラシファイア整合は別系統機構の誤帰属)
+- ネスト委譲(v2.1.219 で既定 depth 3 化): env pin せず受容。単層連鎖を「構造制約」から「運用規約」へ記述是正(user-level CLAUDE.md §6 / commands/team.md、ADR 0015 に Update 節)。`subagent-stop-record.sh` に per-agent meta.json 由来の `parent_agent_id` / `spawn_depth` を additive 記録、`loop-report.sh` で多段委譲を可視化、`doctor.sh` に effort enum 検証(存在時)+ 方針系キー override の WARN を追加
+- `practices/model-selection.md`: 「推論深度」軸(浅い/標準/深い)を追補し二軸化(ADR 0013 Implementation Notes の宿題を解消。抽象語彙のみ、翻訳は `subagents/_index.md` の effort 規約に記載)
+- `adapters/claude-code/user-level/mcp/servers.template.json`: chrome-devtools の runner を `npx` → `bunx`(最後の非統一を是正、pin は据え置き)
+- `adapters/claude-code/user-level/commands/update-check.md`: MCP 調査対象に sequential-thinking を追加、`sandbox.network.strictAllowlist` を定点観測化
+- 不採用: `sandbox.network.strictAllowlist` / `workflowSizeGuideline` / `DirectoryAdded` hook / depth env pin(理由は ADR 0022 §7)。MCP pin・gitleaks 8.30.1 は最新のまま追従漏れなし
+
 ## Claude Code 2.1.217 への harness 同期(2026-07-22)
 
 `update-check` command による調査(research-summarizer 4 系統委譲 + CHANGELOG raw / 公式 permissions doc / npm registry での一次裏取り)に基づき、機械層を Claude Code 2.1.217 に同期した。計画は devil-advocate の反証レビュー(positive テスト追加・breaking 確認ゲート統一・影響範囲マップ全行走査)を経て確定。判断の本体は [ADR 0021](./decisions/0021-harness-sync-2.1.217.md)。

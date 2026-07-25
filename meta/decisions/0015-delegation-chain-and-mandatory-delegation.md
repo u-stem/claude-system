@@ -71,6 +71,10 @@
 - 固定パイプライン command は [`adapters/claude-code/user-level/commands/team.md`](../../adapters/claude-code/user-level/commands/team.md)。
 - 出所となった要望: 本セッションでの運用者要望(2026-06-06)。
 
+## Update (2026-07-25)
+
+Context の事実命題「subagent は別の subagent を起動できない(構造的制約)」は Claude Code v2.1.219 で偽になった(ネスト spawn が既定 depth 3 まで許容)。本 ADR の単層連鎖は**構造制約由来ではなく運用規約**として維持する(根拠は観測の一元化とメインへの統制集約)。env pin による旧既定の復元は不採用。詳細・観測強化(per-agent meta.json の `parentAgentId` / `spawnDepth` 記録)・再評価トリガーは [ADR 0022](./0022-harness-sync-2.1.220.md) §5 を参照。Consequences の「将来ハーネスが多段委譲を備えたら再評価する」は本 Update で消化した。
+
 ## Related
 
 - [ADR 0009](./0009-opus-48-autonomy-tuning.md) §2 — サブエージェント委譲の積極化
