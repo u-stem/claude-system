@@ -90,7 +90,7 @@
 
 - 探索 → `explorer`(内部)/ `research-summarizer`(外部)
 - 計画 → `refactor-planner`、反証 → `devil-advocate`、実装 → `implementer`、レビュー → `code-reviewer`(反復は `/review-loop`)、最終ゲート → `security-auditor`、文書追従 → `doc-writer`
-- 連鎖は**メイン主導の単層**(subagent は再委譲できない構造制約)。固定順序で回すなら `/team` command を使う。
+- 連鎖は**メイン主導の単層**(運用規約。ハーネスは v2.1.219 以降ネスト委譲を depth 3 まで許容するが、観測可能性と統制のため単層を維持する / ADR 0022)。固定順序で回すなら `/team` command を使う。
 - **例外**: 軽微・可逆・1 点参照はメイン直接実行でよい(委譲の固定費が利得を上回るため。機械的に全作業を委譲しない)。
 
 ## 7. 「困ったら問い直す」

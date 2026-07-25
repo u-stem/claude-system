@@ -97,6 +97,7 @@ model / effort 校正の根拠は [ADR 0013](~/ws/claude-system/meta/decisions/0
   tools       : [<必要最小限のツールのみ列挙>]  # YAML 配列形式
   model       : opus | sonnet | haiku       # practices/model-selection.md の判断基準
   effort      : low | medium | high | xhigh | max  # 任意。セッション effort を上書き。上限はモデル依存(ADR 0013)
+  # effort は practices/model-selection.md の「推論深度」軸の Claude Code 翻訳(浅い=low〜medium / 標準=high / 深い=xhigh〜max。深い側は parse-error 安全性未検証のため subagent では未使用、ADR 0013 / 0022)
   ---
 ```
 

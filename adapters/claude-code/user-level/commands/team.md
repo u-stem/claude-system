@@ -8,9 +8,9 @@ description: 委譲チェーン(計画→反証→実装→レビュー→ゲー
 メインがオーケストレータに徹し、各段を対応する subagent に委譲して連結する。
 設計と判断基準は [`practices/delegation-orchestration.md`](../../../../practices/delegation-orchestration.md)(連鎖の規律)と [ADR 0015](../../../../meta/decisions/0015-delegation-chain-and-mandatory-delegation.md) に従う(本コマンドはその Claude Code 実装)。
 
-## 前提となる構造制約
+## 前提となる運用規約
 
-- **subagent は別の subagent を起動できない**。連鎖は必ずメインを経由する**単層**(`main → A → 戻る → B → 戻る → C`)。多段ネストはハーネス上不可能。
+- **連鎖は必ずメインを経由する単層**(`main → A → 戻る → B → 戻る → C`)とする。ハーネスは v2.1.219 以降ネスト委譲を depth 3 まで許容するが、観測(subagent-log)と統制をメインに集約するため多段ネストは使わない(ADR 0015 / 0022)。
 - 各段の戻りは**構造化結論のみ**。ファイル全文・探索ログをメインに載せない([`delegation-orchestration`](../../../../practices/delegation-orchestration.md))。
 
 ## いつこのコマンドを使うか
@@ -66,7 +66,7 @@ description: 委譲チェーン(計画→反証→実装→レビュー→ゲー
 
 ## アンチパターン
 
-- subagent に多段委譲させようとする(構造的に不可能。連鎖は必ずメイン経由)
+- subagent に多段委譲させる(ハーネス上は可能だが運用規約違反。観測と統制が崩れるため連鎖は必ずメイン経由)
 - 軽微・可逆な作業まで全段を回す(固定費が純損。段を絞るかメイン直接)
 - 計画と実装、レビューと修正を同じ担当に兼ねさせる(独立性が崩れる)
 - 反証を省いて重い判断を確定する(非対称リスクを見落とす)

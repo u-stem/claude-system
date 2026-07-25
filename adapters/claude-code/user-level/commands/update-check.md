@@ -24,7 +24,7 @@ claude-system の設定を最新のベストプラクティスに更新するた
 
 ### 3. MCP サーバー
 
-- 採用中の MCP(`chrome-devtools` / `playwright`)の新バージョン
+- 採用中の MCP(`chrome-devtools` / `playwright` / `sequential-thinking`)の新バージョン
 - 新規 MCP の検討余地
 - 既存 MCP の代替・改善
 
@@ -40,6 +40,7 @@ claude-system の設定を最新のベストプラクティスに更新するた
 - gitleaks 後継 / 代替の動向(後継は Betterleaks = `betterleaks/betterleaks`、2026-02 開始・drop-in replacement 標榜。2026-07 時点は若いため見送り中。成熟度・pre-commit 対応・config 互換の実績を継続評価し乗り換え要否を判断する)
 - pre-commit-hooks の新規 hook
 - Phase 7b で実装した hooks との整合
+- `sandbox.network.strictAllowlist`(v2.1.219 追加)の採用可否を再評価(ADR 0022 で不採用: allowlist 列挙対象が広く「静かなツール不能」の失敗モードが先行。エコシステムの運用実績と設定粒度の改善を定点観測する)
 
 ## 調査ソース
 
