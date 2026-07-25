@@ -3,7 +3,15 @@
 # completion. Project-local log so transcripts stay scoped to the project.
 #
 # Maps to ADR 0012 (token economy mechanization) §measurement-point.
-# Output schema: {ts, agent_type, model, effort, agent_id, transcript_path, exit_code}
+# Output schema: {ts, agent_type, model, effort, agent_id, parent_agent_id,
+#                 spawn_depth, transcript_path, exit_code}
+#
+# parent_agent_id / spawn_depth are backfilled from the sidecar meta.json
+# (<agent_transcript%.jsonl>.meta.json) rather than the SubagentStop payload,
+# which carries no parent/child fields as of 2.1.220 (verified headless).
+# meta.json's `.parentAgentId` is only present for nested delegations (depth
+# >= 2, available from 2.1.219); absent for agents spawned directly by the
+# main session. See ADR 0022 for the measurement rationale.
 #
 # Fields sourced from SubagentStop payload (2.x public schema):
 #   .agent_type            — built-in name ("Explore"/"Plan") or custom agent name
@@ -58,6 +66,20 @@ agent_transcript="$(hk_resolve_agent_transcript "$INPUT" "$main_transcript_path"
 meta_path=""
 [[ -n "$agent_transcript" ]] && meta_path="${agent_transcript%.jsonl}.meta.json"
 
+# Backfill parent_agent_id / spawn_depth from the sidecar meta.json
+# (ADR 0022). Not present in the SubagentStop payload itself. meta.json is
+# absent for harness-internal helper agents, in which case these stay at
+# their empty/zero defaults.
+parent_agent_id=""
+spawn_depth=0
+if [[ -f "$meta_path" ]]; then
+  parent_agent_id="$(jq -r '.parentAgentId // empty' "$meta_path" 2>/dev/null || true)"
+  spawn_depth="$(jq -r '.spawnDepth // 0' "$meta_path" 2>/dev/null || echo 0)"
+fi
+# Guard against a malformed/non-numeric spawnDepth in meta.json breaking the
+# JSONL record's number field.
+[[ "$spawn_depth" =~ ^[0-9]+$ ]] || spawn_depth=0
+
 # Backfill model from the per-agent transcript: assistant turns carry a
 # "model":"..." literal (verified: subagent model frontmatter is honored; the
 # alias resolves to the current generation, e.g. sonnet -> claude-sonnet-5 as
@@ -91,12 +113,14 @@ else
 fi
 
 ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-printf '{"ts":"%s","agent_type":%s,"model":%s,"effort":%s,"agent_id":%s,"transcript_path":%s,"exit_code":%s}\n' \
+printf '{"ts":"%s","agent_type":%s,"model":%s,"effort":%s,"agent_id":%s,"parent_agent_id":%s,"spawn_depth":%s,"transcript_path":%s,"exit_code":%s}\n' \
   "$ts" \
   "$(printf '%s' "$agent_type" | jq -Rs .)" \
   "$(printf '%s' "$model"      | jq -Rs .)" \
   "$(printf '%s' "$effort"     | jq -Rs .)" \
   "$(printf '%s' "$agent_id"   | jq -Rs .)" \
+  "$(printf '%s' "$parent_agent_id" | jq -Rs .)" \
+  "$spawn_depth" \
   "$(printf '%s' "$recorded_transcript_path" | jq -Rs .)" \
   "${exit_code:-0}" >> "$log_file"
 

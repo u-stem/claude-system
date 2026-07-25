@@ -20,6 +20,10 @@
 #     the hook still exits 0
 #   - the payload's official .agent_transcript_path field takes priority over
 #     the on-disk fallback convention when both are present
+#   - parent_agent_id / spawn_depth are backfilled from meta.json's
+#     .parentAgentId / .spawnDepth when present (ADR 0022, nested delegation)
+#   - parent_agent_id / spawn_depth default to empty / 0 when meta.json is
+#     absent (internal agent, no parent/child data available)
 #
 # Fixture: synthetic JSONL transcripts in a mktemp directory.
 # No real transcripts are used (personal data risk).
@@ -220,6 +224,78 @@ else
   RECORDED_TP4="$(printf '%s' "$RECORD4" | jq -r '.transcript_path')"
   [[ "$RECORDED_TP4" == "$OFFICIAL_TRANSCRIPT4" ]] \
     || err "Test 4 [transcript_path]: expected the official agent_transcript_path, got '$RECORDED_TP4'"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 5: parent_agent_id / spawn_depth backfilled from meta.json when
+# present (nested delegation, ADR 0022)
+# ---------------------------------------------------------------------------
+
+AGENT_ID5="test-5"
+SESSION5="$TMPDIR_TEST/session5"
+mkdir -p "$SESSION5/subagents"
+
+MAIN_TRANSCRIPT5="$TMPDIR_TEST/session5.jsonl"
+printf '{"role":"assistant","model":"claude-opus-4-8","content":"main session turn"}\n' > "$MAIN_TRANSCRIPT5"
+
+AGENT_TRANSCRIPT5="$SESSION5/subagents/agent-${AGENT_ID5}.jsonl"
+printf '{"role":"assistant","model":"claude-sonnet-5","content":"nested child"}\n' > "$AGENT_TRANSCRIPT5"
+
+META5="$SESSION5/subagents/agent-${AGENT_ID5}.meta.json"
+printf '{"agentType":"code-reviewer","description":"test","toolUseId":"tu-1","parentAgentId":"aea333761a3e07fde","spawnDepth":2}\n' > "$META5"
+
+PAYLOAD5="$(jq -nc \
+  --arg tp "$MAIN_TRANSCRIPT5" \
+  --arg aid "$AGENT_ID5" \
+  '{"agent_type":"code-reviewer","agent_id":$aid,"transcript_path":$tp,"hook_event_name":"SubagentStop"}')"
+
+LOG5="$TMPDIR_TEST/t5/.claude/subagent-log.jsonl"
+CLAUDE_PROJECT_DIR="$TMPDIR_TEST/t5" bash "$HOOK" <<< "$PAYLOAD5"
+
+if [[ ! -f "$LOG5" ]]; then
+  err "Test 5: log file not created at $(basename "$LOG5")"
+else
+  RECORD5="$(tail -1 "$LOG5")"
+
+  PARENT5="$(printf '%s' "$RECORD5" | jq -r '.parent_agent_id')"
+  [[ "$PARENT5" == "aea333761a3e07fde" ]] \
+    || err "Test 5 [parent_agent_id from meta.json]: expected 'aea333761a3e07fde', got '$PARENT5'"
+
+  DEPTH5="$(printf '%s' "$RECORD5" | jq -r '.spawn_depth')"
+  [[ "$DEPTH5" == "2" ]] \
+    || err "Test 5 [spawn_depth from meta.json]: expected '2', got '$DEPTH5'"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 6: parent_agent_id / spawn_depth default to empty / 0 when no
+# per-agent transcript (and thus no meta.json) exists (internal agent)
+# ---------------------------------------------------------------------------
+
+AGENT_ID6="test-6"
+MAIN_TRANSCRIPT6="$TMPDIR_TEST/session6.jsonl"
+printf '{"role":"assistant","model":"claude-opus-4-8","content":"main session turn"}\n' > "$MAIN_TRANSCRIPT6"
+# Deliberately no session6/subagents/ directory created.
+
+PAYLOAD6="$(jq -nc \
+  --arg tp "$MAIN_TRANSCRIPT6" \
+  --arg aid "$AGENT_ID6" \
+  '{"agent_type":"","agent_id":$aid,"transcript_path":$tp,"hook_event_name":"SubagentStop"}')"
+
+LOG6="$TMPDIR_TEST/t6/.claude/subagent-log.jsonl"
+CLAUDE_PROJECT_DIR="$TMPDIR_TEST/t6" bash "$HOOK" <<< "$PAYLOAD6"
+
+if [[ ! -f "$LOG6" ]]; then
+  err "Test 6: log file not created at $(basename "$LOG6")"
+else
+  RECORD6="$(tail -1 "$LOG6")"
+
+  PARENT6="$(printf '%s' "$RECORD6" | jq -r '.parent_agent_id')"
+  [[ -z "$PARENT6" || "$PARENT6" == "null" ]] \
+    || err "Test 6 [parent_agent_id, no meta.json]: expected empty, got '$PARENT6'"
+
+  DEPTH6="$(printf '%s' "$RECORD6" | jq -r '.spawn_depth')"
+  [[ "$DEPTH6" == "0" ]] \
+    || err "Test 6 [spawn_depth, no meta.json]: expected '0', got '$DEPTH6'"
 fi
 
 # ---------------------------------------------------------------------------

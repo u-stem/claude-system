@@ -37,7 +37,9 @@ Checks:
   - JSON validity of settings.json.template / .gitleaks.toml (informational)
   - gitleaks scan of tracked content (if installed)
   - ADR draft TODO placeholders ({{TODO: ...}}) in *.md.draft files
+  - subagent effort value validity and haiku+xhigh/max combination (ADR 0013)
   - settings auto-sync wiring and drift (tools/sync-settings.sh --check, ADR 0017)
+  - machine-overrides file free of policy keys (model/effortLevel/fallbackModel, ADR 0022)
 EOF
 }
 
@@ -129,6 +131,20 @@ for sub in adapters/claude-code/subagents/*.md; do
       fail "subagent missing $field: $sub"
     fi
   done
+  # `effort` is optional (ADR 0013); when present, validate its value and
+  # flag the haiku + xhigh/max combination that ADR 0013 documents as
+  # unsupported ("available levels are model-dependent").
+  effort_field="$(head -10 "$sub" | grep '^effort:' | head -1 | cut -d: -f2 | tr -d ' ')"
+  model_field="$(head -10 "$sub" | grep '^model:' | head -1 | cut -d: -f2 | tr -d ' ')"
+  if [[ -n "$effort_field" ]]; then
+    case "$effort_field" in
+      low|medium|high|xhigh|max) : ;;
+      *) fail "subagent invalid effort '$effort_field' (want low|medium|high|xhigh|max): $sub" ;;
+    esac
+    if [[ "$model_field" == "haiku" && ("$effort_field" == "xhigh" || "$effort_field" == "max") ]]; then
+      warn "subagent effort '$effort_field' with model haiku (ADR 0013: xhigh/max unsupported on haiku): $sub"
+    fi
+  fi
   ok "subagent frontmatter: $sub"
 done
 
@@ -316,6 +332,25 @@ if [[ -f "$CLAUDE_HOME/settings.json" ]]; then
   fi
 else
   ok "~/.claude/settings.json not deployed on this machine (informational)"
+fi
+
+# Policy keys (model / effortLevel / fallbackModel) belong in the repo
+# template, not the machine-local overrides file — overriding them locally
+# silently diverges from the committed policy (ADR 0017 merge model, ADR 0022).
+OVERRIDES_FILE="$CLAUDE_HOME/settings.machine-overrides.json"
+if [[ -f "$OVERRIDES_FILE" ]]; then
+  if command -v jq >/dev/null 2>&1; then
+    if jq -e '(has("model") or has("effortLevel") or has("fallbackModel"))' \
+      "$OVERRIDES_FILE" >/dev/null 2>&1; then
+      warn "policy key overridden locally; policy keys belong in the template (ADR 0022): $OVERRIDES_FILE"
+    else
+      ok "no policy keys in machine overrides: $OVERRIDES_FILE"
+    fi
+  else
+    warn "jq not installed; skipping machine-overrides policy-key check"
+  fi
+else
+  ok "no machine-overrides file present"
 fi
 
 # ---------------------------------------------------------------------------

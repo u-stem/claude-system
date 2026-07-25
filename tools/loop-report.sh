@@ -218,6 +218,22 @@ emit_subagent_report() {
     "$(awk -v a="$empty_agent_type" -v t="$total" 'BEGIN{printf "%.1f", (t>0)?(a/t*100):0}')"
   printf '  empty model rate: %s/%s (%s%%)\n' "$empty_model" "$total" \
     "$(awk -v a="$empty_model" -v t="$total" 'BEGIN{printf "%.1f", (t>0)?(a/t*100):0}')"
+  # Nested-delegation visibility (ADR 0022): spawn_depth is backfilled from
+  # the per-agent transcript's sidecar meta.json and is absent/0 on records
+  # predating that field, so this section is additive and safe on old logs.
+  local nested_count
+  nested_count="$(jq -r '.spawn_depth // 0' "$file" | awk '$1 >= 2' | wc -l | tr -d ' ')"
+  if [[ "${nested_count:-0}" -eq 0 ]]; then
+    echo "  nested delegations (spawn_depth >= 2): no nested delegations"
+  else
+    echo "  nested delegations (spawn_depth >= 2): $nested_count"
+    echo "  nested delegations by agent_type:"
+    jq -rc 'select((.spawn_depth // 0) >= 2)' "$file" | \
+      jq -r 'if (.agent_type // "") == "" then "(empty)" else .agent_type end' | \
+      sort | uniq -c | sort -rn | while read -r count v; do
+        printf '    %-20s %s\n' "$v" "$count"
+      done
+  fi
 }
 
 # Copy the machine-wide subagent-audit.jsonl, optionally filtered by --since.
