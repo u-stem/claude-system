@@ -11,8 +11,8 @@
 
   "respectGitignore": true,
   "language": "japanese",
-  "// model": "Fable 5 は常時 1M context のため [1m] サフィックス不要。fallbackModel は過負荷・不達時の縮退先(v2.1.166 追加、配列・最大 3 件)。安全クラシファイアの自動フォールバック先(Opus 4.8)と揃える(ADR 0016)",
-  "model": "claude-fable-5",
+  "// model": "Opus 5 へ乗り換え(ADR 0022): 日常のコーディング/エージェント用途で Fable 5 同等以上・半額。[1m] を明示指定して 1M 窓を確定。長時間自律タスク・難所推論で品質不足を感じたら Fable 5 へ戻す(/model fable で一時切替可)。fallbackModel は過負荷・不達時の縮退先(v2.1.166 追加、配列・最大 3 件)で、1 世代前の既知良品として Opus 4.8 を維持(ADR 0016 の『安全クラシファイア整合』根拠は別系統機構の誤帰属だったため撤回、ADR 0022)。effortLevel は最難作業(オーケストレーション + 難所推論)への校正として xhigh(ADR 0013 / 0022 で machine-overrides の medium 上書きを解消)",
+  "model": "claude-opus-5[1m]",
   "fallbackModel": ["claude-opus-4-8"],
   "effortLevel": "xhigh",
   "skipDangerousModePermissionPrompt": true,
