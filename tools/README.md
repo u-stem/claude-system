@@ -32,6 +32,8 @@
 | [`setup-mcp.sh`](./setup-mcp.sh) | `adapters/.../mcp/servers.template.json` を読んで MCP を登録(secret 必須は skip) | ◯ | — |
 | [`setup-plugins.sh`](./setup-plugins.sh) | `settings.json.template` の `extraKnownMarketplaces` / `enabledPlugins` を読んでプラグインを実体化(宣言だけでは入らない / ADR 0023)。`--dry-run` 対応 | ◯ | — |
 | [`cleanup-claude-code-runtime.sh`](./cleanup-claude-code-runtime.sh) | `~/.claude/` のランタイム生成物(projects/ telemetry/ history.jsonl 等)を削除。**手動実行のみ** | ◯ | — |
+| [`disable-guardrails.sh`](./disable-guardrails.sh) | 緊急停止: `~/.claude/settings.json` の `hooks` を `{}` にする(バックアップ取得後)。`--dry-run` 対応 | ◯ | — |
+| [`enable-guardrails.sh`](./enable-guardrails.sh) | `disable-guardrails.sh` が取った直近のバックアップから `settings.json` を復元。`--dry-run` 対応 | ◯ | — |
 
 ## 検証スクリプト(別ディレクトリ)
 
