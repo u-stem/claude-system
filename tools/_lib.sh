@@ -216,6 +216,44 @@ cs_stat_mtime() {
 }
 
 # ---------------------------------------------------------------------------
+# Locale-safe character counting
+# ---------------------------------------------------------------------------
+
+# cs_utf8_locale — print the name of a UTF-8 locale that exists here, or nothing.
+#
+# `wc -m` counts BYTES when the active locale is not UTF-8, which inflates every
+# Japanese string to roughly three times its real length. Callers used to hard-
+# code LC_ALL=en_US.UTF-8, which macOS ships but a CI image may not generate —
+# and the failure is silent and wrong rather than loud: 12 of 16 skill
+# descriptions would be reported as "over 50 chars" on a runner without it.
+# Result is cached; `locale charmap` is a process spawn and this runs per skill.
+cs_utf8_locale() {
+  if [[ -n "${_CS_UTF8_LOCALE_CACHE+x}" ]]; then
+    printf '%s' "$_CS_UTF8_LOCALE_CACHE"
+    return 0
+  fi
+  _CS_UTF8_LOCALE_CACHE=""
+  local loc
+  for loc in en_US.UTF-8 C.UTF-8 en_US.utf8 C.utf8; do
+    if LC_ALL="$loc" locale charmap 2>/dev/null | grep -qi 'utf-\{0,1\}8'; then
+      _CS_UTF8_LOCALE_CACHE="$loc"
+      break
+    fi
+  done
+  printf '%s' "$_CS_UTF8_LOCALE_CACHE"
+}
+
+# cs_str_chars <string> — print the character count on stdout.
+# Returns 1 without printing when no UTF-8 locale exists, so callers can skip
+# the check instead of acting on a fabricated length.
+cs_str_chars() {
+  local s="$1" loc
+  loc="$(cs_utf8_locale)"
+  [[ -n "$loc" ]] || return 1
+  printf '%s' "$s" | LC_ALL="$loc" wc -m | tr -d ' '
+}
+
+# ---------------------------------------------------------------------------
 # Help text helper — every script supports --help.
 # ---------------------------------------------------------------------------
 

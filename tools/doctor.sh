@@ -133,11 +133,15 @@ for skill in adapters/claude-code/user-level/skills/*/SKILL.md; do
     fail "skill dir/name mismatch: dir=$dir_name name=$name_field ($skill)"
   fi
   desc="$(grep '^description:' "$skill" | head -1 | sed 's/^description: //')"
-  # `wc -m` returns bytes when LC_ALL is unset on macOS BSD; force UTF-8 so
-  # CJK descriptions are counted as characters.
-  chars="$(printf '%s' "$desc" | LC_ALL=en_US.UTF-8 wc -m | tr -d ' ')"
-  if [[ "$chars" -gt 50 ]]; then
-    warn "skill description over 50 chars ($chars): $skill"
+  # cs_str_chars resolves a UTF-8 locale that exists on this machine instead of
+  # assuming en_US.UTF-8. Where none does, `wc -m` counts bytes and every CJK
+  # description looks ~3x too long.
+  if chars="$(cs_str_chars "$desc")"; then
+    if [[ "$chars" -gt 50 ]]; then
+      warn "skill description over 50 chars ($chars): $skill"
+    fi
+  else
+    warn "no UTF-8 locale available; skipped description length check: $skill"
   fi
   lines="$(wc -l < "$skill" | tr -d ' ')"
   if [[ "$lines" -gt 200 ]]; then
@@ -256,6 +260,13 @@ elif command -v shellcheck >/dev/null 2>&1; then
   # Note: `tools/*.sh` does not recurse, so subdirectories under tools/
   # (currently `tools/migrate/`) need to be added explicitly.
   shellcheck_targets=(tools/*.sh tools/migrate/*.sh tests/*.sh)
+  # Versioned git hooks carry no .sh suffix, so no glob above reaches them.
+  # They were the only executable shell in the repo outside every shellcheck
+  # gate — including pre-push, which ADR 0024 §2a calls the one push guard that
+  # holds no matter who invokes git.
+  for gh in tools/githooks/*; do
+    [[ -f "$gh" ]] && shellcheck_targets+=("$gh")
+  done
   if [[ -d adapters/claude-code/user-level/hooks ]]; then
     while IFS= read -r -d '' f; do
       shellcheck_targets+=("$f")

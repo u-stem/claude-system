@@ -12,7 +12,12 @@ jobs:
 
       - name: Run shellcheck (warning level)
         run: |
+          # tools/migrate and tools/githooks were both outside this gate.
+          # githooks has no .sh suffix, so no glob reached it — and it holds
+          # pre-push, the guard ADR 0024 relies on most.
           shellcheck -S warning \
             tools/*.sh \
+            tools/migrate/*.sh \
+            tools/githooks/* \
             tests/*.sh \
             adapters/claude-code/user-level/hooks/*.sh
