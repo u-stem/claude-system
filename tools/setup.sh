@@ -24,6 +24,10 @@ Steps (all idempotent):
   6. Run doctor.sh
 
 Missing tools are reported with `brew install` suggestions; nothing is auto-installed.
+
+Not run here (explicit, separate steps — both reach the network):
+  tools/setup-mcp.sh      register MCP servers
+  tools/setup-plugins.sh  install plugins declared in enabledPlugins (ADR 0023)
 EOF
 }
 
@@ -76,4 +80,5 @@ cs_step "Done"
 cs_success "setup.sh complete. Next steps:"
 echo "  - Phase 0-9: keep ~/.claude/ pointing at the legacy claude-settings."
 echo "  - Phase 10:  run tools/sync.sh --dry-run, then --force with CLAUDE_SYSTEM_ALLOW_SYNC=1."
-echo "  - MCP setup: tools/setup-mcp.sh (interactive)."
+echo "  - MCP setup:     tools/setup-mcp.sh (interactive)."
+echo "  - Plugin setup:  tools/setup-plugins.sh (enabledPlugins are declarations only)."

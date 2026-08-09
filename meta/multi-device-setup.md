@@ -60,7 +60,18 @@ cp ~/ws/claude-system/adapters/claude-code/user-level/settings.json.template ~/.
 $EDITOR ~/.claude/settings.json   # TODO コメント箇所を編集
 ```
 
-### 5. 動作確認
+### 5. MCP サーバーとプラグインの導入
+
+どちらも宣言と実体が別管理のため、明示的に実行する。**`settings.json` の `enabledPlugins` は宣言にすぎず、これだけではプラグインは入らない**(この誤解で 3 件が 3 か月以上「宣言のみ」だった / [ADR 0023](./decisions/0023-harness-sync-2.1.226.md))。
+
+```bash
+~/ws/claude-system/tools/setup-mcp.sh       # opt-in / secret 必須の MCP を登録
+~/ws/claude-system/tools/setup-plugins.sh   # extraKnownMarketplaces + enabledPlugins を実体化
+```
+
+両方とも冪等で、`setup-plugins.sh --dry-run` で事前確認できる。
+
+### 6. 動作確認
 
 ```bash
 ~/ws/claude-system/tools/doctor.sh

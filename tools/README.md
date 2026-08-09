@@ -30,6 +30,7 @@
 | [`cleanup-backups.sh`](./cleanup-backups.sh) | `~/.claude-system-backups/` の古いファイルを削除(デフォルト 30 日) | ◯ | — |
 | [`check-claude-version.sh`](./check-claude-version.sh) | インストール済み Claude Code と `adapters/.../VERSION` の差分を表示 | ◯ | — |
 | [`setup-mcp.sh`](./setup-mcp.sh) | `adapters/.../mcp/servers.template.json` を読んで MCP を登録(secret 必須は skip) | ◯ | — |
+| [`setup-plugins.sh`](./setup-plugins.sh) | `settings.json.template` の `extraKnownMarketplaces` / `enabledPlugins` を読んでプラグインを実体化(宣言だけでは入らない / ADR 0023)。`--dry-run` 対応 | ◯ | — |
 | [`cleanup-claude-code-runtime.sh`](./cleanup-claude-code-runtime.sh) | `~/.claude/` のランタイム生成物(projects/ telemetry/ history.jsonl 等)を削除。**手動実行のみ** | ◯ | — |
 
 ## 検証スクリプト(別ディレクトリ)
