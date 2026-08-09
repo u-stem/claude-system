@@ -29,6 +29,23 @@ id = "user-identifier-path"
 description = "Absolute path containing macOS username (/Users/<name>/...) leaks operator identity — ADR 0008"
 regex = '''/Users/[a-zA-Z0-9._-]+/'''
 
+# Claude Code flattens a project path into its session directory name by
+# replacing every slash with a hyphen: /Users/<name>/ws/<proj> becomes
+# -Users-<name>-ws-<proj>. That form carries the same username but has no
+# slashes, so the rule above never matched it. Two such paths sat in
+# meta/integration-trace.md from the 2026-04-29 bootstrap until 2026-08-09,
+# passing every gitleaks run in between.
+[[rules]]
+id = "user-identifier-flattened-path"
+description = "Flattened Claude Code project dir (-Users-<name>-...) leaks operator identity — ADR 0008"
+regex = '''-Users-[a-zA-Z0-9._]+-'''
+[rules.allowlist]
+regexes = [
+  '''-Users-<user>-''',       # documented placeholder
+  '''-Users-<name>-''',
+  '''-Users-\$\{?USER\}?-''',
+]
+
 [allowlist]
 description = "Suppress false positives in templates, drafts, intentional placeholders, and the hook scripts that hold the ADR 0008 pattern definition itself."
 

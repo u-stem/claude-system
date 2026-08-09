@@ -56,7 +56,7 @@ cat ~/.claude/CLAUDE.md | head -5
 | ローカル skills | `~/ws/sugara/.claude/skills/` 配下 | sugara 固有 skill(feature-update 等) |
 | ローカル hooks | `~/ws/sugara/.claude/hooks/post-edit.sh` 等 | sugara 固有 hook(monorepo + turbo + bun 構成向け) |
 | ローカル subagents | `~/ws/sugara/.claude/agents/` 配下(あれば) | sugara 固有 subagent |
-| プロジェクト memory | `~/.claude/projects/-Users-mikiya-ws-sugara/memory/` | プロジェクトスコープ auto memory |
+| プロジェクト memory | `~/.claude/projects/-Users-<user>-ws-sugara/memory/` | プロジェクトスコープ auto memory |
 
 ### @参照解決の確認
 
@@ -87,7 +87,7 @@ test -f ~/ws/claude-system/adapters/claude-code/project-fragments/web-apps-commo
 | AGENTS.md | `~/ws/kairous/AGENTS.md` | Codex CLI 互換役割定義(Claude Code が直接読むかは不確定、TODO-for-v0.2.md 参照) |
 | rules/*.md | `~/ws/kairous/.claude/rules/` 配下 4 ファイル(code-quality / security / testing / workflow) | kairous 固有 rule(共通基盤との重複は意図的に保留中) |
 | ローカル skills | `~/ws/kairous/.claude/skills/` 配下(あれば) | kairous 固有 skill |
-| プロジェクト memory | `~/.claude/projects/-Users-mikiya-ws-kairous/memory/` | プロジェクトスコープ auto memory |
+| プロジェクト memory | `~/.claude/projects/-Users-<user>-ws-kairous/memory/` | プロジェクトスコープ auto memory |
 
 ### kairous 固有の補足
 

@@ -2,6 +2,15 @@
 
 このリポジトリの変更履歴。Phase 単位でセクション化する。
 
+## ユーザー識別子の平坦化パス検出漏れを是正(2026-08-09)
+
+ADR 0024 の push 前検証で `gitleaks detect`(**git 履歴モード**、従来運用は `--no-git`)を回したところ 14 件が出て、追跡の過程で作業ツリーにも混入が残っていたことが判明した。詳細は [ADR 0008 の Update](./decisions/0008-mechanical-detection-of-user-identifier-paths.md)。
+
+- `.gitleaks.toml`: `user-identifier-flattened-path` ルールを新設。Why: Claude Code はプロジェクトパスを平坦化してセッションディレクトリ名にする際スラッシュをハイフンへ置換するため(`/Users/<name>/ws/<proj>` → `-Users-<name>-ws-<proj>`)、既存の `/Users/<name>/` ルールが**同じ username を別表現で見逃していた**。プレースホルダ(`<user>` / `<name>` / `${USER}`)は rule-level allowlist で除外。検出側・非検出側とも実測確認
+- `meta/integration-trace.md`: 2 行の username literal を `-Users-<user>-ws-<proj>` へ置換。2026-04-29 のブートストラップ以来 3 か月以上、hooks / CI / doctor のすべての gitleaks 実行をすり抜けていた(ADR 0006 違反)
+- 影響範囲の確定: 追跡ファイル中の username 混入は当該 1 ファイル 2 行のみ。`.claude/subagent-log.jsonl` の絶対パスは **gitignore 済みで未追跡**のため対象外。`sugara` / `kairous` は README に「取り込み済み」として意図的に記載されたプロジェクト名であり漏洩ではない
+- 受容: 履歴に残る混入は Public リポジトリで公開済みのため消せない。書き換えの代償が見合わず現状を記録に留める
+
 ## 観測と抑止の最適化(2026-08-09)
 
 ADR 0023 の作業中に表面化した「測れば分かるのに測っていなかった」4 領域を実測し、採否を決めた。判断の本体は [ADR 0024](./decisions/0024-observation-and-restraint-optimization.md)。

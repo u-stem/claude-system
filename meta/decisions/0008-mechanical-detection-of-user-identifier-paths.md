@@ -93,8 +93,19 @@ ADR 0006 の例外節(LICENSE Copyright holder / URL 内の自動参照 / 明示
 - **ADR 0007 との関係**: ADR 0007 が `from-claude-settings.sh` の堅牢性と責務境界を扱った Phase 10 follow-up 1、本 ADR は ADR 0006 の機械担保を扱う Phase 10 follow-up 2 という時系列の続編関係。両者の決定領域は重ならない
 - **既存 hook 構成の拡張**: 本 ADR の実装は post-edit-validate.sh への追記のみで、新規 hook ファイルは作らない。settings.json.template の hook 結線も変更不要
 
+## Update (2026-08-09): 平坦化パス形式の検出漏れを塞いだ
+
+本 ADR の `user-identifier-path` ルールは `/Users/<name>/` というスラッシュ区切りの絶対パスだけを見ていた。しかし **Claude Code はプロジェクトパスをセッションディレクトリ名へ平坦化する際、スラッシュをすべてハイフンに置換する**(`/Users/<name>/ws/<proj>` → `-Users-<name>-ws-<proj>`)。この形式は同じ username を含みながらスラッシュを持たないため、ルールに一度もマッチしなかった。
+
+- `meta/integration-trace.md` の 2 行にこの形式の username literal が **2026-04-29 のブートストラップから 2026-08-09 まで残存**し、その間のすべての gitleaks 実行(hooks / CI / doctor)を通過していた。ADR 0006 違反が 3 か月以上、機械検出をすり抜けていたことになる
+- 発見は偶然だった。ADR 0024 の作業で push 前に `gitleaks detect --source .`(**git 履歴モード**)を回したところ 14 件が出た。従来の運用は `--no-git`(作業ツリーのみ)で、そちらは 0 件のままだった。履歴モードが拾ったのは古いコミットに残る `/Users/<name>/` 形式で、それを追う過程で作業ツリー側の平坦化形式に行き当たった
+- **対処**: `user-identifier-flattened-path` ルールを新設(`-Users-[a-zA-Z0-9._]+-`)。`<user>` / `<name>` / `${USER}` のプレースホルダは rule-level allowlist で除外する。検出側・非検出側の両方を実測確認した。該当 2 行は `-Users-<user>-ws-<proj>` に置換した
+- **残る事実**: 履歴に残る混入は消せない(Public リポジトリで既に公開済み)。書き換えるには公開履歴の rewrite が必要で、代償が見合わないため**現状を受容し記録に留める**
+- **教訓**: 「パターンで捕まえる」防御は、**同じ情報の別表現**に弱い。ADR 0006 のような規範を機械化するときは、対象データが取りうる表現形を列挙したか自問する。username の表現形は少なくとも 3 つある(`/Users/<name>/`、`-Users-<name>-`、`~<name>/`)
+
 ## Related
 
+- [ADR 0024](./0024-observation-and-restraint-optimization.md): 本 Update の発見契機(push 前検証で履歴モードを回した)
 - [ADR 0001](./0001-anonymity-policy.md): Anonymity Policy(本 ADR は本ポリシーの絶対パス側面の実装)
 - [ADR 0006](./0006-no-user-identifiers-in-system.md): No User Identifiers Inside the System(本 ADR は本規範の機械担保層)
 - [ADR 0007](./0007-phase10-migration-script-robustness-and-boundary.md): Phase 10 Migration Script(本 ADR の起票契機 — レビューで literal 混入が発見された)
