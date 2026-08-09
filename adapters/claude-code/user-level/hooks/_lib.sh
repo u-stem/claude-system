@@ -207,11 +207,21 @@ hk_dispatch_project_hook() {
 # test is the mechanical guarantee that this list and the toml cannot diverge
 # again. Update both, or the test fails.
 #
-# Placeholders (`-Users-<user>-`, `/Users/<name>/`) do not match: `<` and `>`
-# are outside the character classes, which is deliberate.
+# Neither pattern requires a trailing delimiter. Both used to, and both then
+# missed a username in terminal position: "/Users/<name>" and "-Users-<name>"
+# with nothing after them — the exact shape prose takes ("home is /Users/foo").
+# Measured 2026-08-09 across a 14-case matrix.
+#
+# The classes include `-` so they stay symmetric. A hyphenated username was
+# already caught either way (the match lands on the first hyphen), but an
+# asymmetric class invites the next reader to assume otherwise.
+#
+# Placeholders (`-Users-<user>-`, `/Users/<name>/`) do not match: `<` is outside
+# the classes, which is deliberate. `/Users/` alone does not match either — `+`
+# needs at least one name character.
 HK_USER_IDENTIFIER_PATTERNS=(
-  '/Users/[a-zA-Z0-9._-]+/'      # absolute macOS home path
-  '-Users-[a-zA-Z0-9._]+-'       # Claude Code flattened project dir
+  '/Users/[a-zA-Z0-9._-]+'       # absolute macOS home path
+  '-Users-[a-zA-Z0-9._-]+'       # Claude Code flattened project dir
 )
 
 # hk_scan_user_identifiers <file>

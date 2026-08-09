@@ -73,11 +73,32 @@ probe() { printf '%s\n' "$2" > "$TMP/probe.md"; hk_scan_user_identifiers "$TMP/p
 [[ "$(probe flat '.claude/projects/-Users-someone-ws-proj/memory/')" == "hit" ]] \
   && okay || err "flattened project-dir form not detected (the 2026-08-09 gap)"
 
+# Terminal position: no delimiter after the username. Both patterns once
+# required a trailing / or -, so prose like "home is /Users/foo" escaped both
+# layers. This is the shape documentation actually takes.
+[[ "$(probe slash_end 'home is /Users/someone')" == "hit" ]] \
+  && okay || err "absolute path in terminal position not detected"
+[[ "$(probe flat_end 'session dir -Users-someone')" == "hit" ]] \
+  && okay || err "flattened path in terminal position not detected"
+
+# A hyphenated username must be caught in both shapes. It already was (the
+# match lands on the first hyphen), but the classes are now symmetric and this
+# pins that they stay so.
+[[ "$(probe slash_hyphen '/Users/foo-bar/ws/proj')" == "hit" ]] \
+  && okay || err "hyphenated username not detected in absolute path"
+[[ "$(probe flat_hyphen '-Users-foo-bar-ws-proj')" == "hit" ]] \
+  && okay || err "hyphenated username not detected in flattened path"
+
 # --- 5. documented placeholders must not trip ----------------------------------
 [[ "$(probe ph1 '.claude/projects/-Users-<user>-ws-proj/memory/')" == "miss" ]] \
   && okay || err "placeholder '-Users-<user>-' false-positived"
 [[ "$(probe ph2 'path is /Users/<name>/ws/proj')" == "miss" ]] \
   && okay || err "placeholder '/Users/<name>/' false-positived"
+# Widening the patterns must not start flagging ordinary prose.
+[[ "$(probe ph3 'the /Users directory holds home dirs')" == "miss" ]] \
+  && okay || err "'/Users' without a name false-positived"
+[[ "$(probe ph4 'see /Users/ for details')" == "miss" ]] \
+  && okay || err "'/Users/' with no name false-positived"
 
 # --- 6. the tree itself is clean ------------------------------------------------
 # Tracked files only: ignored paths (.claude/ logs) legitimately hold real paths.

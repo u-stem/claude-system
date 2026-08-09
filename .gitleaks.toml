@@ -27,7 +27,7 @@ useDefault = true
 [[rules]]
 id = "user-identifier-path"
 description = "Absolute path containing macOS username (/Users/<name>/...) leaks operator identity — ADR 0008"
-regex = '''/Users/[a-zA-Z0-9._-]+/'''
+regex = '''/Users/[a-zA-Z0-9._-]+'''
 
 # Claude Code flattens a project path into its session directory name by
 # replacing every slash with a hyphen: /Users/<name>/ws/<proj> becomes
@@ -38,7 +38,7 @@ regex = '''/Users/[a-zA-Z0-9._-]+/'''
 [[rules]]
 id = "user-identifier-flattened-path"
 description = "Flattened Claude Code project dir (-Users-<name>-...) leaks operator identity — ADR 0008"
-regex = '''-Users-[a-zA-Z0-9._]+-'''
+regex = '''-Users-[a-zA-Z0-9._-]+'''
 [rules.allowlist]
 regexes = [
   '''-Users-<user>-''',       # documented placeholder
