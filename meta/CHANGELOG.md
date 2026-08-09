@@ -10,6 +10,10 @@ ADR 0024 の push 前検証で `gitleaks detect`(**git 履歴モード**、従�
 - `meta/integration-trace.md`: 2 行の username literal を `-Users-<user>-ws-<proj>` へ置換。2026-04-29 のブートストラップ以来 3 か月以上、hooks / CI / doctor のすべての gitleaks 実行をすり抜けていた(ADR 0006 違反)
 - 影響範囲の確定: 追跡ファイル中の username 混入は当該 1 ファイル 2 行のみ。`.claude/subagent-log.jsonl` の絶対パスは **gitignore 済みで未追跡**のため対象外。`sugara` / `kairous` は README に「取り込み済み」として意図的に記載されたプロジェクト名であり漏洩ではない
 - 受容: 履歴に残る混入は Public リポジトリで公開済みのため消せない。書き換えの代償が見合わず現状を記録に留める
+- `adapters/claude-code/user-level/hooks/_lib.sh`: 識別子パターンを `HK_USER_IDENTIFIER_PATTERNS` + `hk_scan_user_identifiers()` に**単一ソース化**。`post-edit-validate.sh` はこれを呼ぶだけにした。Why: パターンが `.gitleaks.toml` とフックに二重定義されており、片方だけ直したことが今回の乖離そのものだった
+- `tests/test-user-identifier-patterns.sh`(新規): `_lib.sh` と `.gitleaks.toml` のパターン集合が一致することを双方向で検証し、各形式の検出・プレースホルダの非検出・追跡ファイルの清浄性まで固定(10 アサーション)。片方から 1 パターン落とすと 3 件失敗することを実測確認
+- **スコープの明確化**: warn 層(`post-edit-validate.sh`)は user-level hook のため**全プロジェクトで動く唯一の層**、block 層(`.gitleaks.toml`)は **claude-system 専用**。`~/ws` の 12 リポジトリ中 `.gitleaks.toml` を持つのは 2 つだけで、他は commit 時検出がゼロ。**その唯一のグローバル層に穴が空いていた**のが実害だった。claude-system 外のパスで両形式を検出することを実測確認
+- 不採用: グローバル `core.hooksPath`(各リポジトリの `.git/hooks/` を無効化し husky / lefthook が壊れる)。commit 時のグローバル block(`pre-bash-guard.sh` 拡張)は次点候補として保留、採る場合は逃げ道なしの常時 deny 方針で確認済み
 
 ## 観測と抑止の最適化(2026-08-09)
 

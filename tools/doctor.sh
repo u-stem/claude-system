@@ -317,7 +317,7 @@ else
            tests/test-check-failure-patterns.sh tests/test-subagent-stop-record.sh \
            tests/test-subagent-stop-audit.sh tests/test-sync-settings.sh \
            tests/test-hooks-lib.sh tests/test-log-bash-failure.sh \
-           tests/test-pre-bash-guard.sh; do
+           tests/test-pre-bash-guard.sh tests/test-user-identifier-patterns.sh; do
     if [[ -x "$t" ]]; then
       set +e
       out="$("$t" 2>&1)"

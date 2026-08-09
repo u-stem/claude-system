@@ -40,20 +40,22 @@ case "$PATH_FIELD" in
 esac
 
 # 3. User-identifier path detection (ADR 0008, warn layer of two-stage defense).
-# Absolute paths of the form /Users/<name>/... leak the operator identity.
-# Skip hook scripts themselves: this very file embeds the pattern literal
-# below and would self-trigger. .gitleaks.toml is intentionally NOT skipped
-# here even though ADR 0008 Decision 3 enumerates it as a file that holds
-# the pattern literal — warn is non-blocking, the commit-time gitleaks
-# block layer (whose paths allowlist already contains '.gitleaks\.toml')
-# is the real defense for that file, and adding a second skip rule would
-# broaden the warn-layer allowlist surface for a harmless false-positive.
+# Patterns live in _lib.sh (HK_USER_IDENTIFIER_PATTERNS) rather than inline: this
+# check previously hardcoded only the /Users/<name>/ form while .gitleaks.toml
+# grew a second rule, and the two silently diverged. This hook is user-level, so
+# it is the ONLY identifier check that runs in every project — repos other than
+# claude-system have no .gitleaks.toml at all.
+#
+# Skip hook scripts themselves: _lib.sh holds the pattern literals and would
+# self-trigger. .gitleaks.toml is intentionally NOT skipped even though it also
+# holds them — warn is non-blocking, and the gitleaks block layer (whose paths
+# allowlist already contains '.gitleaks\.toml') is the real defense for it.
 case "$PATH_FIELD" in
   */adapters/claude-code/user-level/hooks/*) ;;
   *)
-    if /usr/bin/grep -qE '/Users/[a-zA-Z0-9._-]+/' "$PATH_FIELD"; then
-      hk_warn "user-identifier path '/Users/<name>/' present in $PATH_FIELD (ADR 0008)"
-    fi
+    while IFS= read -r matched_pattern; do
+      hk_warn "user-identifier path matching '$matched_pattern' present in $PATH_FIELD (ADR 0008)"
+    done < <(hk_scan_user_identifiers "$PATH_FIELD")
     ;;
 esac
 

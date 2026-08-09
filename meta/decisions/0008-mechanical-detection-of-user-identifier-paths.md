@@ -103,6 +103,21 @@ ADR 0006 の例外節(LICENSE Copyright holder / URL 内の自動参照 / 明示
 - **残る事実**: 履歴に残る混入は消せない(Public リポジトリで既に公開済み)。書き換えるには公開履歴の rewrite が必要で、代償が見合わないため**現状を受容し記録に留める**
 - **教訓**: 「パターンで捕まえる」防御は、**同じ情報の別表現**に弱い。ADR 0006 のような規範を機械化するときは、対象データが取りうる表現形を列挙したか自問する。username の表現形は少なくとも 3 つある(`/Users/<name>/`、`-Users-<name>-`、`~<name>/`)
 
+### 2 層の実効スコープを明確化した(グローバル性の実測)
+
+本 ADR は warn / block の 2 層を定めたが、**両者のスコープが違う**ことを明示していなかった。実測結果:
+
+| 層 | 実体 | スコープ | 実態 |
+|---|---|---|---|
+| warn | `post-edit-validate.sh` | **全プロジェクト**(user-level hook として `~/.claude/hooks/` に symlink) | 唯一グローバルに効く層。非ブロッキング |
+| block | `.gitleaks.toml` | **claude-system のみ**(リポジトリローカル) | しかも `tools/githooks` に pre-commit は無く、実質 CI 専用 |
+
+`~/ws` の 12 リポジトリのうち `.gitleaks.toml` を持つのは 2 つだけで、残りには commit 時の検出が**存在しない**。つまり claude-system 以外のプロジェクトを守っているのは warn 層ただ 1 つであり、**その唯一の層に平坦化形式の穴が空いていた**のが今回の実害だった。
+
+- **対処**: パターンを `hooks/_lib.sh` の `HK_USER_IDENTIFIER_PATTERNS` に**単一ソース化**し、warn 層は `hk_scan_user_identifiers` を呼ぶだけにした。`.gitleaks.toml` は shell を source できないため定義を重複して持つが、`tests/test-user-identifier-patterns.sh` が**両者の一致を機械的に検証**する(片方から 1 パターン落とすと 3 件失敗することを実測確認)。今回の乖離を生んだ「2 箇所に手書き」という構造そのものを潰した
+- **不採用**: グローバル `core.hooksPath` による全リポジトリの commit フック化。**各リポジトリの `.git/hooks/` を無効化してしまう**(husky / lefthook が壊れる)副作用が大きく、代償が見合わない
+- **不採用(現時点)**: `pre-bash-guard.sh` による commit 時のグローバル block。user-level hook なので副作用なくグローバル化でき、次点の候補。**採る場合は逃げ道を設けず常に deny する**方針が確認済み(2026-08-09)。今回は warn 層の穴を塞ぐことを優先し見送った
+
 ## Related
 
 - [ADR 0024](./0024-observation-and-restraint-optimization.md): 本 Update の発見契機(push 前検証で履歴モードを回した)

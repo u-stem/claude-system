@@ -194,6 +194,39 @@ hk_dispatch_project_hook() {
 #   while IFS= read -r found; do
 #     hk_warn "forbidden word '$found' in $path"
 #   done < <(hk_check_forbidden_words "$words_file" "$path")
+# ---------------------------------------------------------------------------
+# Operator-identity path patterns (ADR 0008) — SINGLE SOURCE OF TRUTH.
+#
+# The same username reaches disk in more than one shape. Until 2026-08-09 only
+# the slash form was checked, so the flattened form Claude Code uses for its own
+# session directories sailed past every layer for three months. Add new shapes
+# HERE, never inline in a hook.
+#
+# `.gitleaks.toml` cannot source shell, so it repeats these patterns as rules.
+# tests/test-user-identifier-patterns.sh asserts the two stay in sync — that
+# test is the mechanical guarantee that this list and the toml cannot diverge
+# again. Update both, or the test fails.
+#
+# Placeholders (`-Users-<user>-`, `/Users/<name>/`) do not match: `<` and `>`
+# are outside the character classes, which is deliberate.
+HK_USER_IDENTIFIER_PATTERNS=(
+  '/Users/[a-zA-Z0-9._-]+/'      # absolute macOS home path
+  '-Users-[a-zA-Z0-9._]+-'       # Claude Code flattened project dir
+)
+
+# hk_scan_user_identifiers <file>
+# Prints each pattern that matches the file, one per line. Silent when clean.
+hk_scan_user_identifiers() {
+  local target="$1"
+  [[ -f "$target" ]] || return 0
+  local pat
+  for pat in "${HK_USER_IDENTIFIER_PATTERNS[@]}"; do
+    if /usr/bin/grep -qE "$pat" "$target"; then
+      printf '%s\n' "$pat"
+    fi
+  done
+}
+
 hk_check_forbidden_words() {
   local words_file="$1"
   local input_source="$2"
