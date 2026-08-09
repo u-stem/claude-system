@@ -1,6 +1,7 @@
 # ADR 0014: Tool-Call Parse-Error Resilience
 
-- **Status**: Accepted(層 A 実装済み / 層 B は Deferred)
+- **Status**: Accepted
+- **実装状況**: 層 0 / 層 A 実装済み、層 B(cmux watchdog 自動継続)は Deferred(§Decision 参照)
 - **Date**: 2026-06-05
 - **Decider**: リポジトリオーナー(ADR 0001 の識別子規約に従う)
 

@@ -1,6 +1,6 @@
 # ADR 0010: Opus 4.8 Harness Settings Synchronization
 
-- **Status**: Accepted
+- **Status**: Partially superseded by 0022
 - **Date**: 2026-05-29
 - **Decider**: リポジトリオーナー(ADR 0001 の識別子規約に従う)
 
@@ -61,3 +61,13 @@ ADR 0009「不可逆・外向き操作は事前確認」の機械担保は、既
 - [`adapters/claude-code/user-level/settings.json.template`](../../adapters/claude-code/user-level/settings.json.template) — model / env コメントを更新
 - [`adapters/claude-code/VERSION`](../../adapters/claude-code/VERSION) — pin を 2.1.156 に同期
 - [`adapters/claude-code/user-level/hooks/pre-bash-guard.sh`](../../adapters/claude-code/user-level/hooks/pre-bash-guard.sh) — 不可逆操作の既存 deny/ask 担保
+
+## Update (2026-08-09)
+
+Status を `Accepted` から `Partially superseded by 0022` に変更した。
+
+**置き換えられた部分** — 機械層の pin。model pin は [ADR 0016](./0016-fable-5-harness-settings-sync.md)(Fable 5)を経て [ADR 0022](./0022-harness-sync-2.1.220.md)(`claude-opus-5[1m]`)へ 2 世代進み、`VERSION` の 2.1.156 も以後の同期 ADR で繰り返し更新された。本 ADR に書かれた具体的な値はいずれも現行ではない。
+
+**残っている部分** — autonomy 方針を hook で強制せず、既存の deny/ask ガードが「不可逆操作は確認」の線引きを部分担保していると確認・記録した判断。これは [ADR 0009](./0009-opus-48-autonomy-tuning.md) とともに現に運用されている。
+
+3 か月にわたり全 ADR が `Accepted` のままで、どれが現行方針かをファイル単体から判別できない状態だったため、`Partially superseded by NNNN` を Status 語彙に追加して適用した。

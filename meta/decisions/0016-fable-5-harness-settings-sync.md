@@ -1,6 +1,6 @@
 # ADR 0016: Fable 5 Harness Settings Synchronization
 
-- **Status**: Accepted
+- **Status**: Partially superseded by 0022
 - **Date**: 2026-06-10
 - **Decider**: リポジトリオーナー(ADR 0001 の識別子規約に従う)
 
@@ -73,3 +73,13 @@
 - [`adapters/claude-code/user-level/settings.json.template`](../../adapters/claude-code/user-level/settings.json.template) — model / fallbackModel / env コメントを更新
 - [`adapters/claude-code/VERSION`](../../adapters/claude-code/VERSION) — pin を 2.1.170 に同期
 - [`meta/TODO-for-v0.2.md`](../TODO-for-v0.2.md) — 項目 16 のクローズ記録
+
+## Update (2026-08-09)
+
+Status を `Accepted` から `Partially superseded by 0022` に変更した。
+
+**置き換えられた部分** — model pin `claude-fable-5` と `VERSION` 2.1.170 は [ADR 0022](./0022-harness-sync-2.1.220.md) で `claude-opus-5[1m]` / 2.1.220 に更新された。加えて本 ADR が `fallbackModel: ["claude-opus-4-8"]` の根拠として挙げた「クラシファイア整合」は、0022 で**誤帰属だったと訂正**されている(値そのものは Opus 4.8 のまま維持)。
+
+**残っている部分** — `effortLevel` と subagent tier を据え置いた判断、およびその根拠(計測なき格上げをしない / [ADR 0013](./0013-role-based-effort-modulation.md) 踏襲)。なお `effortLevel` は 0022 で machine-overrides の無記録な `medium` が削除され、本 ADR が意図した `xhigh` が初めて実効化された。
+
+詳細な経緯は [ADR 0022](./0022-harness-sync-2.1.220.md) を参照。
