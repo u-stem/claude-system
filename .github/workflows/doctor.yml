@@ -36,11 +36,14 @@ jobs:
           NO_COLOR: "1"
         run: ./tools/doctor.sh
 
-      - name: Run delegated lint scripts
+      # doctor.sh already delegates every lint and behaviour test; re-listing
+      # them here duplicated the list and gave it a second place to drift.
+      # What doctor.sh deliberately does NOT run is the push-guard suite: it
+      # costs 2.13s and lives in tools/githooks/pre-push instead (ADR 0024).
+      # That hook is repo-local, so until now GitHub never exercised the guard
+      # at all — a regression in it would only surface on the operator's
+      # machine at push time. This step closes that gap.
+      - name: Run guard tests not covered by doctor.sh
         env:
           NO_COLOR: "1"
-        run: |
-          ./tests/lint-skills.sh
-          ./tests/lint-principles-language.sh
-          ./tests/check-circular-refs.sh
-          ./tests/validate-frontmatter.sh
+        run: ./tests/test-pre-bash-guard.sh
