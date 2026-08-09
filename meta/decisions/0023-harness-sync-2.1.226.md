@@ -140,7 +140,8 @@ v2.1.221 の既定変更(背景セッションは作業保全のため commit �
   - 本 ADR を書いた同じセッション中に、**subagent が 10 コミットを Public な `origin/main` へ自動 push した**(10:27:18〜10:27:52)。運用者も私も指示していない。皮肉にも、この禁止規約を追加したコミット自身がその禁止に違反して公開された。CLAUDE.md への記述は subagent の挙動を止められないことが実証的に確定した
   - **判別手段の実測**: SessionStart の `source` は使えない(値は `startup` / `resume` / `clear` / `compact` / `fork` のみで、背景か否かを表さない)。代わりに **PreToolUse payload の `agent_type` / `agent_id` が subagent 呼び出しのときだけ現れる**ことを実測確認した。メインセッションは `[cwd, effort, hook_event_name, permission_mode, prompt_id, session_id, tool_input, tool_name, tool_use_id, transcript_path]`、subagent はこれに `agent_id` + `agent_type` が加わる(`agent_type=code-reviewer` を観測)
   - **実装**: `pre-bash-guard.sh` が「`agent_type` が存在 かつ コマンドが `git ... push`」を deny する。commit と add は許可したまま(ローカルに commit してあれば作業は失われず、公開だけを差し止める)。メインセッションは `agent_type` を持たないため影響を受けない
-  - **検証**: `tests/test-pre-bash-guard.sh` で 9 ケース(subagent の各種 push 形 / メインの push 許可 / commit・add 許可 / 誤検知なし / `--force` は従来どおり deny)を固定。さらに**実エージェントで実測**し、`git push --dry-run` が hook に拒否され回避も試みられないことを確認した
+  - **検証**: `tests/test-pre-bash-guard.sh` で 9 ケースを固定し、実エージェントでも `git push --dry-run` の拒否を確認した
+  - **訂正(2026-08-09、code-reviewer の指摘)**: 上記の「実証済み」は**ハッピーパス 1 本のみの検証**であり、過大な表現だった。初版の正規表現は両方向に欠陥があった — `/usr/bin/git push` / `command git push` / `env git push` / `sh -c "git push"` を**素通しし**、逆に `git commit -m 'fix push behavior'` を**誤って deny** していた(「commit は許可」という本節の保証に正面から反する)。実装をサブコマンド解析方式に置き換え、25 ケースで固定し直した。詳細は [ADR 0024](./0024-observation-and-restraint-optimization.md) §2
 - **残る限界**: 判別できるのは *subagent* であって「バックグラウンドセッション全般」ではない。独立した背景セッション(subagent でないもの)が `agent_type` を持つかは未確認であり、そこは依然 CLAUDE.md §8 の指示に依存する
 - **注意点(実測)**: 導入した marketplace のクローン `~/.claude/plugins/marketplaces/superpowers-marketplace/.claude/settings.local.json` は `Bash(git push)` / `Bash(git commit:*)` / `Bash(python3:*)` を allow する project-level 設定を同梱している。cwd がそのディレクトリのときにしか読まれないため通常運用では無効だが、本節の方針と字面が衝突する。**当該ディレクトリを作業 cwd にしない**
 

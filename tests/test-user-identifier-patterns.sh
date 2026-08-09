@@ -34,7 +34,10 @@ else
 fi
 
 # --- 2. every shell pattern also exists as a gitleaks rule ---------------------
-# gitleaks rule bodies are `regex = '''<pattern>'''`.
+# gitleaks rule bodies are `regex = '''<pattern>'''`, unindented and on one line.
+# If .gitleaks.toml ever indents them or uses a multi-line triple-quote, this
+# extraction returns nothing and §2/§3 fail loudly rather than silently passing —
+# but the fix then is to update this pattern, not to loosen the assertions.
 toml_patterns="$(/usr/bin/grep -oE "^regex = '''.*'''" "$TOML" | sed "s/^regex = '''//; s/'''$//")"
 for pat in "${HK_USER_IDENTIFIER_PATTERNS[@]}"; do
   # `--` is required: patterns begin with `-` and grep would read them as flags.

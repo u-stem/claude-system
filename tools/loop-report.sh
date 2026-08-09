@@ -205,7 +205,9 @@ emit_subagent_report() {
   # them in made every rate describe harness noise rather than the delegation
   # loop this report exists to observe (ADR 0013 reads these numbers).
   local delegated_file internal_count legacy_count delegated_total
-  delegated_file="$(mktemp "${TMPDIR:-/tmp}/loop-report-delegated.XXXXXX")"
+  # Under $WORKDIR so the existing EXIT trap removes it; explicit rm calls
+  # would leak the file on any early exit added later.
+  delegated_file="$(mktemp "$WORKDIR/delegated-XXXXXX")"
   jq -c 'select(((.agent_type // "") != "") and (.agent_type != "(internal)"))' \
     "$file" > "$delegated_file" 2>/dev/null || true
   delegated_total="$(wc -l < "$delegated_file" | tr -d ' ')"
@@ -216,7 +218,6 @@ emit_subagent_report() {
 
   if [[ "${delegated_total:-0}" -eq 0 ]]; then
     echo "  (no delegated-agent records; the sections below would be empty)"
-    rm -f "$delegated_file"
     return
   fi
 
@@ -248,7 +249,6 @@ emit_subagent_report() {
   echo "  field validity: model from 2026-06, spawn_depth from 2026-07-25 (ADR 0022),"
   echo "                  agent_type complete from 2026-08; parent_agent_id is empty"
   echo "                  by design while delegation stays single-layer (ADR 0015)"
-  rm -f "$delegated_file"
   # Nested-delegation visibility (ADR 0022): spawn_depth is backfilled from
   # the per-agent transcript's sidecar meta.json and is absent/0 on records
   # predating that field, so this section is additive and safe on old logs.

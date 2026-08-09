@@ -28,6 +28,11 @@ useDefault = true
 id = "user-identifier-path"
 description = "Absolute path containing macOS username (/Users/<name>/...) leaks operator identity — ADR 0008"
 regex = '''/Users/[a-zA-Z0-9._-]+'''
+# Rule-scoped, not global: the sync test holds these patterns as fixtures, but
+# it must stay covered by the default secret rules (keys, tokens) like any other
+# file. A global paths entry would exempt it from all of them.
+[rules.allowlist]
+paths = ['''tests/test-user-identifier-patterns\.sh''']
 
 # Claude Code flattens a project path into its session directory name by
 # replacing every slash with a hyphen: /Users/<name>/ws/<proj> becomes
@@ -40,6 +45,7 @@ id = "user-identifier-flattened-path"
 description = "Flattened Claude Code project dir (-Users-<name>-...) leaks operator identity — ADR 0008"
 regex = '''-Users-[a-zA-Z0-9._-]+'''
 [rules.allowlist]
+paths = ['''tests/test-user-identifier-patterns\.sh''']
 regexes = [
   '''-Users-<user>-''',       # documented placeholder
   '''-Users-<name>-''',
@@ -59,7 +65,6 @@ paths = [
   '''adapters/claude-code/user-level/settings\.json\.template''',
   '''adapters/claude-code/user-level/mcp/servers\.template\.json''',
   '''adapters/claude-code/user-level/hooks/.*''',
-  '''tests/test-user-identifier-patterns\.sh''',   # holds the pattern literals + probe fixtures it asserts on
   '''\.claude/.*''',
   '''.*\.template''',
   '''.*\.md\.draft''',

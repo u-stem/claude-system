@@ -76,10 +76,15 @@ cd "$CS_ROOT"
 ERRORS=0
 WARNINGS=0
 CHECKS=0
+SKIPPED=0
 
 ok()    { CHECKS=$((CHECKS + 1)); [[ "$VERBOSE" == "1" ]] && cs_success "$*"; return 0; }
 warn()  { CHECKS=$((CHECKS + 1)); WARNINGS=$((WARNINGS + 1)); cs_warn "$*"; }
 fail()  { CHECKS=$((CHECKS + 1)); ERRORS=$((ERRORS + 1));   cs_error "$*"; }
+# A tier-skipped check is neither passing nor failing. Counting it as ok would
+# let a summary reader (or a future automated gate) read "60 ok" as "60 things
+# verified" when --fast verified fewer.
+skip()  { CHECKS=$((CHECKS + 1)); SKIPPED=$((SKIPPED + 1)); [[ "$VERBOSE" == "1" ]] && cs_info "$*"; return 0; }
 
 # ---------------------------------------------------------------------------
 # 1. ~/.claude symlink state (informational until Phase 10)
@@ -238,7 +243,7 @@ fi
 # ---------------------------------------------------------------------------
 cs_step "shellcheck"
 if [[ $FAST -eq 1 ]]; then
-  ok "shellcheck skipped (--fast; covered by CI shellcheck.yml)"
+  skip "shellcheck skipped (--fast; covered by CI shellcheck.yml)"
 elif command -v shellcheck >/dev/null 2>&1; then
   set +e
   # Note: `tools/*.sh` does not recurse, so subdirectories under tools/
@@ -310,7 +315,7 @@ fi
 # ---------------------------------------------------------------------------
 cs_step "delegated lint scripts"
 if [[ $FAST -eq 1 ]]; then
-  ok "delegated tests skipped (--fast; covered by CI doctor.yml)"
+  skip "delegated tests skipped (--fast; covered by CI doctor.yml)"
 else
   for t in tests/lint-skills.sh tests/lint-principles-language.sh \
            tests/check-circular-refs.sh tests/validate-frontmatter.sh \
@@ -438,7 +443,8 @@ fi
 echo
 cs_step "Summary"
 printf '  checks : %d\n' "$CHECKS"
-printf '  ok     : %d\n' "$((CHECKS - WARNINGS - ERRORS))"
+printf '  ok     : %d\n' "$((CHECKS - WARNINGS - ERRORS - SKIPPED))"
+[[ $SKIPPED -gt 0 ]] && printf '  skipped: %d (--fast tier; run without --fast or see CI)\n' "$SKIPPED"
 printf '  warn   : %d\n' "$WARNINGS"
 printf '  error  : %d\n' "$ERRORS"
 

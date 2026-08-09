@@ -53,15 +53,70 @@ if printf '%s' "$CMD" | /usr/bin/grep -qE '(^|[;&|({])[[:space:]]*cd([[:space:]]
   hk_deny PreToolUse "cd は禁止です(既にカレントディレクトリで起動済み)。絶対パス、または git -C <dir> / make -C <dir> / bun --cwd <dir> 等の cwd 指定フラグを使ってください。コマンド: $CMD"
 fi
 
+# Decide whether a command line actually invokes `git push`.
+#
+# A single regex over the raw line cannot do this. The first attempt matched
+# "git" followed later by "push", which was wrong in both directions: it missed
+# /usr/bin/git push, `command git push` and `sh -c "git push"`, while denying
+# `git commit -m 'fix push behavior'` — the exact commits the rule promises to
+# allow. So parse instead: find the program being run, then its subcommand.
+#
+# Quotes are flattened to spaces first. That is what lets `sh -c "git push"`
+# reduce to a plain segment, and it is also why a message body cannot be
+# mistaken for a subcommand: only the FIRST non-option token after git counts.
+_pbg_invokes_git_push() {
+  local line="${1//[\"\']/ }"
+  local segment
+  # Split on anything that starts a new simple command.
+  while IFS= read -r segment; do
+    [[ -z "${segment// /}" ]] && continue
+    # shellcheck disable=SC2086  # deliberate word splitting into positional args
+    set -- $segment
+    # Strip env assignments and wrappers until the real program is in $1.
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        *=*)                                    shift ;;
+        command|env|nohup|sudo|time|exec|xargs)  shift ;;
+        sh|bash|zsh|dash|ksh)
+          shift
+          [[ "${1:-}" == "-c" ]] && shift       # `sh -c <string>` — keep parsing it
+          ;;
+        *) break ;;
+      esac
+    done
+    [[ $# -eq 0 ]] && continue
+    [[ "$(basename -- "$1")" == "git" ]] || continue
+    shift
+    # First non-option token is the subcommand. Options that take a separate
+    # value must consume it, or that value would be read as the subcommand.
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        -C|-c|--git-dir|--work-tree|--namespace|--exec-path|--config-env|--super-prefix)
+          shift 2 || shift ;;
+        -*) shift ;;
+        *)  [[ "$1" == "push" ]] && return 0
+            break ;;
+      esac
+    done
+    # printf must emit a trailing newline: without one, `read` fails on the
+    # final (only) segment and the loop body never runs at all.
+  done < <(printf '%s\n' "$line" | tr ';&|(){}\n' '\n')
+  return 1
+}
+
 # Subagents must not push. v2.1.221 changed background/agent sessions to commit
 # and push on their own to "preserve work"; on 2026-08-09 that published 10
 # commits straight to a public main from this repo without the operator asking.
 # The user-level CLAUDE.md §8 prohibition did not stop it — a subagent has no
 # one to ask, so a written rule is the wrong layer. Enforce it here instead.
-# Commit is still allowed: work on a branch is not lost, it just isn't published.
-# The main session is unaffected (no agent_type), so the operator can still push.
-if [[ -n "$AGENT_TYPE" ]] \
-  && printf '%s' "$CMD" | /usr/bin/grep -qE '(^|[;&|({])[[:space:]]*git[[:space:]]+([^;&|]*[[:space:]])?push([[:space:]]|$)'; then
+# Commit is still allowed: work committed locally is not lost, it just isn't
+# published. The main session is unaffected (no agent_type) and can still push.
+#
+# Not covered: indirection the parser cannot resolve without executing the line
+# (`G=git; $G push`, `eval`, a shell alias). Those are evasion, not the default
+# behaviour this guard exists to stop; treating them would mean running the
+# command to find out what it does.
+if [[ -n "$AGENT_TYPE" ]] && _pbg_invokes_git_push "$CMD"; then
   hk_log pre-bash-guard "deny subagent push (agent_type: $AGENT_TYPE, cmd: $CMD)"
   hk_deny PreToolUse "subagent からの git push は禁止です(agent_type: $AGENT_TYPE)。commit までに留め、push はメインセッションで運用者の確認を経てください(ADR 0023 §8)。コマンド: $CMD"
 fi

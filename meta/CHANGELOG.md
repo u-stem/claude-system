@@ -16,6 +16,17 @@ ADR 0024 の push 前検証で `gitleaks detect`(**git 履歴モード**、従�
 - 不採用: グローバル `core.hooksPath`(各リポジトリの `.git/hooks/` を無効化し husky / lefthook が壊れる)。commit 時のグローバル block(`pre-bash-guard.sh` 拡張)は次点候補として保留、採る場合は逃げ道なしの常時 deny 方針で確認済み
 - **末尾位置の取りこぼしを是正**: 両パターンが末尾の区切り文字を必須にしていたため、`/Users/<name>` / `-Users-<name>` のような**文末表記が両層とも素通り**していた(ドキュメント主体の本リポジトリでは現実的な形)。末尾要求を外し文字クラスを `[a-zA-Z0-9._-]` に対称化。14 ケースの実測で検出 8 件 HIT・誤検知候補 6 件すべて MISS を確認し、テストを 10→16 アサーションに拡張。なお「ハイフン入り username を取りこぼす」という当初の疑いは**実測では誤り**(最初のハイフンでマッチしていた)。この修正で `_lib.sh` だけ先に直した際に同期テストが 4 件の不一致を実運用で検出し、機構が意図どおり働くことも確認できた
 
+## レビュー指摘の反映: push ガードの作り直しほか(2026-08-09)
+
+`code-reviewer` の指摘 6 件(重大 2 / 警告 2 / 提案 2)をすべて反映した。
+
+- `hooks/pre-bash-guard.sh`: subagent push ガードを**正規表現からサブコマンド解析に作り直した**。初版は両方向に壊れており、`/usr/bin/git push` / `command git push` / `env git push` / `sh -c "git push"` を素通しする一方、`git commit -m 'fix push behavior'` を誤って deny していた(「commit は許可」という保証に反する)。引用符を潰して単純コマンドへ分割 → ラッパーと環境変数代入を剥がす → `basename` が `git` のときだけ最初の非オプショントークンを判定、という方式に変更。値を取るグローバルオプション(`-C` / `-c` / `--git-dir` 等)も処理する。ADR 0023 §8 の「実証済み」はハッピーパス 1 本のみの検証だったため過大表現として訂正
+- `tests/test-pre-bash-guard.sh`: 9 → **25 ケース**に拡張(回避形 7 / 値付きオプション 3 / メッセージ中の "push" 4 ほか)
+- `.gitleaks.toml`: `tests/test-user-identifier-patterns.sh` の除外をグローバル `[allowlist].paths` から**ルール単位の `[rules.allowlist].paths` へ移した**。Why: グローバル除外では既定のシークレットルール(AWS/GCP キー、秘密鍵、トークン)まで当該ファイルに効かなくなる
+- `tools/loop-report.sh`: 一時ファイルを `$WORKDIR` 配下に移し、既存の EXIT trap に後始末を委ねた(明示 `rm` 2 箇所を削除)。将来の early return で取り残されない
+- `tools/doctor.sh`: `--fast` でスキップした検査を `ok` ではなく **`skipped` として別計上**。「60 ok」を「60 件検証した」と誤読させないため
+- `tests/test-user-identifier-patterns.sh`: TOML 抽出が単一行・行頭アンカー前提であることを注記
+
 ## 観測と抑止の最適化(2026-08-09)
 
 ADR 0023 の作業中に表面化した「測れば分かるのに測っていなかった」4 領域を実測し、採否を決めた。判断の本体は [ADR 0024](./decisions/0024-observation-and-restraint-optimization.md)。

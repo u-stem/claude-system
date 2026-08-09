@@ -34,7 +34,16 @@
   | subagent | 上記 + **`agent_id`, `agent_type`**(`agent_type=code-reviewer` を観測) |
 
 - **実装**: `agent_type` が存在し、かつコマンドが `git ... push` にマッチしたら deny。**commit と add は許可したまま**にする(ローカルに commit してあれば作業は失われず、差し止めるのは公開だけ)。メインセッションは `agent_type` を持たないため運用者の push は従来どおり
-- **検証**: `tests/test-pre-bash-guard.sh` で 9 ケースを固定(subagent の各種 push 形 / メインの push 許可 / commit・add 許可 / 誤検知なし / `--force` は従来どおり deny)。加えて**実エージェントで実測**し、`git push --dry-run` が hook に拒否され、回避も試みられないことを確認した
+- **実装の作り直し(2026-08-09、code-reviewer の指摘)**: 初版は単一の正規表現で「`git` の後に `push` が出現するか」を見ていた。これは**両方向に壊れていた**:
+
+  | 入力 | 初版 | あるべき |
+  |---|---|---|
+  | `/usr/bin/git push` / `command git push` / `env git push` / `sh -c "git push"` | allow | **deny** |
+  | `git commit -m 'fix push behavior'` | **deny** | allow |
+
+  後者は「commit は許可する」という本節の保証に正面から反する。"push" はコミットメッセージにありふれた語であり、正常な commit が止まる。**正規表現ではなく解析に置き換えた**: 引用符を空白に潰して単純コマンドへ分割し、環境変数代入とラッパー(`command` / `env` / `nohup` / `sudo` / `xargs` / `sh -c` 等)を剥がして実行プログラムを特定し、`basename` が `git` のときだけ**最初の非オプショントークン**をサブコマンドとして判定する。値を取るグローバルオプション(`-C` / `-c` / `--git-dir` 等)は次のトークンごと読み飛ばす
+- **検証**: `tests/test-pre-bash-guard.sh` を 9 → **25 ケース**に拡張(上表の回避形 7 種 / 値付きオプション 3 種 / メッセージ中の "push" 4 種 / メインセッション許可 / commit・add 許可 / `--force` 継続 deny)。実エージェントでも `git push --dry-run` の拒否と回避非試行を確認済み
+- **原理的に届かない範囲(正直な記録)**: `G=git; $G push` のような変数間接参照、`eval`、shell alias は解決できない。解決するにはコマンドを実行してみる必要があり、それは PreToolUse hook にできることではない。これらは「ハーネス既定の挙動」ではなく能動的な回避であり、本ガードの脅威モデル外とする
 - **残る限界**: 判別できるのは *subagent* であって「バックグラウンドセッション全般」ではない。subagent でない独立した背景セッションが `agent_type` を持つかは未確認で、そこは依然 CLAUDE.md §8 の指示に依存する
 
 ### 3. `loop-report.sh` で委譲エージェントとハーネス内部を分離する
