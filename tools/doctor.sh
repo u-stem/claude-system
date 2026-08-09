@@ -367,7 +367,10 @@ if [[ -f "$CLAUDE_HOME/settings.json" ]]; then
   if [[ "$hooks_path" == "tools/githooks" ]]; then
     ok "core.hooksPath -> tools/githooks"
   else
-    warn "core.hooksPath not wired (auto-sync inactive); run tools/setup.sh or: git config core.hooksPath tools/githooks"
+    # Not only auto-sync: core.hooksPath also carries tools/githooks/pre-push,
+    # which is the one push guard that works no matter who invokes git
+    # (ADR 0024 §2a). Unwired means this machine can push unguarded.
+    warn "core.hooksPath not wired: settings auto-sync AND the pre-push guard are both inactive; run tools/setup.sh or: git config core.hooksPath tools/githooks"
   fi
   if [[ -x tools/sync-settings.sh ]]; then
     if tools/sync-settings.sh --check >/dev/null 2>&1; then

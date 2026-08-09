@@ -165,10 +165,15 @@ git clone https://github.com/u-stem/claude-system.git
 | 層 | 機構 | 役割 | 配置 |
 |----|------|------|------|
 | 1 | `permissions.deny` | LLM の自制に頼らない物理ブロック | `settings.json.template` |
-| 2 | PreToolUse hooks | `--no-verify` / `git push --force` / typosquatting / 保護パスへの書き込みを実行前に阻止 | `user-level/hooks/pre-*.sh` |
+| 2 | PreToolUse hooks | `--no-verify` / `git push --force` / typosquatting / 保護パスへの書き込み、および subagent からの `git push` を実行前に阻止(ADR 0024) | `user-level/hooks/pre-*.sh` |
 | 3 | PostToolUse hooks | 失敗を `failure-log.jsonl` に集約、繰り返し失敗を SessionStart で通知 | `user-level/hooks/log-*.sh`, `check-failure-patterns.sh` |
-| 4 | Stop hooks | 失敗未解決での Stop を阻止 | `stop-session-doctor.sh` |
-| 5 | CI(GitHub Actions) | push 毎に doctor.sh + gitleaks + shellcheck | `.github/workflows/*.yml` |
+| 4 | Stop hooks | セッション終了ごとに `doctor.sh --fast` を走らせ、実機ドリフト(symlink / settings 同期 / プラグイン整合 / 秘密混入)を `last-doctor.log` に記録する | `stop-session-doctor.sh` |
+| 5 | git hooks(pre-push) | `CS_ALLOW_PUSH=1` の無い push を拒否し、通す前にガード自己検査を走らせる。**誰が git を起動しても効く唯一の層**(ADR 0024 §2a) | `tools/githooks/pre-push` |
+| 6 | CI(GitHub Actions) | push 毎に doctor.sh + gitleaks + shellcheck | `.github/workflows/*.yml` |
+
+層 4 は**阻止しない**。記録と通知に徹する層であり、セッションの継続を止める機構は持たない。
+
+**層 5 はリポジトリローカル設定に依存する。** `git config core.hooksPath tools/githooks` が張られていないマシンでは pre-push が存在せず、この層は丸ごと欠落する(settings の自動同期も同時に止まる)。新環境では `tools/setup.sh` が結線するので必ず実行すること。結線状況は `tools/doctor.sh` が確認し、未設定なら WARN する。
 
 ### 機械検出される禁止語
 
@@ -189,7 +194,9 @@ git clone https://github.com/u-stem/claude-system.git
 |------|------|
 | `doctor.sh` が `forbidden word` を報告 | 該当ファイルから禁止語を取り除く。もし正当な使用なら `forbidden-words.txt` 自体を見直す(MAJOR バージョン相当) |
 | `~/.claude/` の hook が暴発 | `tools/disable-guardrails.sh` で一時無効化 → `enable-guardrails.sh` で復帰 |
-| `cleanup-claude-code-runtime.sh` で消したくないものまで消えそう | 手動実行のみで自動化していない。実行前に `--dry-run` 相当のオプションを追加する設計判断は将来検討 |
+| `cleanup-claude-code-runtime.sh` で消したくないものまで消えそう | 手動実行のみで自動化していない。`--dry-run` で対象を確認してから実行する |
+| hooks を止めたいが何が変わるか分からない | `tools/disable-guardrails.sh --dry-run` で変更内容を確認 → 引数なしで実行。復帰は `enable-guardrails.sh`(同じく `--dry-run` 対応) |
+| `git push` が `CS_ALLOW_PUSH` を要求して止まる | 意図した動作(ADR 0024)。内容を確認のうえ `CS_ALLOW_PUSH=1 git push origin main` |
 | Phase 10 切り替えで何かが壊れた | `tools/migrate/rollback-from-claude-system.sh` で旧設定に戻す |
 | `gitleaks` が偽陽性 | `.gitleaks.toml` の `allowlist.regexes` か `paths` に追加 |
 | 既存プロジェクト取り込み後に挙動が変 | `tools/unadopt-project.sh <project>` で撤回 → バックアップから復元 |
