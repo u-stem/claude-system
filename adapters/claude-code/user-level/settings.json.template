@@ -244,18 +244,35 @@
     "SessionEnd": []
   },
 
-  "// enabledPlugins": "superpowers / elements-of-style / episodic-memory は新システムでも継続採用。Memory MCP は不採用(ADR 0003 で確定済み)",
+  "// extraKnownMarketplaces": "enabledPlugins の解決に必要な marketplace 宣言。`claude plugin marketplace add` は本キーを配置済み settings.json に直接書くが、settings.json は template ⊕ overrides の決定論的レンダリング成果物(ADR 0017)であるため、template に持たない限り次回 sync で消える。ADR 0023 で実測確認のうえ template 管理に移した(= 別マシンでも再現される)",
+  "extraKnownMarketplaces": {
+    "superpowers-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "obra/superpowers-marketplace"
+      }
+    }
+  },
+
+  "// enabledPlugins": "superpowers / elements-of-style / episodic-memory は新システムでも継続採用。Memory MCP は不採用(ADR 0003 で確定済み)。宣言だけでは導入されず `claude plugin install` が別途必要(ADR 0003 の『enabledPlugins で完結』は誤り。ADR 0023 で是正し tools/setup-plugins.sh + doctor.sh 検査を追加)",
   "enabledPlugins": {
     "elements-of-style@superpowers-marketplace": true,
     "episodic-memory@superpowers-marketplace": true,
     "superpowers@superpowers-marketplace": true
   },
 
+  "// auditedPluginVersions.why": "ADR 0023 §3 で持ち込み能力(hooks / MCP / subagent / skill)を棚卸しした版。`claude plugin install` は版指定を取らず常に最新が入るため、実インストール版がこことずれたら『未監査の payload が動いている』ことを意味する。doctor.sh がファイル読みのみで照合し WARN する。棚卸しをやり直したらこの値を更新する。キーが '//' 始まりなのは Claude Code 側に未知キーとして渡さないため(本ファイル冒頭の規約)",
+  "// auditedPluginVersions": {
+    "elements-of-style@superpowers-marketplace": "1.0.0",
+    "episodic-memory@superpowers-marketplace": "1.4.2",
+    "superpowers@superpowers-marketplace": "6.2.0"
+  },
+
   "// mcpServers": "常時ロードする非 secret MCP のみ inline 宣言する(決定論・自動同期 / ADR 0017)。opt-in の非 secret(sequential-thinking / chrome-devtools)と secret 必須(github)は mcp/servers.template.json + setup-mcp.sh 経由。playwright の二重登録を解消し runner を bunx に統一(bun 優先 / ADR 0018 の review follow-up)。pin は 2 系統で同一に保つ",
   "mcpServers": {
     "playwright": {
       "command": "bunx",
-      "args": ["-y", "@playwright/mcp@0.0.78"]
+      "args": ["-y", "@playwright/mcp@0.0.79"]
     }
   }
 }
