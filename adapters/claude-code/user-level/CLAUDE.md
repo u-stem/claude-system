@@ -51,6 +51,7 @@
 - 旧設定の存在に言及するときは「別途 Private リポジトリにて永続保管」のような**事実のみ**にとどめ、URL / 具体名を書かない
 - 旧設計から昇華した内容を新システム側で書くときは、出典は抽象的記述に留め、ローカルパス参照は最小限にする
 - 旧設定との関係を語る記述は `meta/migration-from-claude-settings.md` 1 ファイルに集約する
+- **`episodic-memory` の検索結果を Public 成果物へ転記しない**。同プラグインは全プロジェクト横断で会話を索引するため(除外設定なし)、Private プロジェクトの会話本文が検索でヒットしうる。検索は判断の材料として使ってよいが、ヒットした内容・プロジェクト名・パスを Public リポジトリのファイル / コミットメッセージ / PR 本文へ写さない([ADR 0023](../../../meta/decisions/0023-harness-sync-2.1.226.md) §4b)
 
 ## 3. 運用者プロファイル
 
@@ -110,6 +111,7 @@
 - `// TODO: あとで直す` の放置(今やるか Issue 化する)
 - バグを認識しながら無断で放置する
 - `--no-verify` の付与(settings.json で deny 済み)
+- **バックグラウンドセッションからの `git push`**。ハーネス既定は v2.1.221 以降「作業保全のため commit して push する」だが、本システムでは **commit までに留める**。push は対話セッションで運用者の確認を経て行う(背景セッションには確認相手がいないため §6-2 の「事前確認」が成立しない。ブランチに commit してあれば作業は失われない / [ADR 0023](../../../meta/decisions/0023-harness-sync-2.1.226.md))
 - principles / practices 層への特定ツール用語の混入(`meta/forbidden-words.txt` で機械検出)
 
 ## 9. メモリ運用
@@ -118,6 +120,7 @@
 - **episodic-memory**: 過去会話の自動インデックス + セマンティック検索
 - 「覚えておいて」と言われたら auto memory、「前に話した X は?」は episodic-memory
 - `Memory MCP` は採用しない(2 層に統一)
+- episodic-memory は**プラグインの実インストールが必要**(`settings.json` の `enabledPlugins` は宣言にすぎない)。新規マシンでは `tools/setup-plugins.sh` を実行する。未導入なら `tools/doctor.sh` が WARN する([ADR 0023](../../../meta/decisions/0023-harness-sync-2.1.226.md))
 - アーキテクチャの確定版は [`meta/decisions/0003-memory-architecture.md`](../../../meta/decisions/0003-memory-architecture.md) を参照
 
 ## 10. 思想的背景と関連参照
