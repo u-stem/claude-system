@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
-# WARNING: This switches ~/.claude/ from claude-settings to claude-system.
-# DO NOT execute without --dry-run during Phase 0-9.
-# Real execution should happen in Phase 10 only.
-#
 # tools/sync.sh — distribute symlinks from claude-system into ~/.claude/.
+#
+# Applying rewrites ~/.claude/: anything already there is moved into
+# ~/.claude-system-backups/ and replaced with a symlink into this repo. That is
+# a live-config switch, so --dry-run is the default and --force additionally
+# requires CLAUDE_SYSTEM_ALLOW_SYNC=1. Same shape as CS_ALLOW_PUSH in
+# tools/githooks/pre-push (ADR 0024): one extra word for the operator, but not
+# something a stray --force or an agent can trip into on its own.
+#
 # Usage:
-#   tools/sync.sh --dry-run        # show planned actions (default during Phase 0-9)
-#   tools/sync.sh --force          # apply without prompts (Phase 10+ only)
+#   tools/sync.sh --dry-run        # show planned actions (default)
+#   tools/sync.sh --force          # apply (requires CLAUDE_SYSTEM_ALLOW_SYNC=1)
 #   tools/sync.sh --help
 
 set -euo pipefail
@@ -19,12 +23,13 @@ cs_print_help() {
 sync.sh — distribute symlinks into ~/.claude/
 
 Usage:
-  tools/sync.sh --dry-run    Show planned actions (no changes)
-  tools/sync.sh --force      Apply changes (Phase 10 only)
+  tools/sync.sh --dry-run    Show planned actions (default, no changes)
+  tools/sync.sh --force      Apply changes
   tools/sync.sh --help
 
-Phase 0-9: --dry-run only. The script blocks real execution unless --force is
-passed AND the safeguard env CLAUDE_SYSTEM_ALLOW_SYNC=1 is set.
+Applying replaces the contents of ~/.claude/ with symlinks into this repo;
+existing files are moved into ~/.claude-system-backups/ first. --force alone is
+not enough — the safeguard env CLAUDE_SYSTEM_ALLOW_SYNC=1 must also be set.
 
 Backups are written to: ~/.claude-system-backups/
 Lock file: $TMPDIR/claude-system.sync.lock
@@ -48,7 +53,8 @@ cs_require_root_dir
 
 if [[ "$FORCE" == "1" && "${CLAUDE_SYSTEM_ALLOW_SYNC:-}" != "1" ]]; then
   cs_error "--force passed but CLAUDE_SYSTEM_ALLOW_SYNC=1 is not set."
-  cs_error "This is the Phase 0-9 safeguard. Real switch happens only in Phase 10."
+  cs_error "Applying rewrites the live ~/.claude/. Re-run as:"
+  cs_error "  CLAUDE_SYSTEM_ALLOW_SYNC=1 tools/sync.sh --force"
   exit 2
 fi
 
