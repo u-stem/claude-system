@@ -22,8 +22,22 @@ doctor.sh — claude-system integrity checks.
 
 Usage:
   tools/doctor.sh             Run all checks
+  tools/doctor.sh --fast      Skip the slow pre-commit-grade checks (see below)
   tools/doctor.sh --verbose   Show every passing check too
   tools/doctor.sh --help
+
+Tiers:
+  full (default)  Everything. Used by CI (.github/workflows/doctor.yml) and by
+                  humans before committing.
+  --fast          Skips shellcheck and the delegated test suite, which together
+                  are ~85% of the runtime (measured 2026-08-09: 6.10s full,
+                  3.86s tests + 1.34s shellcheck). Both are pre-commit concerns
+                  already covered by CI, and the Stop hook re-runs this on every
+                  turn under a 10s CPU ulimit — at 6.10s the full run sat at 61%
+                  of that cap, where an overrun truncates last-doctor.log with
+                  no error. Everything that detects *drift in the live machine
+                  state* (symlinks, settings sync, plugin parity, secrets) stays
+                  in the fast tier, because that is what a per-turn check is for.
 
 Checks:
   - ~/.claude symlink state (informational; expected unset until Phase 10)
@@ -47,9 +61,11 @@ EOF
 cs_show_help_if_requested "${1:-}"
 
 VERBOSE=0
+FAST=0
 for arg in "$@"; do
   case "$arg" in
     --verbose) VERBOSE=1 ;;
+    --fast)    FAST=1 ;;
     *) cs_error "Unknown arg: $arg"; exit 2 ;;
   esac
 done
@@ -221,7 +237,9 @@ fi
 # 8. shellcheck
 # ---------------------------------------------------------------------------
 cs_step "shellcheck"
-if command -v shellcheck >/dev/null 2>&1; then
+if [[ $FAST -eq 1 ]]; then
+  ok "shellcheck skipped (--fast; covered by CI shellcheck.yml)"
+elif command -v shellcheck >/dev/null 2>&1; then
   set +e
   # Note: `tools/*.sh` does not recurse, so subdirectories under tools/
   # (currently `tools/migrate/`) need to be added explicitly.
@@ -291,26 +309,31 @@ fi
 # 11. Optional sub-tests if present
 # ---------------------------------------------------------------------------
 cs_step "delegated lint scripts"
-for t in tests/lint-skills.sh tests/lint-principles-language.sh \
-         tests/check-circular-refs.sh tests/validate-frontmatter.sh \
-         tests/test-check-failure-patterns.sh tests/test-subagent-stop-record.sh \
-         tests/test-subagent-stop-audit.sh tests/test-sync-settings.sh \
-         tests/test-hooks-lib.sh tests/test-log-bash-failure.sh; do
-  if [[ -x "$t" ]]; then
-    set +e
-    out="$("$t" 2>&1)"
-    rc=$?
-    set -e
-    if [[ $rc -eq 0 ]]; then
-      ok "$(basename "$t") pass"
+if [[ $FAST -eq 1 ]]; then
+  ok "delegated tests skipped (--fast; covered by CI doctor.yml)"
+else
+  for t in tests/lint-skills.sh tests/lint-principles-language.sh \
+           tests/check-circular-refs.sh tests/validate-frontmatter.sh \
+           tests/test-check-failure-patterns.sh tests/test-subagent-stop-record.sh \
+           tests/test-subagent-stop-audit.sh tests/test-sync-settings.sh \
+           tests/test-hooks-lib.sh tests/test-log-bash-failure.sh \
+           tests/test-pre-bash-guard.sh; do
+    if [[ -x "$t" ]]; then
+      set +e
+      out="$("$t" 2>&1)"
+      rc=$?
+      set -e
+      if [[ $rc -eq 0 ]]; then
+        ok "$(basename "$t") pass"
+      else
+        fail "$(basename "$t") failed:"
+        printf '%s\n' "$out" >&2
+      fi
     else
-      fail "$(basename "$t") failed:"
-      printf '%s\n' "$out" >&2
+      warn "$t not present or not executable"
     fi
-  else
-    warn "$t not present or not executable"
-  fi
-done
+  done
+fi
 
 # ---------------------------------------------------------------------------
 # 12. settings auto-sync state (informational on machines without deployment)

@@ -19,7 +19,7 @@
 | [`_lib.sh`](./_lib.sh) | 共通ライブラリ(source 専用) | — | — |
 | [`sync.sh`](./sync.sh) | `~/.claude/` シンボリックリンク配布(Phase 0-9 は `--dry-run` のみ)。settings.json の配置は `sync-settings.sh` へ移管済み | ◯ | sync |
 | [`sync-settings.sh`](./sync-settings.sh) | `~/.claude/settings.json` を template ⊕ マシン固有 overrides から決定論的に再生成(ADR 0017)。dry-run / `--apply` / `--check` | ◯ | sync-settings |
-| [`doctor.sh`](./doctor.sh) | リポジトリ整合性チェック(skill / subagent / command frontmatter / 禁止語 / shellcheck / gitleaks / ADR draft) | ◯ | — |
+| [`doctor.sh`](./doctor.sh) | リポジトリ整合性チェック(skill / subagent / command frontmatter / 禁止語 / shellcheck / gitleaks / ADR draft / 宣言プラグイン)。`--fast` は shellcheck と委譲テストを省く軽量層(Stop hook 用、実測 0.8s / full 6.7s) | ◯ | — |
 | [`setup.sh`](./setup.sh) | 新環境セットアップ(前提ツール検出 / バックアップディレクトリ作成 / doctor.sh 実行) | ◯ | — |
 | [`new-project.sh`](./new-project.sh) | 新規プロジェクト立ち上げ(対話 / 引数 / ゼロから始めるモード) | ◯(既存ディレクトリは拒否) | — |
 | [`adopt-project.sh`](./adopt-project.sh) | 既存プロジェクトを claude-system 管理下に取り込み(対話、CLAUDE.md バックアップ) | ◯ | — |

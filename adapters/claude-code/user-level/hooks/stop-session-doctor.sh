@@ -18,7 +18,12 @@ if [[ -x "$DOCTOR" ]]; then
   out_file="$HOOK_LOG_DIR/last-doctor.log"
   mkdir -p "$HOOK_LOG_DIR"
   # Background the doctor run with a timeout so we don't slow down session stop.
-  ( ulimit -t 10 2>/dev/null || true; "$DOCTOR" >"$out_file" 2>&1 ) &
+  # --fast drops shellcheck and the delegated test suite (~85% of the runtime).
+  # Those are pre-commit concerns that CI already gates; what belongs here is
+  # live-machine drift (symlinks, settings sync, plugin parity, secrets). The
+  # full run measured 6.10s against this 10s CPU ulimit — 61% of the cap, and an
+  # overrun truncates $out_file silently. See tools/doctor.sh --help (ADR 0023).
+  ( ulimit -t 10 2>/dev/null || true; "$DOCTOR" --fast >"$out_file" 2>&1 ) &
 fi
 
 exit 0
