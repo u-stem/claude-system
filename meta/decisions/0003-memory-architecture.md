@@ -81,8 +81,19 @@ claude-system では **`auto memory` + `episodic-memory` の 2 層**を記憶ア
 - `auto memory` のディレクトリ構成はハーネス(Claude Code)側の現行運用に従う(本システム側で構造を強制しない)
 - `episodic-memory` プラグインのバージョン更新は通常の plugin 更新フロー(adapter 層の更新確認手順、Phase 4 以降に整備した能力単位を経由)に従う
 
+## Update (2026-08-08): 「セットアップ不要」は誤りだった
+
+ADR 0023 の調査で、本 ADR の Positive「`settings.json` の `enabledPlugins` で完結し、別途のセットアップが不要」が**事実として偽**であることが判明した。`enabledPlugins` は宣言にすぎず、Claude Code はこのキーからプラグインを導入しない。実際には `claude plugin marketplace add` + `claude plugin install` が別途必要である。
+
+結果として `episodic-memory` は 2026-04-26 の宣言以降 2026-08-08 まで**一度もインストールされていなかった**(`claude plugin list` = "No plugins installed."、`installed_plugins.json` = `{"version":2,"plugins":{}}` で実測確認)。本 ADR が定めたメモリ 2 層構成は、この期間 auto memory の 1 層でしか動いていなかった。user-level CLAUDE.md §9 の「『前に話した X は?』は episodic-memory」という運用指示も同期間は実行不能だった。
+
+- **是正**: ADR 0023 で 3 プラグインを実導入し、`extraKnownMarketplaces` を template 管理下に置き、`tools/setup-plugins.sh`(宣言を読むだけの冪等スクリプト)と `tools/doctor.sh` の乖離 WARN を追加した。再発は機械検出される
+- **未検証のまま残る記述**: Negative の「Transformers.js のロード時間がセッション初期に発生する(現状 Opus 4.7 期で実用範囲)」は旧環境の経験であり、**Opus 5 / Claude Code 2.1.226 期では未計測**。導入直後のため初回 sync のコストも未観測である(ADR 0023 の受け入れ条件として次セッション以降に実測する)
+- 2 層構成という決定そのもの(Memory MCP 不採用を含む)は変更しない
+
 ## Related
 
+- [ADR 0023](./0023-harness-sync-2.1.226.md): 本 ADR の「セットアップ不要」を訂正し、実導入と再発検出を追加
 - [ADR 0001](./0001-anonymity-policy.md): Anonymity Policy
 - [ADR 0002](./0002-public-private-boundary.md): Public/Private Boundary(本 ADR が旧 spec への直接参照を行わない理由の根拠)
 - [`adapters/claude-code/user-level/settings.json.template`](../../adapters/claude-code/user-level/settings.json.template) — `enabledPlugins.episodic-memory@superpowers-marketplace`

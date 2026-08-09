@@ -14,7 +14,7 @@
 - **最重要差分**: v2.1.210 以降、file permission チェックは `Edit(path)` / `Read(path)` ルールのみ照合する。`Write(path)` / `NotebookEdit(path)` / `Glob(path)` ルールは「受理されるが一切マッチしない」死文となり、起動時警告が出る(出典: `code.claude.com/docs/en/permissions.md`「Edit rules cover all file-editing tools」)
 - **gitleaks 最新**: v8.30.1(2026-03-21)のまま。追従漏れなし。後継 Betterleaks(`betterleaks/betterleaks`、2026-02-03 開始)は引き続き様子見
 - **MCP 最新**: `@playwright/mcp` 0.0.78 / `chrome-devtools-mcp` 1.6.0 / `sequential-thinking` 2026.7.4(いずれも npm registry 実測)
-- **プラグイン**: superpowers v6.1.1(2026-07-02)/ episodic-memory v1.4.2(2026-05-21)は活発、elements-of-style はコンテンツ完成型で更新なし。marketplace 経由の自動更新のため設定変更不要
+- **プラグイン**: superpowers v6.1.1(2026-07-02)/ episodic-memory v1.4.2(2026-05-21)は活発、elements-of-style はコンテンツ完成型で更新なし。~~marketplace 経由の自動更新のため設定変更不要~~ ← **誤記録。ADR 0023 で訂正**: 3 件とも実機に未インストールで、更新される対象自体が存在しなかった(上流リポジトリの活発さの調査は正しいが、それを自環境の状態と取り違えた)
 
 計画は devil-advocate の反証レビューを経て確定した(検証への positive テスト追加、breaking 確認ゲートの粒度統一、影響範囲マップ全行走査の記録)。
 
@@ -52,7 +52,7 @@
 | skill frontmatter 仕様 | 変更なし(2.1.216 の修正は plugin skill の slash 表示のみ) |
 | subagent frontmatter 仕様 | 変更なし。ネスト委譲がデフォルト無効化(2.1.217、`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`)+ 同時 20 / セッション 200 の上限追加(2.1.212 / 2.1.217)。ADR 0015 の「メイン主導の単層連鎖」前提がハーネス既定になった(設定変更不要、方針とハーネスが一致) |
 | MCP server 設定スキーマ | スキーマ変更なし。pin のみ更新(§1) |
-| enabledPlugins | 採用 3 プラグインとも存続(marketplace 自動更新) |
+| enabledPlugins | 採用 3 プラグインとも存続(marketplace 自動更新) ← **誤記録。ADR 0023 で訂正**: 当時 3 件とも未インストールであり、marketplace 自動更新は起きていなかった |
 | attribution 構文 | 変更なし(`commit` / `pr` の空文字抑止を継続) |
 | `~/.claude/` ディレクトリ構造 | 変更なし |
 | env 変数 | 廃止・改名なし。新設の上限系(`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS` 等)は既定値で運用 |

@@ -90,7 +90,7 @@
 | skill frontmatter 仕様 | `context: fork` の background 既定化(2.1.218)。現行 skill に `context: fork` 使用ゼロ(grep 確認)で影響なし |
 | subagent frontmatter 仕様 | 変更なし。agent 名 `:` 拒否(2.1.218)→ 全 8 subagent 名に `:` なし。ネスト depth 3 化 → §5 で対応 |
 | MCP server 設定スキーマ | スキーマ変更なし。runner 統一のみ(§1) |
-| enabledPlugins | 採用 3 プラグインとも存続(marketplace 自動更新) |
+| enabledPlugins | 採用 3 プラグインとも存続(marketplace 自動更新) ← **誤記録。ADR 0023 で訂正**: 当時 3 件とも未インストールであり、marketplace 自動更新は起きていなかった |
 | attribution 構文 | 変更なし |
 | `~/.claude/` ディレクトリ構造 | 変更なし(per-agent meta.json の `parentAgentId` / `spawnDepth` を §5 で活用) |
 | env 変数 | 廃止・改名なし |
