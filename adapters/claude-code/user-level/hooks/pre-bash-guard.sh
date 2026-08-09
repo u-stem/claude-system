@@ -14,6 +14,17 @@ INPUT="$(hk_read_input)"
 CMD="$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null || true)"
 [[ -z "$CMD" ]] && exit 0
 
+# Identity of the caller. `agent_type` / `agent_id` are present in the
+# PreToolUse payload only when the call comes from inside a subagent — measured
+# 2026-08-09 on 2.1.226: a main-session call carries
+#   [cwd, effort, hook_event_name, permission_mode, prompt_id, session_id,
+#    tool_input, tool_name, tool_use_id, transcript_path]
+# while a subagent call adds agent_id + agent_type (observed agent_type=
+# code-reviewer). This is the only verified signal that distinguishes the two;
+# SessionStart's `source` does not (its values are startup/resume/clear/compact/
+# fork, none of which mean "unattended").
+AGENT_TYPE="$(printf '%s' "$INPUT" | jq -r '.agent_type // empty' 2>/dev/null || true)"
+
 # Patterns to block outright.
 declare -a DENY_PATTERNS=(
   'rm[[:space:]]+-rf?[[:space:]]+~?/?\.claude(/|[[:space:]]|$)'
@@ -40,6 +51,19 @@ done
 if printf '%s' "$CMD" | /usr/bin/grep -qE '(^|[;&|({])[[:space:]]*cd([[:space:]]|$)'; then
   hk_log pre-bash-guard "deny cd (cmd: $CMD)"
   hk_deny PreToolUse "cd は禁止です(既にカレントディレクトリで起動済み)。絶対パス、または git -C <dir> / make -C <dir> / bun --cwd <dir> 等の cwd 指定フラグを使ってください。コマンド: $CMD"
+fi
+
+# Subagents must not push. v2.1.221 changed background/agent sessions to commit
+# and push on their own to "preserve work"; on 2026-08-09 that published 10
+# commits straight to a public main from this repo without the operator asking.
+# The user-level CLAUDE.md §8 prohibition did not stop it — a subagent has no
+# one to ask, so a written rule is the wrong layer. Enforce it here instead.
+# Commit is still allowed: work on a branch is not lost, it just isn't published.
+# The main session is unaffected (no agent_type), so the operator can still push.
+if [[ -n "$AGENT_TYPE" ]] \
+  && printf '%s' "$CMD" | /usr/bin/grep -qE '(^|[;&|({])[[:space:]]*git[[:space:]]+([^;&|]*[[:space:]])?push([[:space:]]|$)'; then
+  hk_log pre-bash-guard "deny subagent push (agent_type: $AGENT_TYPE, cmd: $CMD)"
+  hk_deny PreToolUse "subagent からの git push は禁止です(agent_type: $AGENT_TYPE)。commit までに留め、push はメインセッションで運用者の確認を経てください(ADR 0023 §8)。コマンド: $CMD"
 fi
 
 # Patterns to ask user (destructive but sometimes intentional).
