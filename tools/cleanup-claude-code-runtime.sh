@@ -19,12 +19,18 @@ Usage:
 
 Removes (under ~/.claude/):
   projects/ telemetry/ history.jsonl backups/ file-history/ statsig/
-  plugins/cache/ ide/ paste-cache/ session-env/ shell-snapshots/ todos/
+  ide/ paste-cache/ session-env/ shell-snapshots/ todos/
   tasks/ debug/ cache/ downloads/ mcp-needs-auth-cache.json stats-cache.json
   double-shot-latte/
 
 Does NOT touch: settings.json, CLAUDE.md, skills, agents, commands, hooks,
-plugins/ (only its `cache/` subdir).
+plugins/ (see below).
+
+plugins/cache/ is NOT a disposable cache despite its name: installed plugin
+payloads live there (installed_plugins.json records installPath under it, e.g.
+plugins/cache/<marketplace>/<plugin>/<version>). Removing it uninstalls every
+plugin while leaving enabledPlugins declared, recreating the declared-but-absent
+drift that ADR 0023 fixed. Verified on 2026-08-08 with Claude Code 2.1.226.
 EOF
 }
 
@@ -48,9 +54,12 @@ if [[ ! -d "$CLAUDE_HOME" ]]; then
   exit 0
 fi
 
+# NOTE: plugins/cache is deliberately absent. Its name suggests a disposable
+# cache, but it holds installed plugin payloads (see --help). Removing it
+# uninstalls plugins while enabledPlugins keeps declaring them (ADR 0023).
 declare -a TARGETS=(
   "projects" "telemetry" "history.jsonl" "backups" "file-history"
-  "statsig" "plugins/cache" "ide" "paste-cache" "session-env"
+  "statsig" "ide" "paste-cache" "session-env"
   "shell-snapshots" "todos" "tasks" "debug" "cache" "downloads"
   "mcp-needs-auth-cache.json" "stats-cache.json" "double-shot-latte"
 )
