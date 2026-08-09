@@ -40,6 +40,7 @@ Checks:
   - subagent effort value validity and haiku+xhigh/max combination (ADR 0013)
   - settings auto-sync wiring and drift (tools/sync-settings.sh --check, ADR 0017)
   - machine-overrides file free of policy keys (model/effortLevel/fallbackModel, ADR 0022)
+  - plugins enabled in the template are actually installed (ADR 0023)
 EOF
 }
 
@@ -293,7 +294,8 @@ cs_step "delegated lint scripts"
 for t in tests/lint-skills.sh tests/lint-principles-language.sh \
          tests/check-circular-refs.sh tests/validate-frontmatter.sh \
          tests/test-check-failure-patterns.sh tests/test-subagent-stop-record.sh \
-         tests/test-subagent-stop-audit.sh; do
+         tests/test-subagent-stop-audit.sh tests/test-sync-settings.sh \
+         tests/test-hooks-lib.sh tests/test-log-bash-failure.sh; do
   if [[ -x "$t" ]]; then
     set +e
     out="$("$t" 2>&1)"
@@ -351,6 +353,60 @@ if [[ -f "$OVERRIDES_FILE" ]]; then
   fi
 else
   ok "no machine-overrides file present"
+fi
+
+# ---------------------------------------------------------------------------
+# 13. enabledPlugins declared in the template vs actually installed (ADR 0023)
+#
+# Deliberately file-based: doctor.sh runs from the Stop hook every turn, so
+# shelling out to `claude plugin list` would trigger marketplace refreshes and
+# network waits on each turn. One-directional by design — installed-but-not-
+# declared is a normal temporary trial and must not warn.
+# ---------------------------------------------------------------------------
+cs_step "declared plugins vs installed"
+PLUGIN_STATE="$CLAUDE_HOME/plugins/installed_plugins.json"
+PLUGIN_TEMPLATE="adapters/claude-code/user-level/settings.json.template"
+if [[ ! -f "$CLAUDE_HOME/settings.json" ]]; then
+  ok "~/.claude/settings.json not deployed; skipping plugin check (informational)"
+elif ! command -v jq >/dev/null 2>&1; then
+  warn "jq not installed; skipping declared-plugin check"
+elif [[ ! -f "$PLUGIN_STATE" ]]; then
+  warn "plugin state absent ($PLUGIN_STATE); declared plugins cannot be verified"
+else
+  plugin_schema="$(jq -r '.version // empty' "$PLUGIN_STATE" 2>/dev/null || true)"
+  if [[ "$plugin_schema" != "2" ]]; then
+    warn "unknown installed_plugins.json schema version '${plugin_schema:-none}'; skipping declared-plugin check"
+  else
+    declared_missing=""
+    while IFS= read -r decl; do
+      [[ -z "$decl" ]] && continue
+      if ! jq -e --arg k "$decl" '.plugins | has($k)' "$PLUGIN_STATE" >/dev/null 2>&1; then
+        declared_missing="$declared_missing $decl"
+      fi
+    done < <(jq -r '.enabledPlugins // {} | to_entries[] | select(.value == true) | .key' \
+               "$PLUGIN_TEMPLATE" 2>/dev/null || true)
+    if [[ -n "$declared_missing" ]]; then
+      warn "enabledPlugins declared but not installed:${declared_missing} (run tools/setup-plugins.sh)"
+    else
+      ok "every plugin enabled in the template is installed"
+    fi
+
+    # Plugins install unpinned (`claude plugin install <name@marketplace>` takes
+    # no version), so the template records the version that was audited and this
+    # compares against it. A mismatch is not a failure — it means the installed
+    # payload was never reviewed, so re-run the ADR 0023 §3 inventory.
+    while IFS=$'\t' read -r want_key want_ver; do
+      [[ -z "$want_key" || -z "$want_ver" ]] && continue
+      have_ver="$(jq -r --arg k "$want_key" '.plugins[$k][0].version // empty' "$PLUGIN_STATE" 2>/dev/null || true)"
+      [[ -z "$have_ver" ]] && continue   # missing install already reported above
+      if [[ "$have_ver" != "$want_ver" ]]; then
+        warn "plugin $want_key is $have_ver but the template records $want_ver as audited; re-inventory hooks/MCP/agents/skills (ADR 0023 §3)"
+      else
+        ok "plugin $want_key matches the audited version ($want_ver)"
+      fi
+    done < <(jq -r '.["// auditedPluginVersions"] // {} | to_entries[] | "\(.key)\t\(.value)"' \
+               "$PLUGIN_TEMPLATE" 2>/dev/null || true)
+  fi
 fi
 
 # ---------------------------------------------------------------------------
