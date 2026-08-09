@@ -166,8 +166,15 @@ emit_failure_report() {
     return
   fi
   echo "  total: $total"
-  echo "  by category (desc):"
-  jq -r '.category // "unknown"' "$file" | sort | uniq -c | sort -rn | \
+  # Deliberate failures are counted separately, not dropped. A rising count of
+  # expected failures is a fine thing (more negative tests); mixing it into the
+  # recurrence numbers is what misleads. Records predating the field are "real".
+  local real_n expected_n
+  real_n="$(jq -rs 'map(select((.intent // "real") == "real")) | length' "$file")"
+  expected_n="$(jq -rs 'map(select(.intent == "expected")) | length' "$file")"
+  echo "  by intent: real: $real_n  deliberate (negative tests): $expected_n"
+  echo "  by category (desc, real only):"
+  jq -r 'select((.intent // "real") == "real") | .category // "unknown"' "$file" | sort | uniq -c | sort -rn | \
     while read -r count cat; do
       printf '    %-15s %s\n' "$cat" "$count"
     done

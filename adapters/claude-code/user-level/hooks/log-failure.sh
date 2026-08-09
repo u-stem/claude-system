@@ -49,5 +49,23 @@ if [[ -n "$cmd_arg" ]]; then
   cmd_json="$(printf '%s' "$cmd_arg" | jq -Rs .)"
 fi
 
-printf '{"ts":"%s","category":"%s","error":%s,"exit_code":%s,"cmd":%s}\n' \
-  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$category" "$encoded_error" "$exit_code_json" "$cmd_json" >> "$log_file"
+# intent separates a real failure from one a test caused on purpose. Negative
+# tests assert that a guard rejects something, so they produce genuine non-zero
+# exits; without this field the observation loop counts them as breakage. On
+# 2026-08-09 the SessionStart notice surfaced three "test failures" of which one
+# was a negative test proving the push guard works and two were a TDD red phase.
+# Additive: readers that do not know the field see the same records as before,
+# and records written before this change are treated as "real" (the default).
+#
+# Detected two ways because a hook runs in its own process: an env var set
+# inside the agent's Bash command does not reach it. So the recorded command
+# string is checked as well, which is what actually works in practice —
+# `CS_EXPECTED_FAILURE=1 <command that must fail>`. The env check covers direct
+# invocation of this script, as the tests do.
+intent="real"
+if [[ "${CS_EXPECTED_FAILURE:-0}" == "1" ]] || [[ "$cmd_arg" == *"CS_EXPECTED_FAILURE=1"* ]]; then
+  intent="expected"
+fi
+
+printf '{"ts":"%s","category":"%s","error":%s,"exit_code":%s,"cmd":%s,"intent":"%s"}\n' \
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$category" "$encoded_error" "$exit_code_json" "$cmd_json" "$intent" >> "$log_file"

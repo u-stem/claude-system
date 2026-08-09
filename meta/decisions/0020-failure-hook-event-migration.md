@@ -82,3 +82,25 @@ hook のイベント接続はユニットテストでは検証できない(今�
 - [`tools/archive-failure-log.sh`](../../tools/archive-failure-log.sh) / [`tools/loop-report.sh`](../../tools/loop-report.sh) — 道具側
 - [`tests/test-log-bash-failure.sh`](../../tests/test-log-bash-failure.sh) — 3 形 payload の固定
 - [`meta/retrospectives/2026-07.md`](../retrospectives/2026-07.md) — 未切り分け問題の出所(追補済み)
+
+## Update (2026-08-09)
+
+本 ADR が実効化した観測ループに、**過去ログの再掲と現在の失敗を区別できない**欠陥が残っていた。
+
+2026-08-09 のセッション開始時、`check-failure-patterns.sh` が `[test] 3 failures` を報告した。内訳は 2026-07-11 の TDD レッド段階の一時出力 2 件と、同日の negative test(ガードを意図的に壊し `pre-push` が止まることを確認した副産物)1 件で、**現行の不具合は 1 件も含まれていなかった**。しかし出力にそれを判別する材料が無く、現在の回帰として読まれた。実際、この誤読は同セッションの調査を一度誤った方向に導いている。
+
+原因は 2 つある:
+
+1. 集計に時間窓が無く、任意に古いレコードが「再発 3 件」として積み上がる
+2. 意図的に起こした失敗を除外する手段が `is_interrupt` しかない
+
+**対処**(いずれも additive で、既存の読み手に影響しない):
+
+- `log-failure.sh` に `intent` フィールドを追加(`real` 既定 / `expected`)。判定は env `CS_EXPECTED_FAILURE=1` と**記録されたコマンド文字列**の両方を見る。hook は独立プロセスで起動されるため、エージェントが Bash コマンド内に書いた env は hook に届かない — 実運用で効くのはコマンド文字列側であり、env 側は本スクリプトを直接叩くテスト用
+- `check-failure-patterns.sh` を直近 `CS_FAILURE_WINDOW_DAYS` 日(既定 14)に限定し、`intent:expected` を除外し、**報告に日付範囲を必ず表示**する
+- 集計を `grep -c` から `jq -R 'fromjson?'` に変更。壊れた行があっても hook 全体が止まらず、「壊れたログ」と「該当なし」を取り違えない
+- `loop-report.sh` に intent 別内訳を追加。意図的失敗は捨てずに別枠で数える(negative test が増えること自体は健全であり、再発数に混ぜることだけが問題)
+
+**検証**: 実ログに対し、既定の 14 日窓では出力なし(誤警告が消えた)。`CS_FAILURE_WINDOW_DAYS=90` では同じ 3 件が `[test] 3 failures (2026-07-11 .. 2026-08-09)` として現れ、1 か月にまたがる古い記録であることが一目で分かる。データは失われていない。`tests/test-check-failure-patterns.sh` にケースを追加(窓外の除外 / 窓が理由であることの確認 / intent 除外 / 旧レコードの継続カウント / 壊れた行の許容 / intent 判定の 2 経路)。
+
+方針変更ではなく実装の欠陥修正のため、新規 ADR は起票しない。

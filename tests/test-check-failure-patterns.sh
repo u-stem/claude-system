@@ -38,6 +38,12 @@ err() { ERRORS=$((ERRORS + 1)); cs_error "$*"; }
 TMPDIR_TEST="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR_TEST"' EXIT
 
+# Fixtures must be dated relative to now. The hook only counts failures inside a
+# recent window, so the fixed 2026-07 timestamps these tests used originally
+# would silently stop matching as real time moved past the window — the test
+# would go green by measuring nothing.
+ago() { date -u -v-"${1}"d +%Y-%m-%dT%H:%M:%SZ; }
+
 # ---------------------------------------------------------------------------
 # Test 1: fewer than 3 lines total -> silent (no output)
 # ---------------------------------------------------------------------------
@@ -45,8 +51,8 @@ trap 'rm -rf "$TMPDIR_TEST"' EXIT
 PROJ1="$TMPDIR_TEST/t1"
 mkdir -p "$PROJ1/.claude"
 LOG1="$PROJ1/.claude/failure-log.jsonl"
-printf '{"ts":"2026-07-01T00:00:00Z","category":"check","error":"e1"}\n' > "$LOG1"
-printf '{"ts":"2026-07-01T00:00:01Z","category":"check","error":"e2"}\n' >> "$LOG1"
+printf '{"ts":"%s","category":"check","error":"e1"}\n' "$(ago 1)" > "$LOG1"
+printf '{"ts":"%s","category":"check","error":"e2"}\n' "$(ago 1)" >> "$LOG1"
 
 OUT1="$(CLAUDE_PROJECT_DIR="$PROJ1" bash "$HOOK")"
 [[ -z "$OUT1" ]] \
@@ -60,9 +66,9 @@ PROJ2="$TMPDIR_TEST/t2"
 mkdir -p "$PROJ2/.claude"
 LOG2="$PROJ2/.claude/failure-log.jsonl"
 {
-  printf '{"ts":"2026-07-01T00:00:00Z","category":"check","error":"e1"}\n'
-  printf '{"ts":"2026-07-01T00:00:01Z","category":"check","error":"e2"}\n'
-  printf '{"ts":"2026-07-01T00:00:02Z","category":"check","error":"e3"}\n'
+  printf '{"ts":"%s","category":"check","error":"e1"}\n' "$(ago 3)"
+  printf '{"ts":"%s","category":"check","error":"e2"}\n' "$(ago 2)"
+  printf '{"ts":"%s","category":"check","error":"e3"}\n' "$(ago 1)"
 } > "$LOG2"
 
 OUT2="$(CLAUDE_PROJECT_DIR="$PROJ2" bash "$HOOK")"
@@ -89,6 +95,114 @@ printf '%s' "$OUT2" | grep -q '^rm ' \
 
 printf '%s' "$OUT2" | grep -q 'mkdir -p' \
   && err "Test 3 [no raw mkdir+mv]: expected no raw 'mkdir -p ... && mv' advice, got: $OUT2"
+
+# ---------------------------------------------------------------------------
+# Test 3b: the notice states the age of what it is reporting
+# ---------------------------------------------------------------------------
+# On 2026-08-09 this hook surfaced three "test failures" that were all stale:
+# two from a TDD red phase on 2026-07-11 and one from a negative test proving
+# the push guard works. Nothing in the output distinguished a replay of old log
+# lines from current breakage, and it was read as current breakage. Printing the
+# span makes that misreading impossible.
+
+printf '%s' "$OUT2" | grep -qE '\[check\] 3 failures \([0-9]{4}-[0-9]{2}-[0-9]{2}' \
+  || err "Test 3b [age shown]: expected the date span alongside the count, got: $OUT2"
+
+# ---------------------------------------------------------------------------
+# Test 5: entries older than the window are not counted
+# ---------------------------------------------------------------------------
+
+PROJ5="$TMPDIR_TEST/t5"
+mkdir -p "$PROJ5/.claude"
+LOG5="$PROJ5/.claude/failure-log.jsonl"
+{
+  printf '{"ts":"%s","category":"test","error":"stale1"}\n' "$(ago 40)"
+  printf '{"ts":"%s","category":"test","error":"stale2"}\n' "$(ago 39)"
+  printf '{"ts":"%s","category":"test","error":"stale3"}\n' "$(ago 38)"
+} > "$LOG5"
+
+OUT5="$(CLAUDE_PROJECT_DIR="$PROJ5" bash "$HOOK")"
+[[ -z "$OUT5" ]] \
+  || err "Test 5 [window excludes stale]: expected no output for 38-40 day old entries, got: $OUT5"
+
+# The same fixture must fire once the window is widened, proving the entries are
+# well-formed and it is genuinely the age that excluded them.
+OUT5B="$(CLAUDE_PROJECT_DIR="$PROJ5" CS_FAILURE_WINDOW_DAYS=90 bash "$HOOK")"
+printf '%s' "$OUT5B" | grep -q '\[test\] 3 failures' \
+  || err "Test 5 [window is the reason]: expected a notice with a 90-day window, got: $OUT5B"
+
+# ---------------------------------------------------------------------------
+# Test 6: deliberately caused failures are not counted
+# ---------------------------------------------------------------------------
+# Negative tests assert that a guard rejects something, which means they produce
+# real non-zero exits. Counting those as recurring breakage pollutes the signal
+# the loop is supposed to measure.
+
+PROJ6="$TMPDIR_TEST/t6"
+mkdir -p "$PROJ6/.claude"
+LOG6="$PROJ6/.claude/failure-log.jsonl"
+{
+  printf '{"ts":"%s","category":"test","error":"neg1","intent":"expected"}\n' "$(ago 3)"
+  printf '{"ts":"%s","category":"test","error":"neg2","intent":"expected"}\n' "$(ago 2)"
+  printf '{"ts":"%s","category":"test","error":"neg3","intent":"expected"}\n' "$(ago 1)"
+} > "$LOG6"
+
+OUT6="$(CLAUDE_PROJECT_DIR="$PROJ6" bash "$HOOK")"
+[[ -z "$OUT6" ]] \
+  || err "Test 6 [expected failures excluded]: expected no output, got: $OUT6"
+
+# Records without an intent field predate this change and must still count.
+PROJ6B="$TMPDIR_TEST/t6b"
+mkdir -p "$PROJ6B/.claude"
+LOG6B="$PROJ6B/.claude/failure-log.jsonl"
+{
+  printf '{"ts":"%s","category":"test","error":"legacy1"}\n' "$(ago 3)"
+  printf '{"ts":"%s","category":"test","error":"legacy2"}\n' "$(ago 2)"
+  printf '{"ts":"%s","category":"test","error":"legacy3"}\n' "$(ago 1)"
+} > "$LOG6B"
+
+OUT6B="$(CLAUDE_PROJECT_DIR="$PROJ6B" bash "$HOOK")"
+printf '%s' "$OUT6B" | grep -q '\[test\] 3 failures' \
+  || err "Test 6b [legacy records still count]: expected a notice, got: $OUT6B"
+
+# ---------------------------------------------------------------------------
+# Test 6c: log-failure.sh marks intent from the env and from the command string
+# ---------------------------------------------------------------------------
+# Both paths are needed. A hook runs in its own process, so an env var the agent
+# sets inside its Bash command never reaches it — the command string is the only
+# signal available there. The env path covers direct invocation.
+
+LOGGER="$CS_ROOT/adapters/claude-code/user-level/hooks/log-failure.sh"
+PROJ6C="$TMPDIR_TEST/t6c"
+mkdir -p "$PROJ6C/.claude"
+
+printf 'boom\n' | CLAUDE_PROJECT_DIR="$PROJ6C" bash "$LOGGER" test 1 "bun test" >/dev/null 2>&1
+printf 'boom\n' | CLAUDE_PROJECT_DIR="$PROJ6C" CS_EXPECTED_FAILURE=1 bash "$LOGGER" test 1 "bun test" >/dev/null 2>&1
+printf 'boom\n' | CLAUDE_PROJECT_DIR="$PROJ6C" bash "$LOGGER" test 1 "CS_EXPECTED_FAILURE=1 bash tests/negative.sh" >/dev/null 2>&1
+
+LOG6C="$PROJ6C/.claude/failure-log.jsonl"
+[[ "$(jq -rs 'map(select(.intent == "real")) | length' "$LOG6C")" == "1" ]] \
+  || err "Test 6c [default intent]: expected exactly 1 real record, got: $(cat "$LOG6C")"
+[[ "$(jq -rs 'map(select(.intent == "expected")) | length' "$LOG6C")" == "2" ]] \
+  || err "Test 6c [expected intent]: expected 2 expected records (env + cmd), got: $(cat "$LOG6C")"
+
+# ---------------------------------------------------------------------------
+# Test 7: malformed lines do not abort the hook
+# ---------------------------------------------------------------------------
+
+PROJ7="$TMPDIR_TEST/t7"
+mkdir -p "$PROJ7/.claude"
+LOG7="$PROJ7/.claude/failure-log.jsonl"
+{
+  printf '{"ts":"%s","category":"test","error":"ok1"}\n' "$(ago 3)"
+  printf 'not json at all\n'
+  printf '{"ts":"%s","category":"test","error":"ok2"}\n' "$(ago 2)"
+  printf '{"ts":"%s","category":"test","error":"ok3"}\n' "$(ago 1)"
+} > "$LOG7"
+
+OUT7="$(CLAUDE_PROJECT_DIR="$PROJ7" bash "$HOOK" 2>/dev/null || true)"
+printf '%s' "$OUT7" | grep -q '\[test\] 3 failures' \
+  || err "Test 7 [malformed line tolerated]: expected the 3 valid records counted, got: $OUT7"
 
 # ---------------------------------------------------------------------------
 # Test 4: loop-report.sh smoke test — live + archive merge, --since filtering
