@@ -66,7 +66,7 @@
 すべてのテンプレートは以下を前提とする:
 
 - `~/ws/claude-system/` に claude-system が配置されている(クロスレイヤー参照のパス規約、`adapters/claude-code/README.md`)
-- ユーザーレベル CLAUDE.md (`~/.claude/CLAUDE.md`) が claude-system にリンクされている(Phase 10 以降)
+- ユーザーレベル CLAUDE.md (`~/.claude/CLAUDE.md`) が claude-system にリンクされている
 - 各テンプレートの `CLAUDE.md.template` は冒頭で `@~/ws/claude-system/adapters/claude-code/project-fragments/<name>.md` を参照する形で共通基盤を取り込む
 
 ## 機械的ガードレール(全テンプレート共通)

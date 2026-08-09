@@ -40,7 +40,7 @@ Tiers:
                   in the fast tier, because that is what a per-turn check is for.
 
 Checks:
-  - ~/.claude symlink state (informational; expected unset until Phase 10)
+  - ~/.claude symlink state (expected to point at claude-system)
   - skill / subagent / command frontmatter (name, description, recommended_model/tools)
   - skill directory name matches frontmatter `name`
   - SKILL.md / subagent body presence
@@ -87,8 +87,13 @@ fail()  { CHECKS=$((CHECKS + 1)); ERRORS=$((ERRORS + 1));   cs_error "$*"; }
 skip()  { CHECKS=$((CHECKS + 1)); SKIPPED=$((SKIPPED + 1)); [[ "$VERBOSE" == "1" ]] && cs_info "$*"; return 0; }
 
 # ---------------------------------------------------------------------------
-# 1. ~/.claude symlink state (informational until Phase 10)
+# 1. ~/.claude symlink state
 # ---------------------------------------------------------------------------
+# The switchover completed on 2026-05-04, so these links are the expected steady
+# state rather than a future step. A missing or non-symlink entry means this
+# machine never ran tools/sync.sh, or something replaced the link since — worth
+# a warning, not the "ok (informational)" this reported while the switch was
+# still pending.
 cs_step "~/.claude symlink state"
 CLAUDE_HOME="$HOME/.claude"
 if [[ -d "$CLAUDE_HOME" ]] && [[ ! -L "$CLAUDE_HOME" ]]; then
@@ -98,15 +103,17 @@ if [[ -d "$CLAUDE_HOME" ]] && [[ ! -L "$CLAUDE_HOME" ]]; then
       dest="$(readlink "$target")"
       case "$dest" in
         *claude-system/*) ok "~/.claude/$sub -> claude-system" ;;
-        *claude-settings/*) warn "~/.claude/$sub still points at claude-settings (expected during Phase 0-9): $dest" ;;
-        *) warn "~/.claude/$sub -> $dest" ;;
+        *claude-settings/*) warn "~/.claude/$sub still points at the legacy claude-settings: $dest" ;;
+        *) warn "~/.claude/$sub -> $dest (not claude-system)" ;;
       esac
+    elif [[ -e "$target" ]]; then
+      warn "~/.claude/$sub is not a symlink; review with tools/sync.sh --dry-run"
     else
-      ok "~/.claude/$sub not a symlink (informational)"
+      warn "~/.claude/$sub missing; review with tools/sync.sh --dry-run"
     fi
   done
 else
-  ok "~/.claude not yet provisioned (expected pre-Phase 10)"
+  warn "$CLAUDE_HOME not provisioned; run tools/setup.sh, then tools/sync.sh"
 fi
 
 # ---------------------------------------------------------------------------

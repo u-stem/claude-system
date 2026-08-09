@@ -17,7 +17,7 @@
 | script | 用途 | 冪等 | ロック |
 |--------|------|------|--------|
 | [`_lib.sh`](./_lib.sh) | 共通ライブラリ(source 専用) | — | — |
-| [`sync.sh`](./sync.sh) | `~/.claude/` シンボリックリンク配布(Phase 0-9 は `--dry-run` のみ)。settings.json の配置は `sync-settings.sh` へ移管済み | ◯ | sync |
+| [`sync.sh`](./sync.sh) | `~/.claude/` シンボリックリンク配布(既定は `--dry-run`、適用は `--force` + `CLAUDE_SYSTEM_ALLOW_SYNC=1`)。settings.json の配置は `sync-settings.sh` へ移管済み | ◯ | sync |
 | [`sync-settings.sh`](./sync-settings.sh) | `~/.claude/settings.json` を template ⊕ マシン固有 overrides から決定論的に再生成(ADR 0017)。dry-run / `--apply` / `--check` | ◯ | sync-settings |
 | [`doctor.sh`](./doctor.sh) | リポジトリ整合性チェック(skill / subagent / command frontmatter / 禁止語 / shellcheck / gitleaks / ADR draft / 宣言プラグイン)。`--fast` は shellcheck と委譲テストを省く軽量層(Stop hook 用、実測 0.8s / full 6.7s) | ◯ | — |
 | [`setup.sh`](./setup.sh) | 新環境セットアップ(前提ツール検出 / バックアップディレクトリ作成 / doctor.sh 実行) | ◯ | — |
@@ -55,7 +55,7 @@
 
 ## 重要な制約
 
-- **`sync.sh` の実行**: Phase 0-9 では `--dry-run` のみ。`--force` は `CLAUDE_SYSTEM_ALLOW_SYNC=1` を要求するセーフガード付き。Phase 10 で初めて実切替する
+- **`sync.sh` の実行**: 既定は `--dry-run`。`--force` による適用はライブの `~/.claude/` を書き換えるため `CLAUDE_SYSTEM_ALLOW_SYNC=1` を要求する(`githooks/pre-push` の `CS_ALLOW_PUSH` と同型 / ADR 0024)
 - **`cleanup-claude-code-runtime.sh` の実行頻度**: 手動実行のみ(SessionStart hook や定期実行には組み込まない、Phase 7a 設計判断 A1)
 - **`setup.sh` の chezmoi 連携**: 検出のみ(Phase 7a 設計判断 A2)。chezmoi との深い連携は将来検討
 - **`sync-settings.sh` の overrides 運用**: `~/.claude/settings.machine-overrides.json` には `permissions.*` / `hooks.*` 等の方針リストを書かない(jq `*` の配列置換でガードレールが丸ごと差し替わるため。ADR 0017)

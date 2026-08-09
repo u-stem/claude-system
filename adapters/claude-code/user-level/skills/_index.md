@@ -1,7 +1,7 @@
 # user-level skills 索引
 
 このディレクトリには Claude Code の **user-level skills** を配置する。
-Phase 10 で `~/.claude/skills/` にシンボリックリンクされる。
+`~/.claude/skills/` にシンボリックリンクされている。
 
 skill は段階的開示で読み込まれる「能力単位」(根拠は [`principles/03-skill-composition.md`](~/ws/claude-system/principles/03-skill-composition.md) と [`principles/04-progressive-disclosure.md`](~/ws/claude-system/principles/04-progressive-disclosure.md))。
 

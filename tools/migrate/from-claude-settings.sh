@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # WARNING: This script switches ~/.claude/ from claude-settings to claude-system.
-# Run only after Phase 9 verification is complete (Phase 10 execution).
+#
+# It performed that one-time switchover on 2026-05-04 and is retained for two
+# cases: a fresh machine that still carries a legacy claude-settings tree, and
+# rollback rehearsal. A machine with no legacy tree wants tools/sync.sh instead.
 #
 # Behavior:
 #   - Detects dangling symlinks in the source tree (preflight) and offers to
@@ -31,7 +34,8 @@ source "$(dirname "${BASH_SOURCE[0]}")/../_lib.sh"
 
 cs_print_help() {
   cat <<'EOF'
-from-claude-settings.sh — switch ~/.claude/ to claude-system (Phase 10).
+from-claude-settings.sh — switch ~/.claude/ from a legacy claude-settings tree
+to claude-system (one-time structural migration).
 
 Usage:
   tools/migrate/from-claude-settings.sh             Apply (after confirmation)
@@ -281,9 +285,9 @@ fi
 # 7. settings.json: delegated to tools/sync.sh (ADR 0007)
 # ---------------------------------------------------------------------------
 # settings.json holds machine-local values (API keys etc.) and cannot be a
-# symlink. Its cp-deploy is the responsibility of tools/sync.sh (which is the
-# canonical Phase 10 follow-up step per tools/setup.sh). This script handles
-# the one-shot structural switch only.
+# symlink. Its cp-deploy is the responsibility of tools/sync.sh (the canonical
+# follow-up step per tools/setup.sh). This script handles the one-shot
+# structural switch only.
 cs_step "Step 7: settings.json (delegated to tools/sync.sh)"
 
 if [[ "$DRY_RUN" == "1" ]]; then

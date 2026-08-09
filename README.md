@@ -62,9 +62,12 @@ git clone https://github.com/u-stem/claude-system.git
 # 3. 整合性確認
 ~/ws/claude-system/tools/doctor.sh
 
-# 4. (Phase 10 完了後)~/.claude/ に symlink を張る
-~/ws/claude-system/tools/migrate/from-claude-settings.sh   # 旧設定から切り替え
-# または新規インストールなら ~/.claude/ を直接構築
+# 4. ~/.claude/ に symlink を張る
+~/ws/claude-system/tools/sync.sh --dry-run                  # 計画を確認
+CLAUDE_SYSTEM_ALLOW_SYNC=1 ~/ws/claude-system/tools/sync.sh --force
+
+# 5. settings.json を生成して配置
+~/ws/claude-system/tools/sync-settings.sh --apply
 ```
 
 詳細は [`meta/multi-device-setup.md`](./meta/multi-device-setup.md) を参照。
@@ -133,21 +136,23 @@ git clone https://github.com/u-stem/claude-system.git
 
 ---
 
-## シンボリックリンク切り替え(Phase 10 への誘導)
+## シンボリックリンク切り替え
 
-`~/.claude/` を旧 claude-settings から claude-system へ切り替える操作は **Phase 10** で行う。
-本リポジトリの `v0.1.0-rc1` 時点では切り替え未実施で、旧設定が `~/.claude/` 配下に展開されている。
+`~/.claude/` の claude-system への切り替えは **2026-05-04 に完了済み**([`meta/CHANGELOG.md`](./meta/CHANGELOG.md))。
+現在 `~/.claude/` の `CLAUDE.md` / `skills` / `hooks` / `commands` / `agents` は本リポジトリへの symlink であり、`settings.json` のみ [`tools/sync-settings.sh`](./tools/sync-settings.sh) が template ⊕ マシン固有 overrides から生成して配置する(ADR 0017)。
 
-### 切り替え手順(Phase 10 で実行)
+### 新しいマシンで張り直すとき
 
 ```bash
-~/ws/claude-system/tools/migrate/from-claude-settings.sh
-# 1. 既存 ~/.claude/ を ~/.claude-system-backups/migration-<TIMESTAMP>/ に退避
-# 2. ~/.claude/ ディレクトリを再作成
-# 3. CLAUDE.md / skills / hooks / commands / agents の symlink を張る
-# 4. settings.json は手動で template から cp + 編集
-# 5. doctor.sh で整合性確認
+~/ws/claude-system/tools/setup.sh            # 前提ツール検出 + core.hooksPath 結線
+~/ws/claude-system/tools/sync.sh --dry-run   # 計画を確認
+CLAUDE_SYSTEM_ALLOW_SYNC=1 ~/ws/claude-system/tools/sync.sh --force
+~/ws/claude-system/tools/sync-settings.sh --apply
+~/ws/claude-system/tools/setup-plugins.sh    # 宣言だけでは入らない(ADR 0023)
+~/ws/claude-system/tools/doctor.sh           # 整合性確認
 ```
+
+旧設定からの初回移行に使った [`tools/migrate/from-claude-settings.sh`](./tools/migrate/from-claude-settings.sh) は役割を終えているが、ロールバック経路のため残置している。
 
 ### ロールバック
 
@@ -156,7 +161,7 @@ git clone https://github.com/u-stem/claude-system.git
 # ~/.claude-system-backups/migration-<TIMESTAMP>/ 最新を確認 → 復元
 ```
 
-詳細は [`meta/decisions/0005-bootstrap-completion-and-deferral.md`](./meta/decisions/0005-bootstrap-completion-and-deferral.md) を参照。
+移行時の判断は [`meta/decisions/0005-bootstrap-completion-and-deferral.md`](./meta/decisions/0005-bootstrap-completion-and-deferral.md) を参照。
 
 ---
 
@@ -197,7 +202,7 @@ git clone https://github.com/u-stem/claude-system.git
 | `cleanup-claude-code-runtime.sh` で消したくないものまで消えそう | 手動実行のみで自動化していない。`--dry-run` で対象を確認してから実行する |
 | hooks を止めたいが何が変わるか分からない | `tools/disable-guardrails.sh --dry-run` で変更内容を確認 → 引数なしで実行。復帰は `enable-guardrails.sh`(同じく `--dry-run` 対応) |
 | `git push` が `CS_ALLOW_PUSH` を要求して止まる | 意図した動作(ADR 0024)。内容を確認のうえ `CS_ALLOW_PUSH=1 git push origin main` |
-| Phase 10 切り替えで何かが壊れた | `tools/migrate/rollback-from-claude-system.sh` で旧設定に戻す |
+| symlink 切り替えで何かが壊れた | `tools/migrate/rollback-from-claude-system.sh` で旧設定に戻す |
 | `gitleaks` が偽陽性 | `.gitleaks.toml` の `allowlist.regexes` か `paths` に追加 |
 | 既存プロジェクト取り込み後に挙動が変 | `tools/unadopt-project.sh <project>` で撤回 → バックアップから復元 |
 
@@ -217,8 +222,9 @@ SemVer に従う。
 
 | バージョン | リリース日 | 内容 |
 |------------|-----------|------|
-| `v0.1.0-rc1` | 2026-04-29 | Phase 9 完了、Phase 10 切り替え前のリリース候補 |
-| `v0.1.0` | (Phase 10 完了時) | `~/.claude/` を claude-system へ切り替え |
+| `v0.1.0-rc1` | 2026-04-29 | 初期構築 Phase 9 完了、symlink 切り替え前のリリース候補 |
+| `v0.1.0-rc2` | 2026-04-29 | 同上(修正版) |
+| `v0.1.0` | 未発行 | `~/.claude/` の切り替えは 2026-05-04 に完了済みだが、タグは未発行 |
 
 ---
 
@@ -231,7 +237,7 @@ MIT — [LICENSE](./LICENSE)
 ## 関連
 
 - [`CLAUDE.md`](./CLAUDE.md) — claude-system 自身を編集するときの指示(編集者向け)
-- [`adapters/claude-code/user-level/CLAUDE.md`](./adapters/claude-code/user-level/CLAUDE.md) — 全プロジェクト共通の利用者向け指示(Phase 10 で `~/.claude/CLAUDE.md` にリンクされる)
+- [`adapters/claude-code/user-level/CLAUDE.md`](./adapters/claude-code/user-level/CLAUDE.md) — 全プロジェクト共通の利用者向け指示(`~/.claude/CLAUDE.md` にリンクされている)
 - [`meta/CHANGELOG.md`](./meta/CHANGELOG.md) — 全 Phase 完了履歴
 - [`meta/decisions/`](./meta/decisions/) — ADR(設計判断記録)
 - [`meta/glossary.md`](./meta/glossary.md) — 用語集

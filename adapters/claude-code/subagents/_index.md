@@ -1,7 +1,7 @@
 # subagents 索引
 
 このディレクトリには Claude Code の **subagent**(補助エージェント)定義を配置する。
-Phase 10 で `~/.claude/agents/` にシンボリックリンクされる。
+`~/.claude/agents/` にシンボリックリンクされている。
 
 subagent は独立コンテキストを持つ専門タスク実行単位(根拠は [`principles/01-context-economy.md`](~/ws/claude-system/principles/01-context-economy.md) の委譲基準と [`practices/session-handoff.md`](~/ws/claude-system/practices/session-handoff.md))。
 

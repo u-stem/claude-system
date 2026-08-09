@@ -1,12 +1,12 @@
 # user-level hooks
 
 このディレクトリには Claude Code のグローバル hook 用シェルスクリプトを配置する。
-Phase 7b(Guardrails 層)で実装済み。Phase 10 で `~/.claude/hooks/` にシンボリックリンクされる。
+Phase 7b(Guardrails 層)で実装済み。`~/.claude/hooks/` にシンボリックリンクされている。
 
 ## 配置場所と役割
 
 - 配置先: `~/ws/claude-system/adapters/claude-code/user-level/hooks/<name>.sh`
-- Phase 10 で `~/.claude/hooks/` にシンボリックリンクされる
+- `~/.claude/hooks/` にシンボリックリンクされている
 - 実行可能ビット(`chmod +x`)を必ず付ける
 - 全スクリプトは `#!/usr/bin/env bash` + `set -euo pipefail` を必須とする(`CLAUDE.md` 絶対ルール)
 - 共通ヘルパは [`_lib.sh`](./_lib.sh) を `source` する(入力読み取り `hk_read_input` / 判定出力 `hk_deny` `hk_ask` / ログ `hk_log` 等)

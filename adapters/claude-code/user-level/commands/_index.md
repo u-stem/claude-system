@@ -1,7 +1,7 @@
 # user-level slash commands 索引
 
 このディレクトリには Claude Code の **user-level slash command** を配置する。
-Phase 10 で `~/.claude/commands/` にシンボリックリンクされる(`adapters/claude-code/README.md` の Phase 10 リンク表参照)。
+`~/.claude/commands/` にシンボリックリンクされている(`adapters/claude-code/README.md` の「設定階層とリンク構成」参照)。
 
 slash command は Claude Code の `/<name>` 入力で発火する短いプロンプト。skill との違い:
 
@@ -91,4 +91,4 @@ done
 
 - [`adapters/claude-code/user-level/skills/_index.md`](~/ws/claude-system/adapters/claude-code/user-level/skills/_index.md)
 - [`adapters/claude-code/subagents/_index.md`](~/ws/claude-system/adapters/claude-code/subagents/_index.md)
-- [`adapters/claude-code/README.md`](~/ws/claude-system/adapters/claude-code/README.md) — Phase 10 で `~/.claude/commands/` にリンク
+- [`adapters/claude-code/README.md`](~/ws/claude-system/adapters/claude-code/README.md) — `~/.claude/commands/` へのリンク構成

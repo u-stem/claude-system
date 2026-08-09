@@ -58,7 +58,7 @@ adapters/claude-code/
 └── project-fragments/     既存プロジェクトに追記される断片(Phase 6)
 ```
 
-## 設定階層と Phase 10 でのリンク
+## 設定階層とリンク構成
 
 ```
 ~/.claude/                                                  (ディレクトリ)
@@ -69,8 +69,7 @@ adapters/claude-code/
 └── settings.json                                              (cp 配置、マシン固有値の差し込みのため symlink にしない)
 ```
 
-切替前(Phase 0〜9)は `~/.claude/` → `~/ws/claude-settings/` の現運用を維持する。
-切替手順は Phase 10、ロールバックは `tools/migrate/rollback-from-claude-system.sh`(Phase 7a)。
+この構成への切り替えは 2026-05-04 に完了済み。張り直し手順はルート [`README.md`](../../README.md) の「シンボリックリンク切り替え」、ロールバックは `tools/migrate/rollback-from-claude-system.sh`。
 
 ## Claude Code 仕様変更時の影響範囲マップ
 
@@ -86,7 +85,7 @@ Claude Code がアップデートされた場合、以下を順に確認する:
 | MCP server 設定スキーマ | `user-level/settings.json.template` の `mcpServers`, `user-level/mcp/servers.template.json` | パッケージバージョン更新と引数構文差分。各サーバーは 1 系統のみに登録(常時=インライン / opt-in・secret=宣言) |
 | プラグイン管理(`enabledPlugins` / `extraKnownMarketplaces`) | `user-level/settings.json.template`, `tools/setup-plugins.sh` | **上流の存続確認だけで終わらせない**。①採用プラグインが marketplace に存続しているか ②**宣言と実体が一致しているか**(`tools/doctor.sh` の「declared plugins vs installed」/ `tools/setup-plugins.sh --dry-run`)③更新時は持ち込み能力(hooks / MCP / subagent / skill)の増減を棚卸し。`enabledPlugins` は宣言にすぎず導入は別操作(ADR 0023。この行が①だけだったため 3 か月の乖離を 2 世代の ADR が見逃した) |
 | attribution / commit・PR 添付情報の構文 | `user-level/settings.json.template` の `attribution` | セッション URL 抑止方式の変更確認(安定スキーマは `commit` / `pr` のみ、`additionalProperties: false`) |
-| `~/.claude/` 配下のディレクトリ構造 | Phase 10 の symlink 配置 | リンク先パスの妥当性、`tools/setup.sh`(Phase 7a)の更新 |
+| `~/.claude/` 配下のディレクトリ構造 | `tools/sync.sh` の symlink 配置 | リンク先パスの妥当性、`tools/setup.sh` の更新 |
 | env 変数(`CLAUDE_CODE_*`) | settings.json `env` セクション | 廃止・改名された変数の特定 |
 | デフォルトモデル / effort | settings.json `model` / `effortLevel` | `practices/model-selection.md` の指針と整合 |
 
@@ -112,9 +111,9 @@ Claude Code がアップデートされた場合、以下を順に確認する:
 ### 判断の理由
 
 - skills は `~/ws/claude-system/adapters/claude-code/user-level/skills/<name>/SKILL.md` という 4 階層深い位置にあり、相対パス(`../../../../meta/...`)はリンク数が読みにくい
-- Phase 10 で `~/.claude/skills/` → `~/ws/claude-system/adapters/claude-code/user-level/skills/` に symlink される。symlink を辿るかどうかで相対パスの解決先が変わるため(physical 解決と lexical 解決の差)、絶対パスのほうが曖昧さが少ない
+- `~/.claude/skills/` → `~/ws/claude-system/adapters/claude-code/user-level/skills/` に symlink されている。symlink を辿るかどうかで相対パスの解決先が変わるため(physical 解決と lexical 解決の差)、絶対パスのほうが曖昧さが少ない
 - `${CLAUDE_SYSTEM_ROOT}` のような環境変数経由は markdown レンダラ・ツールが展開しないため不採用
-- claude-system は本システムの設計上 `~/ws/claude-system/` に固定配置される(Phase 10 の symlink 設計、`tools/setup.sh` の前提)。別パスへの配置を許容しないことを規約として明示する
+- claude-system は本システムの設計上 `~/ws/claude-system/` に固定配置される(symlink 設計と `tools/setup.sh` の前提)。別パスへの配置を許容しないことを規約として明示する
 
 ### 適用範囲
 

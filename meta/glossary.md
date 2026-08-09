@@ -49,7 +49,7 @@ claude-system で用いる用語の定義。
 | **slash command** | `/` プレフィックスで起動するコマンド。`adapters/claude-code/user-level/commands/<name>.md` |
 | **MCP**(Model Context Protocol) | 外部ツールを Claude Code に接続するプロトコル。`settings.json` の `mcpServers` で宣言 |
 | **`@<file>` 参照** | Markdown 内で別ファイルを取り込むための claude-code 構文。絶対パス(`@~/ws/claude-system/...`)推奨 |
-| **シンボリックリンク** | `~/.claude/CLAUDE.md` 等を `claude-system/adapters/claude-code/user-level/CLAUDE.md` へリンクする運用。Phase 10 で切り替える |
+| **シンボリックリンク** | `~/.claude/CLAUDE.md` 等を `claude-system/adapters/claude-code/user-level/CLAUDE.md` へリンクする運用。2026-05-04 に切り替え済み |
 | **`enabledPlugins`** | プラグインの有効化設定(`settings.json` 内)。superpowers / elements-of-style / episodic-memory 等 |
 | **CLAUDE.md** | Claude Code がセッション起動時に読む共通指示ファイル。user-level(`~/.claude/CLAUDE.md`)とプロジェクトレベル(`<project>/CLAUDE.md`)が階層的に読まれる |
 | **settings.json** | Claude Code の全体設定ファイル。permissions / hooks / env / mcpServers / enabledPlugins を宣言 |

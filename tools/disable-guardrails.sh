@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# tools/disable-guardrails.sh — emergency switch to neutralize hooks in
-# ~/.claude/settings.json (Phase 10+). Pre-Phase 10 it operates on whatever
-# settings.json is currently active.
+# tools/disable-guardrails.sh — emergency switch to neutralize hooks in the
+# deployed ~/.claude/settings.json.
 #
 # Strategy: read settings.json, blank out the `hooks` section to {}, write
 # back to settings.json after taking a backup.

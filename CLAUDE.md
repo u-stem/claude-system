@@ -4,7 +4,7 @@
 ここに加える変更は他の全プロジェクトの開発体験に波及するため、慎重に扱うこと。
 
 このファイルは「`claude-system` 自身を編集するときに読まれる指示」である。
-「日々の開発全般で読まれる共通指示」は [`adapters/claude-code/user-level/CLAUDE.md`](./adapters/claude-code/user-level/CLAUDE.md) に分離している(Phase 10 で `~/.claude/CLAUDE.md` にリンクされる)。
+「日々の開発全般で読まれる共通指示」は [`adapters/claude-code/user-level/CLAUDE.md`](./adapters/claude-code/user-level/CLAUDE.md) に分離している(`~/.claude/CLAUDE.md` にリンクされている)。
 
 ## 絶対ルール
 

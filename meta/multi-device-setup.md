@@ -177,8 +177,8 @@ fi
 
 ### `tools/doctor.sh` が `~/.claude/<sub> still points at claude-settings` を warn
 
-→ 想定どおり(Phase 0-9 では旧設定への symlink を維持)。
-Phase 10 切り替え後に消える。
+→ このマシンの `~/.claude/` がまだ claude-system に切り替わっていない。
+`tools/sync.sh --dry-run` で計画を確認し、`CLAUDE_SYSTEM_ALLOW_SYNC=1 tools/sync.sh --force` で張り直す。
 
 ### `gitleaks` がインストール済みなのに `tools/doctor.sh` が `gitleaks not installed` と言う
 
