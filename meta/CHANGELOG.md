@@ -2,6 +2,28 @@
 
 このリポジトリの変更履歴。Phase 単位でセクション化する。
 
+## Claude Code 2.1.226 への harness 同期とプラグイン層の実体化(2026-08-08)
+
+`update-check` command による調査(research-summarizer を 2 系統 × 独立 2 回委譲 + CHANGELOG raw の逐語取得 / npm registry 実測 / 公式 settings doc / ローカル実測での一次裏取り)に基づき、機械層を 2.1.226 に同期した。計画は devil-advocate の反証レビューで大幅修正(`crossSessionInbound` 据え置き論拠の撤回、push ガードを「事前確認」形から禁止形へ、doctor 検査を CLI 呼び出しからファイル読みへ、過去 ADR 訂正と影響範囲マップ全行走査の追加)。プラグイン導入と push ガードの 2 判断は運用者確認済み。判断の本体は [ADR 0023](./decisions/0023-harness-sync-2.1.226.md)。
+
+- `adapters/claude-code/VERSION`: `2.1.220` → `2.1.226`。`adapters/claude-code/README.md` の前提バージョン表記が `2.1.217` のままだった追随漏れも是正
+- **プラグイン層の実体化**: `enabledPlugins` の 3 件(superpowers v6.2.0 / elements-of-style v1.0.0 / episodic-memory v1.4.2)が **2026-04-26 のブートストラップ以来一度もインストールされていなかった**ことを実測確認し(`claude plugin list` = "No plugins installed.")、導入した。根因は ADR 0003 の「`enabledPlugins` で完結し別途のセットアップが不要」という事実の誤りで、ADR 0003 に Update 節を追加して訂正
+  - `settings.json.template` に `extraKnownMarketplaces` を追加。Why: `claude plugin marketplace add` は配置済み settings.json に直接書くが、同ファイルは template ⊕ overrides の決定論的レンダリング成果物(ADR 0017)であり、template に持たないと次回 sync で消える(`--dry-run` で実測確認)。放置すれば本変更のコミット時に自動同期が marketplace 登録を消していた
+  - `tools/setup-plugins.sh` 新設(template を読むだけ、冪等、`--dry-run` 対応)。導線として `meta/multi-device-setup.md` に手順 5 を新設、`tools/setup.sh` の help / Next steps と `tools/README.md` に登録。`setup.sh` からの自動実行はしない(`setup-mcp.sh` と同じくネットワークに出る操作は明示ステップ)
+  - `tools/doctor.sh` に「宣言 vs 実インストール」検査を追加。Stop hook から毎ターン走るため **`claude` CLI を呼ばずファイル読みのみ**、片方向(宣言→未導入のみ)、`installed_plugins.json` のスキーマ未知ならスキップ。検出・非検出・スキーマガードの 3 方向を実測
+- `tools/cleanup-claude-code-runtime.sh`: 削除対象から `plugins/cache` を除外。Why: 名前に反して**プラグイン payload の実体**がそこにある(`installPath` で確認)。実行すれば今回の是正を自前ツールが巻き戻していた。コードコメントと `--help` の両方に理由を明記
+- `adapters/claude-code/user-level/CLAUDE.md`: §8 に「バックグラウンドセッションからの `git push`」を**禁止形**で追加(v2.1.221 で背景セッションの既定が commit + push に変更されたため)。Why: §6-2 が既に「不可逆・外向き操作のみ事前確認」と規定しており再掲では増分ゼロ、かつ背景セッションには確認相手がおらず「事前確認」は実行不能。§9 にプラグイン実インストールが必要な旨を追記
+- `settings.json.template`: playwright pin `0.0.78` → `0.0.79`(registry 実測。削除された非推奨 `--output-mode` は不使用)
+- `commands/update-check.md`: 宣言と実体の一致確認 / 持ち込み能力の棚卸し / `superpowers` の skill 競合点検を調査項目に追加。Betterleaks を「見送り」から**次回の正式再評価対象**へ格上げ、`crossSessionInbound` を定点観測項目に追加
+- `tools/doctor.sh`: 委譲テストリストに既存の `tests/test-hooks-lib.sh` / `tests/test-log-bash-failure.sh` を追加配線(`test-sync-settings.sh` と合わせ 7→10 本)。Why: この 3 本はファイルとしては存在しながら doctor から呼ばれず、回帰検出の外にあった。実際 `test-sync-settings.sh` は ADR 0022 のモデル切替(2026-07-25)以降 2 週間壊れたまま誰にも気づかれていなかった。Stop hook 経由の実行コストは実測 +1.9 秒
+- `tests/test-sync-settings.sh`: ハードコードされた `claude-fable-5` を template 由来の値に変更(モデル切替のたびに腐る literal を排除)。加えて `env -u CS_BACKUP_ROOT` を追加。Why: `_lib.sh` が同変数を export するため、doctor.sh 経由で呼ばれると実 HOME の値が漏れ、**テストが実際の `~/.claude-system-backups/` に書き込んでいた**(実害を実測確認)
+- **security-auditor の最終ゲート由来の追加対応**: `episodic-memory` の MCP ラッパーが依存欠落時に node の `spawn` で `npm install` を自動実行する(= Bash ツールを経由しないため `permissions.deny` / PreToolUse hook / `check-package-age.sh` のいずれも効かない)ことが判明。次回セッション開始時の無監視 install を待たず監視下で手動 install し、**lockfile を固定**(380 パッケージ、全て npm registry 由来、install script 保持は既知 7 件)。`settings.json.template` に `// auditedPluginVersions` を追加し、棚卸し済み版と実インストール版のずれを `doctor.sh` が WARN(ファイル読みのみ、負方向も実測)。`setup-plugins.sh` に argv 検証とスキーマガードを追加。ADR 0023 §4 の「いずれもローカル実行、外部送信の宣言なし」は `episodic-memory` について**事実誤認**だったため §4a として訂正(実際は Anthropic API / HuggingFace CDN / npm registry の 3 系統)
+- `adapters/claude-code/user-level/CLAUDE.md` §2: 「`episodic-memory` の検索結果を Public 成果物へ転記しない」を追加。Why: 同プラグインは全プロジェクト横断で会話を索引し(実測 687MB / 18 プロジェクト、除外設定なし)、Private プロジェクトの会話本文が Public セッションから検索可能になる。索引範囲は運用者判断で全横断を維持し、境界は規約で担保する(ADR 0023 §4b)
+- `adapters/claude-code/README.md`: 影響範囲マップの「プラグイン管理」行を「上流の存続確認だけで終わらせない(宣言と実体の一致 + 持ち込み能力の棚卸し)」へ改訂。Why: この表は移行プレイブックが直接参照するチェックリストであり、①だけを見ていたことが 2 世代の ADR が乖離を見逃した構造的原因だった
+- 記録のみ: プラグイン由来 hook が `permissions.deny` と自前 hook 群の監査閉包の外に出た空白(塞がず記録)、`superpowers` の 14 skill と単層委譲規約・自前 skill の競合(受け入れ条件は `spawn_depth >= 2` の非発生、本 ADR 時点で未観測)、subagent 8→9 体、常時ロード skill 記述 1,882→4,927 bytes、marketplace クローン同梱の `settings.local.json` が `Bash(git push)` を allow する点(当該 cwd を使わない)
+- 訂正: ADR 0021 / 0022 の「採用 3 プラグインとも存続(marketplace 自動更新)」は誤記録(未インストールなら更新対象が存在しない)。該当箇所に注記
+- 不採用: `crossSessionInbound` / `dialogExpiry`(機能未使用 + 動的既定の決定表未取得。当初の「ADR 0022 の strictAllowlist と同型」論拠は反証で不成立と判明し撤回)、sandbox 資格情報マスキング拡張(macOS で前提不成立)、managed settings 系、self-hosted-runner / gateway。`ultraplan` 廃止・`modelOverrides` 厳格化・`CLAUDE_CODE_DISABLE_1M_CONTEXT` 拡大はいずれもリポジトリ内参照ゼロ / 未設定を実測し対応不要。MCP 残り 2 件と gitleaks 8.30.1 は最新のまま追従漏れなし
+
 ## Claude Code 2.1.220 への harness 同期とモデル/エフォート方針の見直し(2026-07-25)
 
 `update-check` command による調査(research-summarizer 2 系統委譲 + CHANGELOG raw / 公式 model-config doc / npm registry / headless 実測での一次裏取り)に基づき、機械層を 2.1.220 に同期し、モデル・エフォート方針を見直した。計画は devil-advocate の反証レビューで大幅修正(depth pin 撤回 / fallback 2 件化撤回 / effort 乖離の「記録して維持」案撤回 / 主モデル再評価の追加)、4 つの主要判断は運用者確認済み。判断の本体は [ADR 0022](./decisions/0022-harness-sync-2.1.220.md)。
