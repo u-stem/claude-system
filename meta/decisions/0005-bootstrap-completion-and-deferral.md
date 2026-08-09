@@ -69,6 +69,8 @@ Phase 10 完了時:
 - `git tag v0.1.0`(正式リリース)
 - 旧 `claude-settings` の GitHub 側 archive 設定を再確認
 
+> **Update (2026-08-09)**: この 3 点は約束どおりには履行されなかった。切り替え自体は 2026-05-04 16:25 に完了したが、`0006` 番は同じ 2026-04-29 に別テーマ([No User Identifiers](./0006-no-user-identifiers-in-system.md))へ採番済みで、切り替え ADR は起票されず、`git tag v0.1.0` も未発行のまま 3 か月放置された。決着は [ADR 0025](./0025-symlink-switchover-record-and-release-tagging.md) が引き継ぐ — 切り替えの実施記録は 0025 に、タグ発行は不可逆・外向き操作として運用者の判断待ち。本 ADR の判断(rc1 で一旦止め、切り替えを別セッションへ送る)自体は覆っていないため Status は `Accepted` のまま。
+
 ## Alternatives Considered
 
 | 代替案 | 採否 | 理由 |

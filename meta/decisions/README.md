@@ -96,8 +96,8 @@ claude-system における設計上の重大な意思決定を記録する場所
 | [0021](./0021-harness-sync-2.1.217.md) | Harness Settings Synchronization (Claude Code 2.1.217) | Accepted (2026-07-22) | VERSION 2.1.206→2.1.217。v2.1.210 で死文化した `Write(path)` deny 7 件を削除(Edit ルールが全編集ツールを統治。削除前に headless positive テストで実効を実測)。MCP pin 更新(playwright 0.0.78 / chrome-devtools 1.6.0 / sequential-thinking 2026.7.4)。ADR 0015 の単層委譲前提がハーネス既定化。Betterleaks は据え置き継続、新規プラグイン(Context7 / Frontend Design)は不採用 |
 | [0022](./0022-harness-sync-2.1.220.md) | Harness Sync 2.1.220 — Model Switch to Opus 5 and Effort Recalibration | Accepted (2026-07-25) | VERSION 2.1.217→2.1.220。主モデルを `claude-opus-5[1m]` へ乗り換え(agentic 系ベンチで Fable 5 同等以上・半額、再評価トリガー付き)。無記録だった machine-overrides の `effortLevel: medium` を削除し xhigh を実効化(メイン < subagent の深度逆転を解消)。v2.1.219 のネスト spawn 既定 depth 3 化は pin せず受容し、単層連鎖を「構造制約」から「運用規約」へ是正 + meta.json の `parentAgentId`/`spawnDepth` で観測強化。fallbackModel は Opus 4.8 維持(ADR 0016 のクラシファイア整合根拠は誤帰属と訂正)。practices/model-selection.md に推論深度軸を追補 |
 | [0023](./0023-harness-sync-2.1.226.md) | Harness Sync 2.1.226 — プラグイン宣言と実体の乖離、および供給網の閉包 | Accepted (2026-08-08) | VERSION 2.1.220→2.1.226。`enabledPlugins` の 3 件がブートストラップ以来**一度も未インストール**だったと実測判明(根因は ADR 0003 の「セットアップ不要」が事実誤り)。3 件を実導入し `extraKnownMarketplaces` を template 管理へ(自動同期が marketplace 登録を消す経路を実測で発見・封鎖)。`tools/setup-plugins.sh` 新設 + `doctor.sh` に片方向・ファイルベースの乖離検査 + 導線 3 点。`cleanup-claude-code-runtime.sh` が payload 実体である `plugins/cache` を消す欠陥を是正。プラグイン由来 hook が `permissions.deny` の統治外に出た空白を塞がず記録。背景セッションの `git push` を §8 に禁止形で追加。`crossSessionInbound` は据え置き(当初の「strictAllowlist と同型」論拠は反証で撤回)。ADR 0021/0022 の enabledPlugins 誤記録と ADR 0003 を訂正 |
-
 | [0024](./0024-observation-and-restraint-optimization.md) | 観測と抑止の最適化 — 毎ターン診断のティア化、subagent push の機械的抑止、集計の分離 | Accepted (2026-08-09) | 4 領域を実測して採否決定。①`doctor.sh --fast` 新設で Stop hook の CPU を 6.73→0.80 秒(88% 減)、`ulimit -t 10` の無音切断リスクを解消(テストと shellcheck は CI が既にゲート)②ADR 0023 執筆中に subagent が 10 コミットを public main へ自動 push した事故を受け、`pre-bash-guard.sh` で subagent の push のみ deny(判別は実測した `agent_type` の有無。commit は許可)。実エージェントで拒否を実証、9 ケースをテストで固定 ③`loop-report.sh` が委譲 83 / 内部 115 / 旧 115 を混在集計していた問題を分離(empty model rate 見かけ 62% → 実 9.6%)。`spawn_depth >= 2` は 0 件で単層委譲を実データ確認 ④常時コンテキスト 26,552 bytes を実測し削減は不採用(per-skill 無効化機構が無く、CLAUDE.md 2 本に重複ゼロ) |
+| [0025](./0025-symlink-switchover-record-and-release-tagging.md) | symlink 切り替えの記録と、ADR 0005 が約束した成果物の決着 | Accepted (2026-08-09) | ADR 0005 が Phase 10 完了時に約束した「`0006-symlink-switchover.md` の起票」と「`git tag v0.1.0`」が 3 か月未履行だったと棚卸しで判明。0006 番は同日別テーマへ採番済みのため番号を繰り上げ、切り替えの実施記録(2026-05-04 16:25 / バックアップ / 動作確認)を本 ADR が引き継ぐ。タグ発行は不可逆・外向き操作として運用者判断へ保留。真因を「ADR に未来の実行の約束を書いたが、回収する仕組みと接続されていなかった」と記録し、TODO への転記規約を新設 |
 
 ## ADR を書くタイミング
 
@@ -112,3 +112,11 @@ claude-system における設計上の重大な意思決定を記録する場所
 - 単純なバグ修正、リファクタリング(コミットメッセージで足りる)
 - 単発の追加(新 skill / 新 subagent など、CHANGELOG で足りる)
 - typo / 文言調整
+
+## 未来の実行を約束するとき
+
+ADR 本文に「後でこれを行う」と書く場合、**同じコミットで [`meta/TODO-for-v0.2.md`](../TODO-for-v0.2.md)(または後継の TODO ファイル)へ転記する**。
+
+ADR は判断の記録であって、実行待ちタスクの置き場ではない。ADR 本文に書いただけの約束はどの検査にも棚卸しにも掛からず、履行されないまま放置される。実例: ADR 0005 が約束した切り替え ADR の起票と `git tag v0.1.0` は 3 か月間未履行のまま誰も気づかなかった([ADR 0025](./0025-symlink-switchover-record-and-release-tagging.md))。
+
+**転記しない約束は履行されないものとして扱う。**
