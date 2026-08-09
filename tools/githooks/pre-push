@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Versioned git hook — wired via `git config core.hooksPath tools/githooks`
+# (done idempotently by tools/setup.sh; see ADR 0017).
+#
+# Publishing must be an explicit, attended act.
+#
+# Why this exists at the git layer rather than only in a PreToolUse hook:
+# on 2026-08-09 ten commits reached this public repo's main without anyone
+# asking. Reconstructing it from the session transcript showed no `git commit`
+# and no `git push` tool_use in the window — the harness ran git itself
+# (v2.1.221 changed background/agent sessions to commit and push to "preserve
+# work"). A PreToolUse hook only fires on tool calls, so it cannot see that
+# path at all. git's own hook runs no matter who invokes git.
+#
+# The PreToolUse guard in hooks/pre-bash-guard.sh stays as the early, specific
+# feedback layer for subagents. This is the backstop underneath it.
+#
+# Escape hatch is one word, so the interactive cost is near zero:
+#   CS_ALLOW_PUSH=1 git push origin main
+#
+# Note: `git push --no-verify` skips this hook entirely. That form is denied in
+# settings.json.template permissions.deny so the model cannot reach for it.
+
+set -euo pipefail
+
+if [[ "${CS_ALLOW_PUSH:-0}" == "1" ]]; then
+  # Verify the guards themselves before publishing. This is the right moment
+  # for it: test-pre-bash-guard.sh costs 2.13s (35 hook spawns), too much for
+  # the per-turn doctor tier, but nothing next to a push. A guard that has
+  # silently regressed is exactly what must not reach main.
+  root="$(git rev-parse --show-toplevel)"
+  for t in tests/test-pre-bash-guard.sh tests/test-user-identifier-patterns.sh; do
+    [[ -x "$root/$t" ]] || continue
+    if ! out="$("$root/$t" 2>&1)"; then
+      printf '[claude-system] push blocked: %s failed\n%s\n' "$t" "$out" >&2
+      exit 1
+    fi
+  done
+  exit 0
+fi
+
+cat >&2 <<'EOF'
+[claude-system] push blocked.
+
+Publishing is an explicit act here — an unattended session pushed to this
+public repo once already (ADR 0023 §8 / ADR 0024 §2).
+
+To push, state the intent:
+
+    CS_ALLOW_PUSH=1 git push origin main
+
+EOF
+exit 1

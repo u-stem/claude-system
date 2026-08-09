@@ -43,7 +43,23 @@
 
   後者は「commit は許可する」という本節の保証に正面から反する。"push" はコミットメッセージにありふれた語であり、正常な commit が止まる。**正規表現ではなく解析に置き換えた**: 引用符を空白に潰して単純コマンドへ分割し、環境変数代入とラッパー(`command` / `env` / `nohup` / `sudo` / `xargs` / `sh -c` 等)を剥がして実行プログラムを特定し、`basename` が `git` のときだけ**最初の非オプショントークン**をサブコマンドとして判定する。値を取るグローバルオプション(`-C` / `-c` / `--git-dir` 等)は次のトークンごと読み飛ばす
 - **検証**: `tests/test-pre-bash-guard.sh` を 9 → **25 ケース**に拡張(上表の回避形 7 種 / 値付きオプション 3 種 / メッセージ中の "push" 4 種 / メインセッション許可 / commit・add 許可 / `--force` 継続 deny)。実エージェントでも `git push --dry-run` の拒否と回避非試行を確認済み
-- **原理的に届かない範囲(正直な記録)**: `G=git; $G push` のような変数間接参照、`eval`、shell alias は解決できない。解決するにはコマンドを実行してみる必要があり、それは PreToolUse hook にできることではない。これらは「ハーネス既定の挙動」ではなく能動的な回避であり、本ガードの脅威モデル外とする
+- **原理的に届かない範囲(正直な記録)**: `G=git; $G push` のような変数間接参照、`git pus\h` のような分割、shell alias は静的解析では解決できない。解決するにはコマンドを実行してみる必要があり、それは PreToolUse hook にできることではない
+
+### 2a. しかしこの層では足りない — 実インシデントはツールを通っていなかった
+
+security-auditor の指摘を受けて transcript を実測したところ、**本 ADR の契機となった 10 コミットは Bash ツールを経由していなかった**ことが確定した。
+
+- インシデント時刻(01:27:18〜01:27:52 UTC)のメインセッション transcript に記録されている tool_use は `Edit` / `bash tools/doctor.sh` / `tools/sync-settings.sh --apply` / `git status` / `git log` / `git fetch` のみで、**`git commit` も `git push` も 1 件も無い**。全期間で `git push` の tool_use は事後に運用者が明示実行した 2 件だけ
+- つまりハーネスが git を内部実行しており、**PreToolUse は発火しない**。`agent_type` の判定精度をいくら上げても、この経路は構造的に捕捉できない
+- ADR 0023 §8 の「実エージェントで拒否を確認した」は、**型付き subagent が Bash で明示的に push した場合**の検証であって、インシデントの再現ではなかった
+
+**対処: 主防衛を git 自身の層へ移す**。`tools/githooks/pre-push` を新設し、`CS_ALLOW_PUSH=1` が無い push を拒否する(`core.hooksPath` は既に `tools/githooks` を指している)。誰が git を起動しても効く唯一の層である。
+
+- 逃げ道は 1 語(`CS_ALLOW_PUSH=1 git push origin main`)で、対話運用の摩擦はほぼ無い
+- `git push --no-verify` は pre-push を丸ごと飛ばすため、`settings.json.template` の `permissions.deny` に `Bash(git push*--no-verify*)` を追加した(従来 deny は commit 側のみで push 側は素通りだった)
+- **PreToolUse 層は残す**。置換ではなく多層化する。subagent には即座に理由付きで拒否が返るほうが、git 層で失敗するより早く正しく伝わる
+- pre-push はガード自己検査(`test-pre-bash-guard.sh` / `test-user-identifier-patterns.sh`)も実行してから通す。壊れたガードを公開しないための位置として適切で、実測 2.3 秒は push の頻度に対して無視できる
+- **限界**: この pre-push は claude-system リポジトリ限定である(`core.hooksPath` はリポジトリローカル設定)。他プロジェクトには効かない
 - **残る限界**: 判別できるのは *subagent* であって「バックグラウンドセッション全般」ではない。subagent でない独立した背景セッションが `agent_type` を持つかは未確認で、そこは依然 CLAUDE.md §8 の指示に依存する
 
 ### 3. `loop-report.sh` で委譲エージェントとハーネス内部を分離する

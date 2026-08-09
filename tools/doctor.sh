@@ -314,15 +314,33 @@ fi
 # 11. Optional sub-tests if present
 # ---------------------------------------------------------------------------
 cs_step "delegated lint scripts"
+# Guard self-checks that are cheap enough to run every turn. Measured
+# 2026-08-09: the identifier sync test is 0.13s, but test-pre-bash-guard.sh is
+# 2.13s (35 hook invocations, each a bash + jq spawn) — that would undo most of
+# the fast tier. It runs in tools/githooks/pre-push instead, which is the point
+# where a broken guard actually matters, since this repo pushes to main.
+FAST_TESTS=(tests/test-user-identifier-patterns.sh)
+for t in "${FAST_TESTS[@]}"; do
+  if [[ -x "$t" ]]; then
+    set +e
+    out="$("$t" 2>&1)"; rc=$?
+    set -e
+    if [[ $rc -eq 0 ]]; then ok "$(basename "$t") pass"
+    else fail "$(basename "$t") failed:"; printf '%s\n' "$out" >&2
+    fi
+  else
+    warn "$t not present or not executable"
+  fi
+done
+
 if [[ $FAST -eq 1 ]]; then
-  skip "delegated tests skipped (--fast; covered by CI doctor.yml)"
+  skip "remaining delegated tests skipped (--fast; covered by CI doctor.yml)"
 else
   for t in tests/lint-skills.sh tests/lint-principles-language.sh \
            tests/check-circular-refs.sh tests/validate-frontmatter.sh \
            tests/test-check-failure-patterns.sh tests/test-subagent-stop-record.sh \
            tests/test-subagent-stop-audit.sh tests/test-sync-settings.sh \
-           tests/test-hooks-lib.sh tests/test-log-bash-failure.sh \
-           tests/test-pre-bash-guard.sh tests/test-user-identifier-patterns.sh; do
+           tests/test-hooks-lib.sh tests/test-log-bash-failure.sh; do
     if [[ -x "$t" ]]; then
       set +e
       out="$("$t" 2>&1)"

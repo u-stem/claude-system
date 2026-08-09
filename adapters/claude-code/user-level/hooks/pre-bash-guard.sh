@@ -76,7 +76,10 @@ _pbg_invokes_git_push() {
     while [[ $# -gt 0 ]]; do
       case "$1" in
         *=*)                                    shift ;;
-        command|env|nohup|sudo|time|exec|xargs)  shift ;;
+        command|env|nohup|sudo|time|exec|xargs|eval) shift ;;
+        # Shell keywords that begin a command inside a compound statement:
+        # `if true; then git push; fi`, `for r in o; do git push; done`.
+        then|else|elif|do|\!)                   shift ;;
         sh|bash|zsh|dash|ksh)
           shift
           [[ "${1:-}" == "-c" ]] && shift       # `sh -c <string>` — keep parsing it
@@ -94,13 +97,14 @@ _pbg_invokes_git_push() {
         -C|-c|--git-dir|--work-tree|--namespace|--exec-path|--config-env|--super-prefix)
           shift 2 || shift ;;
         -*) shift ;;
-        *)  [[ "$1" == "push" ]] && return 0
+        # send-pack is push's plumbing: it publishes just the same.
+        *)  [[ "$1" == "push" || "$1" == "send-pack" ]] && return 0
             break ;;
       esac
     done
     # printf must emit a trailing newline: without one, `read` fails on the
     # final (only) segment and the loop body never runs at all.
-  done < <(printf '%s\n' "$line" | tr ';&|(){}\n' '\n')
+  done < <(printf '%s\n' "$line" | tr ';&|(){}<>\n' '\n')
   return 1
 }
 

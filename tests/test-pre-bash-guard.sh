@@ -62,6 +62,23 @@ check "git -C <dir> push denied"        deny  "$(sub code-reviewer 'git -C /tmp/
 check "git -c <cfg> push denied"        deny  "$(sub code-reviewer 'git -c user.name=x push')"
 check "git --git-dir <d> push denied"   deny  "$(sub code-reviewer 'git --git-dir /tmp/.git push')"
 
+# Terminators other than whitespace. The first implementation required a space
+# or end-of-line after `push`, so a trailing `;` or a redirect slipped past.
+check "push with trailing semicolon"    deny  "$(sub code-reviewer 'git push;')"
+check "push piped"                      deny  "$(sub code-reviewer 'git push|cat')"
+check "push redirected"                 deny  "$(sub code-reviewer 'git push>/dev/null')"
+check "push in subshell"                deny  "$(sub code-reviewer '(git push)')"
+check "push in brace group"             deny  "$(sub code-reviewer '{ git push; }')"
+
+# Command position inside compound statements.
+check "push inside if/then"             deny  "$(sub code-reviewer 'if true; then git push; fi')"
+check "push inside for/do"              deny  "$(sub code-reviewer 'for r in origin; do git push $r; done')"
+check "eval-wrapped push"               deny  "$(sub code-reviewer 'eval "git push"')"
+check "env-assignment prefixed push"    deny  "$(sub code-reviewer 'GIT_SSH_COMMAND=ssh git push origin main')"
+
+# send-pack is push's plumbing and publishes just the same.
+check "git send-pack denied"            deny  "$(sub code-reviewer 'git send-pack origin main')"
+
 # --- the main session keeps pushing -----------------------------------------
 # The operator drives the main session, so §6-2's "confirm outward actions"
 # applies there and a mechanical block would only add friction.

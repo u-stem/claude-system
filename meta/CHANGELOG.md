@@ -16,6 +16,18 @@ ADR 0024 の push 前検証で `gitleaks detect`(**git 履歴モード**、従�
 - 不採用: グローバル `core.hooksPath`(各リポジトリの `.git/hooks/` を無効化し husky / lefthook が壊れる)。commit 時のグローバル block(`pre-bash-guard.sh` 拡張)は次点候補として保留、採る場合は逃げ道なしの常時 deny 方針で確認済み
 - **末尾位置の取りこぼしを是正**: 両パターンが末尾の区切り文字を必須にしていたため、`/Users/<name>` / `-Users-<name>` のような**文末表記が両層とも素通り**していた(ドキュメント主体の本リポジトリでは現実的な形)。末尾要求を外し文字クラスを `[a-zA-Z0-9._-]` に対称化。14 ケースの実測で検出 8 件 HIT・誤検知候補 6 件すべて MISS を確認し、テストを 10→16 アサーションに拡張。なお「ハイフン入り username を取りこぼす」という当初の疑いは**実測では誤り**(最初のハイフンでマッチしていた)。この修正で `_lib.sh` だけ先に直した際に同期テストが 4 件の不一致を実運用で検出し、機構が意図どおり働くことも確認できた
 
+## セキュリティ監査の反映: 主防衛を git 層へ移動(2026-08-09)
+
+`security-auditor` の指摘(Critical 1 / High 3 / Medium 4 / Low 3)を反映した。
+
+- **Critical**: 監査は「インシデントの 10 コミットはツール層を通っていない」と指摘し、**transcript の実測で確定した**。当該時刻(01:27:18〜01:27:52 UTC)の tool_use は Edit / doctor / sync-settings / `git status` / `git log` / `git fetch` のみで、`git commit` も `git push` も存在しない。ハーネスが git を内部実行しており PreToolUse は発火しない。したがって前コミットの subagent push ガードは**インシデントのクラスを構造的に捕捉できない**
+- `tools/githooks/pre-push`(新規): `CS_ALLOW_PUSH=1` の無い push を拒否する。git 自身の層なので**呼び出し元を問わず効く**。実測でブロックと逃げ道の両方を確認。あわせてガード自己検査 2 本を push 前に実行する(2.3 秒。壊れたガードを公開しないため)
+- `settings.json.template`: `Bash(git push*--no-verify*)` を deny に追加。Why: `--no-verify` は pre-push を丸ごと飛ばす。従来 deny は commit 側のみで push 側が素通りだった
+- `hooks/pre-bash-guard.sh`: パーサをさらに堅牢化(`eval` / 制御構文キーワード `then`・`do` / リダイレクト `<>` を区切りに追加 / `send-pack` を push の同類として deny)。テストを 25 → **35 ケース**に拡張
+- `tools/doctor.sh`: 識別子同期テスト(0.13 秒)のみ fast 層に残し、push ガードテスト(**実測 2.13 秒**、監査の「~50ms」見積もりは誤り)は pre-push へ移した。fast は 0.94 秒を維持
+- `meta/CHANGELOG.md`: 過去エントリに残っていた **personal email literal と本名の literal を除去**(「置換した」と書きながら置換前の値を引用していた。ADR 0006 違反)。追跡ファイル全体で 0 件を確認
+- ADR 0023 §8 / ADR 0024 §2 を訂正: 「実エージェントで実証済み」は型付き subagent の Bash 経由 push に対する検証であって、インシデントの再現ではなかった
+
 ## レビュー指摘の反映: push ガードの作り直しほか(2026-08-09)
 
 `code-reviewer` の指摘 6 件(重大 2 / 警告 2 / 提案 2)をすべて反映した。
@@ -383,7 +395,7 @@ rc1 のレビュー対応で「`.gitleaks.toml` の email literal は ADR 0001 �
   - 本名 / 個人 email literal / GitHub handle literal を claude-system 内に書かない
   - 例外: LICENSE Copyright holder / `https://github.com/<handle>/<repo>` の URL 自動参照 / 手順書の `<your-...>` 明示プレースホルダ / global git config 由来の commit author
 - ADR 0001 修正:
-  - `tanaka128821@gmail.com` literal を `<personal-email>` プレースホルダに置換
+  - personal email の literal を `<personal-email>` プレースホルダに置換(この記述自体が置換前の値を引用しており ADR 0006 違反だったため、2026-08-09 に literal を除去)
   - `u-stem` literal の例示を抽象化
   - Decision セクションに「具体実装は ADR 0006 を参照」を追記
   - 過去 Public 露出の経緯記述を抽象化(具体リポジトリ名 7 件のリストアップを撤回)
@@ -402,7 +414,7 @@ rc1 のレビュー対応で「`.gitleaks.toml` の email literal は ADR 0001 �
 - doctor.sh: 38/38 OK / warn 0 / error 0
 - gitleaks: no leaks found
 - shellcheck / lint-skills / lint-principles-language / check-circular-refs / validate-frontmatter: 全 pass
-- `Mikiya` / `tanaka128821` の grep: 0 hit
+- 本名・personal email literal の grep: 0 hit(検索語自体は ADR 0006 によりここに書かない)
 - `u-stem` の grep: LICENSE / GitHub URL / ADR 0006 自身のみ(すべて例外条項該当)
 
 ---
