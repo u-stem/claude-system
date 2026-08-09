@@ -1,6 +1,6 @@
 # ADR 0010: Opus 4.8 Harness Settings Synchronization
 
-- **Status**: Partially superseded by 0022
+- **Status**: Partially superseded by 0016
 - **Date**: 2026-05-29
 - **Decider**: リポジトリオーナー(ADR 0001 の識別子規約に従う)
 
@@ -64,9 +64,9 @@ ADR 0009「不可逆・外向き操作は事前確認」の機械担保は、既
 
 ## Update (2026-08-09)
 
-Status を `Accepted` から `Partially superseded by 0022` に変更した。
+Status を `Accepted` から `Partially superseded by 0016` に変更した。直接の後継は [ADR 0016](./0016-fable-5-harness-settings-sync.md) であり、そこからさらに [ADR 0022](./0022-harness-sync-2.1.220.md) へ連鎖する(Status は直接の後継を指し、経緯は本文で辿る)。
 
-**置き換えられた部分** — 機械層の pin。model pin は [ADR 0016](./0016-fable-5-harness-settings-sync.md)(Fable 5)を経て [ADR 0022](./0022-harness-sync-2.1.220.md)(`claude-opus-5[1m]`)へ 2 世代進み、`VERSION` の 2.1.156 も以後の同期 ADR で繰り返し更新された。本 ADR に書かれた具体的な値はいずれも現行ではない。
+**置き換えられた部分** — 機械層の pin。model pin は 0016(Fable 5)を経て 0022(`claude-opus-5[1m]`)へ 2 世代進み、`VERSION` の 2.1.156 も以後の同期 ADR で繰り返し更新された。本 ADR に書かれた具体的な値はいずれも現行ではない。
 
 **残っている部分** — autonomy 方針を hook で強制せず、既存の deny/ask ガードが「不可逆操作は確認」の線引きを部分担保していると確認・記録した判断。これは [ADR 0009](./0009-opus-48-autonomy-tuning.md) とともに現に運用されている。
 

@@ -1,5 +1,5 @@
 {
-  "//": "Claude Code user-level settings template. Phase 10 で ~/.claude/settings.json として配置される(symlink ではなく cp による配置を推奨。マシン固有値の差し込みのため)。'//' で始まるキーは Claude Code 側で無視されるため JSON コメント代替として使用",
+  "//": "Claude Code user-level settings template. tools/sync-settings.sh が本 template ⊕ マシン固有 overrides をレンダリングして ~/.claude/settings.json に配置する(symlink ではなく cp。マシン固有値の差し込みのため / ADR 0017)。'//' で始まるキーは Claude Code 側で無視されるため JSON コメント代替として使用",
 
   "// env": "サブプロセスへ機密 env を漏らさない、autocompact 閾値、1h prompt cache 等。EXPERIMENTAL_AGENT_TEAMS は Opus 4.7 期に厳格化(3 PBI 以上 + 完全独立ファイルのみ適用)し、Fable 5 期も有効維持(ADR 0010 / 0016)。AUTOCOMPACT_PCT_OVERRIDE は 85→70 に引き下げ(2026-05): 巨大コンテキスト(1M 窓の高%保持)が 'tool call could not be parsed' を誘発しやすいため早めに圧縮する。安易に戻さないこと",
   "env": {
@@ -28,9 +28,9 @@
   },
 
   "// permissions": "deny は物理ブロック(LLM の自制に頼らない)。allow は良性で頻出するコマンドを列挙して permission prompt を抑制する。両者の整合は Phase 7b で再点検する",
-  "// permissions.deny.protected_paths": "旧 claude-settings はアーカイブで読み取り専用。Phase 10 で symlink 切替するまで現運用を維持するため write を物理ブロック",
+  "// permissions.deny.protected_paths": "旧 claude-settings はアーカイブで読み取り専用のため write を物理ブロック",
   "// permissions.deny.backup_files": "*.backup-* は人間が手作業バックアップした原本。LLM が上書きしないよう物理ブロック",
-  "// permissions.deny.destructive_filesystem": "~/.claude/ や claude-system 全体の rm を物理ブロック。Phase 10 のシンボリックリンク切替を保護する。-rf 以外の派生(-r 単独 / sudo / find -delete)も列挙",
+  "// permissions.deny.destructive_filesystem": "~/.claude/ や claude-system 全体の rm を物理ブロック。シンボリックリンク構成を保護する。-rf 以外の派生(-r 単独 / sudo / find -delete)も列挙",
   "// permissions.deny.destructive_git": "強制 push と --no-verify は禁止。--no-verify は Phase 7b の PreToolUse hook(jq インライン)でも検出予定の二重防御。push 側の --no-verify を明示 deny するのは tools/githooks/pre-push を素通りさせないため(ADR 0024 §2a)",
   "// permissions.deny.secrets": "機密ファイル系の Read/Edit を全面ブロック。Phase 7b で .gitleaks.toml と整合させる。相対パス glob が中心のため絶対パス・~ 展開後のアクセスは hooks 側(pre-edit-protect.sh / pre-bash-guard.sh)で補完する",
   "// permissions.deny.edit_governs_all_edits": "v2.1.210 以降、file permission チェックは Edit(path) / Read(path) ルールのみ照合し、Edit ルールが全編集ツール(Write / NotebookEdit 含む)を統治する。旧 Write(path) deny 7 件は照合対象外の死文となったため削除(ADR 0021)。./.env への Write が Edit(./.env) deny で拒否されることは 2.1.217 で実測確認済み",
@@ -169,7 +169,7 @@
     ]
   },
 
-  "// hooks": "Phase 7b で結線。本物の実体は adapters/claude-code/user-level/hooks/*.sh。Phase 10 で ~/.claude/hooks/ に symlink される。緊急停止は tools/disable-guardrails.sh を使う",
+  "// hooks": "Phase 7b で結線。本物の実体は adapters/claude-code/user-level/hooks/*.sh で、~/.claude/hooks/ に symlink されている。緊急停止は tools/disable-guardrails.sh を使う(--dry-run で事前確認可)",
   "// hooks.SessionStart": "繰り返し失敗パターンを通知して self-improving loop を促す",
   "// hooks.PreToolUse.Bash": "破壊的コマンド阻止 + 若いパッケージ阻止(supply-chain)+ 大量出力の末尾キャップ(token 経済、ADR 0012)。各 hook は対象外コマンドで早期 exit する。output-cap は test/build/lint の単純コマンドのみ updatedInput で stdout を tail。CLAUDE_BASH_OUTPUT_CAP=0 で無効化",
   "// hooks.PreToolUse.Edit_Write": "claude-settings/ や *.backup-* への書き込み阻止 + principles/practices への禁止語混入阻止",

@@ -29,6 +29,8 @@
 | [`new-adr.sh`](./new-adr.sh) | プロジェクト内 `docs/adr/` に新 ADR を起票(自動連番) | ◯ | — |
 | [`cleanup-backups.sh`](./cleanup-backups.sh) | `~/.claude-system-backups/` の古いファイルを削除(デフォルト 30 日) | ◯ | — |
 | [`check-claude-version.sh`](./check-claude-version.sh) | インストール済み Claude Code と `adapters/.../VERSION` の差分を表示 | ◯ | — |
+| [`archive-failure-log.sh`](./archive-failure-log.sh) | `<project>/.claude/failure-log.jsonl` を `failure-log.archive/YYYY-MM.jsonl` へ退避(計測の連続性を保つ / ADR 0019)。`--dry-run` 対応。**hook からは自動実行しない** | ◯ | — |
+| [`loop-report.sh`](./loop-report.sh) | 失敗ログと subagent ログの横断集計(live + アーカイブ)。委譲エージェントとハーネス内部を分離集計(ADR 0024)。`--all` でプロジェクト横断 | ◯ | — |
 | [`setup-mcp.sh`](./setup-mcp.sh) | `adapters/.../mcp/servers.template.json` を読んで MCP を登録(secret 必須は skip) | ◯ | — |
 | [`setup-plugins.sh`](./setup-plugins.sh) | `settings.json.template` の `extraKnownMarketplaces` / `enabledPlugins` を読んでプラグインを実体化(宣言だけでは入らない / ADR 0023)。`--dry-run` 対応 | ◯ | — |
 | [`cleanup-claude-code-runtime.sh`](./cleanup-claude-code-runtime.sh) | `~/.claude/` のランタイム生成物(projects/ telemetry/ history.jsonl 等)を削除。**手動実行のみ** | ◯ | — |

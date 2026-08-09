@@ -17,16 +17,17 @@ Phase 7b(Guardrails 層)で実装済み。`~/.claude/hooks/` にシンボリッ�
 
 | ファイル | hook 種別 | 役割 |
 |---------|-----------|------|
-| `pre-bash-guard.sh` | PreToolUse(Bash) | `--no-verify` / 破壊的コマンド / `cd` を deny(`cd` は eval 形も正規表現で捕捉。通常形・複合形・subagent は settings.json `permissions.deny` の `Bash(cd)` / `Bash(cd *)` が session 全体でカバー) |
+| `pre-bash-guard.sh` | PreToolUse(Bash) | `--no-verify` / 破壊的コマンド / `cd` を deny(`cd` は eval 形も正規表現で捕捉。通常形・複合形・subagent は settings.json `permissions.deny` の `Bash(cd)` / `Bash(cd *)` が session 全体でカバー)。加えて **subagent からの `git push` を deny**(payload の `agent_type` で判別、commit と add は許可 / ADR 0024) |
 | `check-package-age.sh` | PreToolUse(Bash) | typosquatting / 侵害バージョン防御。`PACKAGE_MIN_AGE_DAYS`(既定 7)以内のパッケージを deny |
 | `pre-bash-output-cap.sh` | PreToolUse(Bash) | token 経済(ADR 0012)。test/build/lint の単純コマンドの stdout を `updatedInput` で `tail -n N` にキャップ。stderr と exit code は保持。`CLAUDE_BASH_OUTPUT_CAP`(既定 200、`0` で無効) |
 | `pre-edit-protect.sh` | PreToolUse(Edit\|Write) | `claude-settings/` / `*.backup-*` への書き込み阻止 + principles/practices への禁止語混入阻止 |
 | `post-edit-validate.sh` | PostToolUse(Edit\|Write) | SKILL.md frontmatter / 禁止語 / ユーザー識別子パス(ADR 0008)の検証 |
 | `post-edit-dispatcher.sh` | PostToolUse(Edit\|Write) | プロジェクト側 `.claude/hooks/post-edit.sh` へ委譲 |
-| `log-bash-failure.sh` | PostToolUse(Bash) | 終了コード ≠ 0 を category(test/check-types/check)判定して `log-failure.sh` に渡す |
+| `log-bash-failure.sh` | PostToolUseFailure(Bash) | 終了コード ≠ 0 を category(test/check-types/check)判定して `log-failure.sh` に渡す。**PostToolUse では発火しない**ことが実測で判明し ADR 0020 で移行済み |
 | `log-failure.sh` | (補助) | `.claude/failure-log.jsonl` への JSONL 追記 |
 | `check-failure-patterns.sh` | SessionStart | `failure-log.jsonl` から繰り返し失敗を検出して通知(自己参照ループの起点) |
-| `stop-session-doctor.sh` | Stop | timeout 付き `doctor.sh` 診断 |
+| `stop-session-doctor.sh` | Stop | `doctor.sh --fast` を `ulimit -t 10` 付きでバックグラウンド実行し `last-doctor.log` に記録。**セッションを止めることはしない**(ADR 0024) |
+| `notify-stop-failure.sh` | StopFailure | parse-error 等でセッションが異常終了したことを通知(ADR 0014 層 A。`StopFailure` の出力はハーネスに無視されるため副作用のみ) |
 | `post-stop-dispatcher.sh` | Stop | プロジェクト側 `.claude/hooks/post-stop.sh` へ委譲 |
 | `subagent-stop-record.sh` | SubagentStop | `subagent-log.jsonl` への基本記録(委譲量の計測点、ADR 0012) |
 | `subagent-stop-audit.sh` | SubagentStop | ADR 0001/0002 サニタイゼーション + tools 越権検知(log-only) |
