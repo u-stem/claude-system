@@ -135,8 +135,13 @@
 v2.1.221 の既定変更(背景セッションは作業保全のため commit して push する)に対し、user-level CLAUDE.md §8 に**禁止形**で追記した。
 
 - **禁止形にした理由**: §6-2 は既に「不可逆・外向き操作のみ事前確認」と規定しており、「push は事前確認を要する」は増分ゼロの再掲にすぎない。加えて背景セッションには確認する相手がおらず、非対話文脈で「事前確認」は実行不能な指示になる(無視されるか停止する)。§8 は全て「〜しない」形の禁止列挙であり、禁止形が節の性質とも整合する
-- 抑止したいのは push そのものではなく「作業保全という理由づけによる例外」であるため、「commit までに留める。ブランチに commit してあれば作業は失われない」と代替行動まで書いた
-- **実効性は未検証**。CLAUDE.md の指示がハーネス既定を上書きできるかは実測していない。機械化(背景セッション判定 + push のみ deny)は、SessionStart payload の `source` に背景セッション相当の値があるかが未実測のため今回は採らない。効かないと判明した時点で再評価する
+- 抑止したいのは push そのものではなく「作業保全という理由づけによる例外」であるため、「commit までに留める。ローカルに commit してあれば作業は失われない」と代替行動まで書いた
+- **Update(2026-08-09): 指示だけでは効かないことが実証され、機械化した**
+  - 本 ADR を書いた同じセッション中に、**subagent が 10 コミットを Public な `origin/main` へ自動 push した**(10:27:18〜10:27:52)。運用者も私も指示していない。皮肉にも、この禁止規約を追加したコミット自身がその禁止に違反して公開された。CLAUDE.md への記述は subagent の挙動を止められないことが実証的に確定した
+  - **判別手段の実測**: SessionStart の `source` は使えない(値は `startup` / `resume` / `clear` / `compact` / `fork` のみで、背景か否かを表さない)。代わりに **PreToolUse payload の `agent_type` / `agent_id` が subagent 呼び出しのときだけ現れる**ことを実測確認した。メインセッションは `[cwd, effort, hook_event_name, permission_mode, prompt_id, session_id, tool_input, tool_name, tool_use_id, transcript_path]`、subagent はこれに `agent_id` + `agent_type` が加わる(`agent_type=code-reviewer` を観測)
+  - **実装**: `pre-bash-guard.sh` が「`agent_type` が存在 かつ コマンドが `git ... push`」を deny する。commit と add は許可したまま(ローカルに commit してあれば作業は失われず、公開だけを差し止める)。メインセッションは `agent_type` を持たないため影響を受けない
+  - **検証**: `tests/test-pre-bash-guard.sh` で 9 ケース(subagent の各種 push 形 / メインの push 許可 / commit・add 許可 / 誤検知なし / `--force` は従来どおり deny)を固定。さらに**実エージェントで実測**し、`git push --dry-run` が hook に拒否され回避も試みられないことを確認した
+- **残る限界**: 判別できるのは *subagent* であって「バックグラウンドセッション全般」ではない。独立した背景セッション(subagent でないもの)が `agent_type` を持つかは未確認であり、そこは依然 CLAUDE.md §8 の指示に依存する
 - **注意点(実測)**: 導入した marketplace のクローン `~/.claude/plugins/marketplaces/superpowers-marketplace/.claude/settings.local.json` は `Bash(git push)` / `Bash(git commit:*)` / `Bash(python3:*)` を allow する project-level 設定を同梱している。cwd がそのディレクトリのときにしか読まれないため通常運用では無効だが、本節の方針と字面が衝突する。**当該ディレクトリを作業 cwd にしない**
 
 ### 9. 過去 ADR の誤記録を訂正する

@@ -23,6 +23,7 @@ claude-system の設定を最新のベストプラクティスに更新するた
 - 推奨プラグインの変更
 - **宣言と実体の一致確認**: `enabledPlugins` は宣言にすぎず `claude plugin install` が別途必要(ADR 0023)。`tools/doctor.sh` の「declared plugins vs installed」が WARN していないか、`tools/setup-plugins.sh --dry-run` で差分が出ないかを見る
 - **持ち込み能力の棚卸し**: プラグイン更新時は hooks / MCP / subagent / skill の増減を確認する。プラグイン由来の hook は `permissions.deny` の統治外で、自前 hook 群の閉包から外れる(ADR 0023 §4)
+- **per-skill 無効化機構の有無**: 現状 `disableBundledSkills`(一括)と `disableSkillShellExecution` しかなく、個別 skill を切れない。**機構が追加されたら**、自前規約と重複する 7 skill(`test-driven-development` / `verification-before-completion` / `requesting-code-review` / `receiving-code-review` / `writing-skills` / `dispatching-parallel-agents` / `subagent-driven-development`、計 1,244 bytes)を無効化する(ADR 0024 §4)
 - **`superpowers` の skill 競合**: 自前 skill・単層委譲規約と重複する skill(`dispatching-parallel-agents` / `subagent-driven-development` / `test-driven-development` / `verification-before-completion` / `writing-skills` 等)の増減を確認し、`tools/loop-report.sh` で `spawn_depth >= 2` が発生していないか点検する(ADR 0023 §5 の受け入れ条件)
 
 ### 3. MCP サーバー

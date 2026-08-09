@@ -2,6 +2,16 @@
 
 このリポジトリの変更履歴。Phase 単位でセクション化する。
 
+## 観測と抑止の最適化(2026-08-09)
+
+ADR 0023 の作業中に表面化した「測れば分かるのに測っていなかった」4 領域を実測し、採否を決めた。判断の本体は [ADR 0024](./decisions/0024-observation-and-restraint-optimization.md)。
+
+- `tools/doctor.sh`: `--fast` ティアを新設し、`stop-session-doctor.sh` から呼ぶ。Why: full は実測 6.73 秒で、うち委譲テスト 3.86 秒 + shellcheck 1.34 秒(85%)はコミット前の関心事であり CI が既にゲートしている。Stop hook はバックグラウンド実行のため体感遅延は無いが、`ulimit -t 10` の 61% を消費しており超過時は `last-doctor.log` が**無音で不完全になる**。fast は **0.80 秒(88% 削減)**で、実機ドリフト検出(symlink / settings 同期 / プラグイン整合 / 秘密混入)は全て残す。fast 層でも settings ドリフトを検出することを実機改変で確認(復元済み)
+- `adapters/claude-code/user-level/hooks/pre-bash-guard.sh`: **subagent からの `git push` を deny**。Why: ADR 0023 執筆中に subagent が 10 コミットを Public な `origin/main` へ自動 push し(v2.1.221 の既定変更)、CLAUDE.md への禁止記述が効かないことが実証された。判別は SessionStart の `source` では不可能(値は startup/resume/clear/compact/fork のみ)で、**PreToolUse payload の `agent_type` が subagent 呼び出しにのみ現れる**ことを実測して採用。commit / add は許可のまま(公開だけを差し止める)。メインセッションは影響なし
+- `tests/test-pre-bash-guard.sh`(新規): 上記ガードを 9 ケースで固定(各種 push 形 / メイン許可 / commit・add 許可 / 誤検知なし / `--force` 継続 deny)。実エージェントでも拒否を実証
+- `tools/loop-report.sh`: 委譲エージェントとハーネス内部を分離集計し、effort 分布とフィールド有効期間の注記を追加。Why: 313 件中 **73% が `(internal)` と旧レコード**で、混在集計が「empty model rate 62%」のような誤った危機感を生んでいた。分離後の委譲のみでは **9.6%**。当初「計測基盤に穴」と報告した私の見立ては誤りで、切り分けると 8 月分は agent_type / spawn_depth / exit_code とも 56/56 で健全、`model` の欠落は `(internal)` の意図的な空だった。`parent_agent_id` が 0 件なのも単層委譲では正常。副産物として **`spawn_depth >= 2` が 0 件**であることを実データで確認(ADR 0023 §5 の受け入れ条件)
+- 不採用: 常時コンテキストの削減。実測 26,552 bytes(user-level CLAUDE.md 38% / project CLAUDE.md 27% / superpowers の SessionStart 注入 12% / プラグイン skill 記述 11% / 自前 skill 7% / 自前 subagent 5%)。個別 skill を無効化する設定キーが存在せず削減手段は superpowers 全体の除去に限られること、CLAUDE.md 2 本にリテラル重複がゼロであることを確認し、代償が利得を上回ると判断。per-skill 無効化機構が追加されたら重複 7 skill を切る、と `update-check.md` に定点観測を追加。なお ADR 0023 §5 の「skill 記述 4,927 bytes」は superpowers の SessionStart 注入 3,063 bytes を数え落としており、プラグインの実コストは 6,108 bytes(全体の 23%)
+
 ## Claude Code 2.1.226 への harness 同期とプラグイン層の実体化(2026-08-08)
 
 `update-check` command による調査(research-summarizer を 2 系統 × 独立 2 回委譲 + CHANGELOG raw の逐語取得 / npm registry 実測 / 公式 settings doc / ローカル実測での一次裏取り)に基づき、機械層を 2.1.226 に同期した。計画は devil-advocate の反証レビューで大幅修正(`crossSessionInbound` 据え置き論拠の撤回、push ガードを「事前確認」形から禁止形へ、doctor 検査を CLI 呼び出しからファイル読みへ、過去 ADR 訂正と影響範囲マップ全行走査の追加)。プラグイン導入と push ガードの 2 判断は運用者確認済み。判断の本体は [ADR 0023](./decisions/0023-harness-sync-2.1.226.md)。
