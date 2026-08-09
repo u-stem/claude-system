@@ -196,28 +196,59 @@ emit_subagent_report() {
     return
   fi
   echo "  total: $total"
-  echo "  by agent_type:"
-  jq -r 'if (.agent_type // "") == "" then "(empty)" else .agent_type end' "$file" | \
+
+  # Split delegated agents from harness-internal ones before doing any rates.
+  # `(internal)` is the harness's own machinery (summarization, compaction,
+  # titles); it is logged with an empty model on purpose, because its transcript
+  # is the main session's and attributing that model would be a lie. Measured
+  # 2026-08-09: 230 of 313 records were (internal) or legacy-empty, so mixing
+  # them in made every rate describe harness noise rather than the delegation
+  # loop this report exists to observe (ADR 0013 reads these numbers).
+  local delegated_file internal_count legacy_count delegated_total
+  delegated_file="$(mktemp "${TMPDIR:-/tmp}/loop-report-delegated.XXXXXX")"
+  jq -c 'select(((.agent_type // "") != "") and (.agent_type != "(internal)"))' \
+    "$file" > "$delegated_file" 2>/dev/null || true
+  delegated_total="$(wc -l < "$delegated_file" | tr -d ' ')"
+  internal_count="$(jq -r 'select(.agent_type == "(internal)")' "$file" | jq -s length 2>/dev/null || echo 0)"
+  legacy_count="$(jq -r 'select((.agent_type // "") == "")' "$file" | jq -s length 2>/dev/null || echo 0)"
+  printf '  delegated: %s   harness-internal: %s   legacy-empty: %s\n' \
+    "$delegated_total" "${internal_count:-0}" "${legacy_count:-0}"
+
+  if [[ "${delegated_total:-0}" -eq 0 ]]; then
+    echo "  (no delegated-agent records; the sections below would be empty)"
+    rm -f "$delegated_file"
+    return
+  fi
+
+  echo "  by agent_type (delegated only):"
+  jq -r '.agent_type' "$delegated_file" | \
     sort | uniq -c | sort -rn | while read -r count v; do
       printf '    %-20s %s\n' "$v" "$count"
     done
-  echo "  by model:"
-  jq -r 'if (.model // "") == "" then "(empty)" else .model end' "$file" | \
+  echo "  by model (delegated only):"
+  jq -r 'if (.model // "") == "" then "(empty)" else .model end' "$delegated_file" | \
+    sort | uniq -c | sort -rn | while read -r count v; do
+      printf '    %-20s %s\n' "$v" "$count"
+    done
+  echo "  by effort (delegated only):"
+  jq -r 'if (.effort // "") == "" then "(empty)" else .effort end' "$delegated_file" | \
     sort | uniq -c | sort -rn | while read -r count v; do
       printf '    %-20s %s\n' "$v" "$count"
     done
   local nonzero
   nonzero="$(jq -r '.exit_code // 0' "$file" | grep -vc '^0$' || true)"
   echo "  exit_code != 0: ${nonzero:-0}"
-  local empty_agent_type empty_model
-  empty_agent_type="$(jq -r '.agent_type // ""' "$file" | grep -c '^$' || true)"
-  empty_model="$(jq -r '.model // ""' "$file" | grep -c '^$' || true)"
-  empty_agent_type="${empty_agent_type:-0}"
+  local empty_model
+  empty_model="$(jq -r '.model // ""' "$delegated_file" | grep -c '^$' || true)"
   empty_model="${empty_model:-0}"
-  printf '  empty agent_type rate: %s/%s (%s%%)\n' "$empty_agent_type" "$total" \
-    "$(awk -v a="$empty_agent_type" -v t="$total" 'BEGIN{printf "%.1f", (t>0)?(a/t*100):0}')"
-  printf '  empty model rate: %s/%s (%s%%)\n' "$empty_model" "$total" \
-    "$(awk -v a="$empty_model" -v t="$total" 'BEGIN{printf "%.1f", (t>0)?(a/t*100):0}')"
+  printf '  empty model rate (delegated): %s/%s (%s%%)\n' "$empty_model" "$delegated_total" \
+    "$(awk -v a="$empty_model" -v t="$delegated_total" 'BEGIN{printf "%.1f", (t>0)?(a/t*100):0}')"
+  # Field validity windows — these fields were added over time, so a rate taken
+  # across all history understates coverage. Verified 2026-08-09.
+  echo "  field validity: model from 2026-06, spawn_depth from 2026-07-25 (ADR 0022),"
+  echo "                  agent_type complete from 2026-08; parent_agent_id is empty"
+  echo "                  by design while delegation stays single-layer (ADR 0015)"
+  rm -f "$delegated_file"
   # Nested-delegation visibility (ADR 0022): spawn_depth is backfilled from
   # the per-agent transcript's sidecar meta.json and is absent/0 on records
   # predating that field, so this section is additive and safe on old logs.

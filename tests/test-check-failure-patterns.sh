@@ -110,9 +110,14 @@ ARCHIVE4="$PROJ4/.claude/failure-log.archive/2026-06.jsonl"
 } > "$ARCHIVE4"
 
 SUBLOG4="$PROJ4/.claude/subagent-log.jsonl"
+# One record of each kind the report must keep apart (ADR 0024 §3): a legacy
+# record from before agent_type was populated, a harness-internal agent (whose
+# empty model is deliberate — its transcript is the main session's), and a real
+# delegated agent. Rates must describe only the last kind.
 {
   printf '{"ts":"2026-06-15T00:00:00Z","agent_type":"","model":"x","exit_code":0}\n'
-  printf '{"ts":"2026-07-05T00:00:00Z","agent_type":"explorer","model":"","exit_code":1}\n'
+  printf '{"ts":"2026-06-20T00:00:00Z","agent_type":"(internal)","model":"","exit_code":0}\n'
+  printf '{"ts":"2026-07-05T00:00:00Z","agent_type":"explorer","model":"","effort":"medium","exit_code":1}\n'
 } > "$SUBLOG4"
 
 REPORT4="$(bash "$LOOP_REPORT" --project "$PROJ4")"
@@ -121,12 +126,22 @@ REPORT4="$(bash "$LOOP_REPORT" --project "$PROJ4")"
 printf '%s' "$REPORT4" | grep -q 'total: 4' \
   || err "Test 4 [live+archive merge count]: expected 'total: 4' in failure-log section"
 
-# empty agent_type / model rate is surfaced (1 of 2 each in this fixture)
-printf '%s' "$REPORT4" | grep -q 'empty agent_type rate: 1/2' \
-  || err "Test 4 [empty agent_type rate]: expected 'empty agent_type rate: 1/2' in output"
+# The three kinds are counted separately.
+printf '%s' "$REPORT4" | grep -q 'delegated: 1 .*harness-internal: 1 .*legacy-empty: 1' \
+  || err "Test 4 [kind split]: expected 'delegated: 1 harness-internal: 1 legacy-empty: 1', got: $REPORT4"
 
-printf '%s' "$REPORT4" | grep -q 'empty model rate: 1/2' \
-  || err "Test 4 [empty model rate]: expected 'empty model rate: 1/2' in output"
+# Rates are computed over delegated records only: 1 of 1 has an empty model.
+# Mixing the other two kinds in would report 2/3 and misdescribe the loop.
+printf '%s' "$REPORT4" | grep -q 'empty model rate (delegated): 1/1' \
+  || err "Test 4 [delegated model rate]: expected 'empty model rate (delegated): 1/1', got: $REPORT4"
+
+# (internal) must not appear in the delegated breakdown.
+printf '%s' "$REPORT4" | sed -n '/by agent_type (delegated only)/,/by model/p' | grep -q '(internal)' \
+  && err "Test 4 [internal excluded]: '(internal)' leaked into the delegated agent_type breakdown"
+
+# effort distribution is surfaced for delegated agents (ADR 0013 needs this axis)
+printf '%s' "$REPORT4" | grep -q 'by effort (delegated only)' \
+  || err "Test 4 [effort axis]: expected 'by effort (delegated only)' section, got: $REPORT4"
 
 REPORT4_SINCE="$(bash "$LOOP_REPORT" --project "$PROJ4" --since 2026-07-01)"
 
