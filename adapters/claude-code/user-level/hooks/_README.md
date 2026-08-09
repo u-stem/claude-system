@@ -22,6 +22,7 @@ Phase 7b(Guardrails 層)で実装済み。`~/.claude/hooks/` にシンボリッ�
 | `pre-bash-output-cap.sh` | PreToolUse(Bash) | token 経済(ADR 0012)。test/build/lint の単純コマンドの stdout を `updatedInput` で `tail -n N` にキャップ。stderr と exit code は保持。`CLAUDE_BASH_OUTPUT_CAP`(既定 200、`0` で無効) |
 | `pre-edit-protect.sh` | PreToolUse(Edit\|Write) | `claude-settings/` / `*.backup-*` への書き込み阻止 + principles/practices への禁止語混入阻止 |
 | `post-edit-validate.sh` | PostToolUse(Edit\|Write) | SKILL.md frontmatter / 禁止語 / ユーザー識別子パス(ADR 0008)の検証 |
+| `record-rework-signal.sh` | PostToolUse(Edit\|Write) | 編集されたファイルを `.claude/rework-log.jsonl` に記録するだけ(**計測専用・何もブロックしない**)。同一ファイルの反復編集=手戻りを事後に数えるため。集計は `tools/loop-report.sh --rework` |
 | `post-edit-dispatcher.sh` | PostToolUse(Edit\|Write) | プロジェクト側 `.claude/hooks/post-edit.sh` へ委譲 |
 | `log-bash-failure.sh` | PostToolUseFailure(Bash) | 終了コード ≠ 0 を category(test/check-types/check)判定して `log-failure.sh` に渡す。**PostToolUse では発火しない**ことが実測で判明し ADR 0020 で移行済み |
 | `log-failure.sh` | (補助) | `.claude/failure-log.jsonl` への JSONL 追記 |

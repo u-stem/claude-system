@@ -37,6 +37,7 @@ bash tools/doctor.sh                  # full: lint + 委譲テストを一括実
 | [`test-sync-settings.sh`](./test-sync-settings.sh) | `settings.json` の決定論的レンダリングと overrides のマージ(ADR 0017) | throwaway HOME |
 | [`test-guardrails-dry-run.sh`](./test-guardrails-dry-run.sh) | 緊急停止経路(`disable-guardrails.sh` / `enable-guardrails.sh`)の `--dry-run` が副作用を持たないこと | throwaway HOME |
 | [`test-doc-parity.sh`](./test-doc-parity.sh) | `check-doc-parity.sh` 自身。**偽陽性がないこと**を最重要ケースとして検証 |  |
+| [`test-record-rework-signal.sh`](./test-record-rework-signal.sh) | 手戻り計測 hook が何もブロックしないこと / 個人識別子を記録に漏らさないこと(ADR 0008) |  |
 
 ## 実行経路
 

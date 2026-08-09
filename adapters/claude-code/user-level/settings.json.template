@@ -206,6 +206,7 @@
         "matcher": "Edit|Write",
         "hooks": [
           {"type": "command", "command": "$HOME/ws/claude-system/adapters/claude-code/user-level/hooks/post-edit-validate.sh"},
+          {"type": "command", "command": "$HOME/ws/claude-system/adapters/claude-code/user-level/hooks/record-rework-signal.sh"},
           {"type": "command", "command": "$HOME/ws/claude-system/adapters/claude-code/user-level/hooks/post-edit-dispatcher.sh"}
         ]
       }
