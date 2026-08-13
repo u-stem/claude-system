@@ -6,9 +6,9 @@
 
 ## 前提バージョン
 
-[`./VERSION`](./VERSION) を参照(現在: 2.1.226)。
+[`./VERSION`](./VERSION) を参照(現在: 2.1.229)。
 
-VERSION 更新時のチェックリストは [Claude Code 仕様変更時の影響範囲マップ](#claude-code-仕様変更時の影響範囲マップ) に従う。
+VERSION 更新時のチェックリストは [Claude Code 仕様変更時の影響範囲マップ](#claude-code-仕様変更時の影響範囲マップ) に従う。この行と `VERSION` の一致は `tests/check-doc-parity.sh` が機械検査する(ADR 0022 → 0023 間で 2 重にずれた前科があるため / ADR 0026)。
 
 ## 利用している Claude Code 機能
 
@@ -81,8 +81,9 @@ Claude Code がアップデートされた場合、以下を順に確認する:
 | `hooks.<event>` の matcher / フィールド構文 | `user-level/settings.json.template`, `user-level/hooks/*.sh`(Phase 7b) | 各 hook event のスキーマ差分確認 → 対応 hook の入出力契約の更新 |
 | 利用可能な hook event 種別 | 同上 | 新 event 追加時は guardrail 設計を再評価(PostToolUseFailure は v2.1.206 で存在を実測確認、導入バージョンは未特定。log-bash-failure.sh が依存) |
 | skill の frontmatter 仕様 | `user-level/skills/*/SKILL.md`(Phase 4) | name / description / recommended_model 等のフィールドが廃止・追加されていないか |
-| subagent の frontmatter 仕様 | `subagents/*.md`(Phase 5) | name / description / tools 等のフィールド整合 |
-| MCP server 設定スキーマ | `user-level/settings.json.template` の `mcpServers`, `user-level/mcp/servers.template.json` | パッケージバージョン更新と引数構文差分。各サーバーは 1 系統のみに登録(常時=インライン / opt-in・secret=宣言) |
+| subagent の frontmatter 仕様 | `subagents/*.md`(Phase 5) | name / description / tools / model / effort のフィールド整合 |
+| slash command の frontmatter 仕様 | `user-level/commands/*.md` | name / description のフィールド整合(`tools/doctor.sh` が検査)。ADR 0021 以降の走査記録が対象にしていた行を本表に追加(ADR 0026) |
+| MCP server 設定スキーマ | `user-level/settings.json.template` の `mcpServers`, `user-level/mcp/servers.template.json` | パッケージバージョン更新と引数構文差分。各サーバーは 1 系統のみに登録(常時=インライン / opt-in・secret=宣言)。**宣言系統の pin を上げても実機には届かない**: `tools/setup-mcp.sh` はサーバー名でしか冪等判定せず版を見ないため、登録済みなら `claude mcp add` が走らない(ADR 0026 で実測) |
 | プラグイン管理(`enabledPlugins` / `extraKnownMarketplaces`) | `user-level/settings.json.template`, `tools/setup-plugins.sh` | **上流の存続確認だけで終わらせない**。①採用プラグインが marketplace に存続しているか ②**宣言と実体が一致しているか**(`tools/doctor.sh` の「declared plugins vs installed」/ `tools/setup-plugins.sh --dry-run`)③更新時は持ち込み能力(hooks / MCP / subagent / skill)の増減を棚卸し。`enabledPlugins` は宣言にすぎず導入は別操作(ADR 0023。この行が①だけだったため 3 か月の乖離を 2 世代の ADR が見逃した) |
 | attribution / commit・PR 添付情報の構文 | `user-level/settings.json.template` の `attribution` | セッション URL 抑止方式の変更確認(安定スキーマは `commit` / `pr` のみ、`additionalProperties: false`) |
 | `~/.claude/` 配下のディレクトリ構造 | `tools/sync.sh` の symlink 配置 | リンク先パスの妥当性、`tools/setup.sh` の更新 |
