@@ -190,6 +190,38 @@ ADR 0023 §10 は「次回は正式な再評価対象へ格上げ。並行運用
 - 2.1.228 のバイナリを一度も実行しないまま 229 を pin した。228 の変更は 229 に内包されるため整合するが、「pin した版のすべてを実測した」わけではないことを明示しておく
 - `~/.claude/` に増えた 6 ディレクトリは cleanup の対象外に倒れている。掃除されない側に倒れているので実害はないが、`cleanup-claude-code-runtime.sh` の TARGETS が実態を網羅していない状態は続く
 
+## Update(2026-08-13): CI の doctor ジョブを macOS runner へ移した
+
+本 ADR のコミットを push した直後、CI の `doctor` ジョブが失敗した。調査の結果、**本同期が原因ではなく 2026-08-09 の push から継続していた既存の失敗**であることが判明した(`shellcheck` / `secrets-scan` は緑、`doctor` のみ赤)。
+
+### 原因
+
+失敗していた 2 本は、いずれも**このリポジトリが macOS 前提であることに依存したコード**のテストだった:
+
+- `tools/disable-guardrails.sh` / `enable-guardrails.sh` は `tools/_lib.sh` の `cs_require_macos()` を呼び、Darwin 以外では `[ERROR] macOS only (BSD coreutils assumed)` として **設計どおり exit 1 する**。`test-guardrails-dry-run.sh` は最初の `disable --dry-run` で `set -e` に落ち、出力ゼロで終了していた
+- `hooks/check-failure-patterns.sh:30` は `date -u -v-"${WINDOW_DAYS}"d ... 2>/dev/null || true` で窓の起点を求める。GNU date は `-v` を拒否し、フォールバックが `date -d` ではなく `true` なので `cutoff` が空になり、以降のフィルタが全滅して hook が何も出力しない(8 assertion が失敗)。テスト側の `ago()` も同じ BSD 前提
+
+Linux コンテナで両方を再現し、`cs_require_macos()` が意図的なガードであること・`check-failure-patterns.sh` が Linux で exit 0 のまま無出力になることを確認した。
+
+顕在化の契機は 2026-08-09 の「CI の重複 lint ステップを削除し、`doctor.sh` に全テストを委譲する」変更。それ以前は CI が個別にテストを列挙しており、この 2 本は走っていなかった。
+
+### 判断
+
+`runs-on` を `ubuntu-latest` から **`macos-latest`** に変更した。リポジトリは PUBLIC のため macOS runner に課金は発生しない。
+
+退けた 2 案:
+
+- **Linux では 2 本を skip する**: CI は高速なままだが、2 本が CI で検証されなくなる。ADR 0024 が「`pre-push` は repo-local なので GitHub がガードを一度も検証していない」という穴を塞ぐために CI ステップを足した経緯と正面から逆行する
+- **両 OS で動くようにする**: `cs_require_macos()` は「BSD coreutils を仮定する」という宣言そのものであり、緩めることは `CLAUDE.md` の「macOS BSD コマンド前提(GNU 互換不要)」という方針の変更にあたる。方針を変えるなら独立した ADR が要る問題で、CI を直すついでに行う判断ではない
+
+**方針が macOS 前提である以上、その方針を検証する CI も macOS で走らせるのが唯一の整合的な読み方**だと判断した。`shellcheck` / `secrets-scan` の 2 ジョブは OS 非依存のため `ubuntu-latest` のまま残す。
+
+gitleaks の取得はアセット名を `darwin_${ARCH}` に変え、`uname -m` からアーキテクチャを解決する形にした(runner イメージの Apple silicon 移行を pin で追わないため)。ツール導入は `command -v` で不足分のみ `brew install` する(macOS イメージは jq / shellcheck を同梱するが tree は持たない)。
+
+### 残る限界
+
+macOS runner は起動が遅く、ジョブ全体の実行時間は伸びる。また、この構成は「CI が macOS でしか回らない」ことを意味するので、将来 Linux 環境での利用を想定するなら方針から見直す必要がある。現時点で運用は単一 macOS マシンであり、その前提を CI が正しく反映した状態になった。
+
 ## Related
 
 - [ADR 0023](./0023-harness-sync-2.1.226.md) — 前回の同期。§4(供給網の空白)/ §5(受け入れ条件)/ §6(cleanup の欠陥)/ §8(subagent push 禁止)/ §10(Betterleaks の格上げ)を本 ADR が引き継ぐ
