@@ -31,6 +31,8 @@ claude-system の設定を最新のベストプラクティスに更新するた
 - 採用中の MCP(`chrome-devtools` / `playwright` / `sequential-thinking`)の新バージョン
 - 新規 MCP の検討余地
 - 既存 MCP の代替・改善
+- **宣言系統の pin は実機に届かない**(ADR 0026 で実測): `tools/setup-mcp.sh` はサーバー名でしか冪等判定せず版を見ないため、一度登録した後に `mcp/servers.template.json` の pin を上げても `claude mcp add` は走らない。また `tools/doctor.sh` は同ファイルを `jq empty` の構文チェックにしか掛けておらず、`enabledPlugins` に入れた宣言↔実体検査(ADR 0023 §7)の MCP 版が無い。**pin を更新したら `claude mcp list` で実機の版を目視確認する**
+- **パッケージ版を上げるときは公開日を見る**: `practices/supply-chain-hygiene.md` の公開後 7 日ルールは、`bunx` / `claude mcp add` 経路では機械的に守られない(`check-package-age.sh` は `bun add` 系にしか発火せず、見ているのはパッケージの**初**公開日)。`npm view <pkg> time` で当該版の公開日を確認する
 
 ### 4. パフォーマンス / コスト
 
@@ -41,11 +43,11 @@ claude-system の設定を最新のベストプラクティスに更新するた
 ### 5. ガードレール
 
 - gitleaks の更新(v8 は feature-complete 宣言済み = 今後はセキュリティパッチのみ。新機能は来ない前提で、セキュリティ修正リリースのみ追従する)
-- gitleaks 後継 / 代替の動向(後継は Betterleaks = `betterleaks/betterleaks`)。**2026-08 時点で「見送り」から「正式な再評価対象」へ格上げ済み**(ADR 0023): 原作者主導・週次リリース・`.pre-commit-hooks.yaml` 同梱・旧 config 互換の明記まで揃った。次回はこのリポジトリの `.gitleaks.toml` + Phase 7b hooks + CI に対する並行運用検証(dry-run 比較で false positive 差分を実測)を行い、採否を決める
+- gitleaks 後継 / 代替の動向(後継は Betterleaks = `betterleaks/betterleaks`)。**手順・判断基準・先送り時の作法は [`~/ws/claude-system/meta/TODO-for-v0.2.md`](~/ws/claude-system/meta/TODO-for-v0.2.md) 項目 19 に転記済み**(ADR 0026)。ADR 本文の散文に置いたままでは 2 回連続で先送りされたため、**次回の harness sync では最初に着手する**
 - pre-commit-hooks の新規 hook
 - Phase 7b で実装した hooks との整合
-- `sandbox.network.strictAllowlist`(v2.1.219 追加)の採用可否を再評価(ADR 0022 で不採用: allowlist 列挙対象が広く「静かなツール不能」の失敗モードが先行。エコシステムの運用実績と設定粒度の改善を定点観測する)
-- `crossSessionInbound`(v2.1.224 追加、値は `accept` / `hold` / `refuse`)の採用可否。**トリガーはセッション間メッセージングの使用開始**(ADR 0023 で据え置き: 現状この機能を使う運用が無く、既定は「両セッションの permission-mode クラスから毎回判断」という動的挙動でその決定表を未取得のため。使い始める時点で明示値を決める)。併せて `dialogExpiry`(既定 `5m`、期限切れで held メッセージは drop)の妥当性も見る
+- `sandbox.network.strictAllowlist`(v2.1.219 追加)の採用可否を再評価(ADR 0022 で不採用: allowlist 列挙対象が広く「静かなツール不能」の失敗モードが先行。エコシステムの運用実績と設定粒度の改善を定点観測する)。v2.1.229 でドメインリストの綴り解釈が fail-closed 化し IPv6 リテラルは角括弧必須になった — 粒度の改善方向ではあるが列挙対象の広さは変わらないため据え置き継続(ADR 0026)
+- `crossSessionInbound`(v2.1.224 追加、値は `accept` / `hold` / `refuse`)の採用可否。**トリガーはセッション間メッセージングの使用開始**(ADR 0023 で据え置き: 現状この機能を使う運用が無く、既定は「両セッションの permission-mode クラスから毎回判断」という動的挙動でその決定表を未取得のため。使い始める時点で明示値を決める)。併せて `dialogExpiry`(既定 `5m`、期限切れで held メッセージは drop)の妥当性も見る。v2.1.229 で `ListAgents` が他マシンの Remote Control セッションを `offline`、クラウドセッションを `cloud` と列挙するようになったため、**複数マシン運用を始めた時点が実質的なトリガー**になる(ADR 0026)
 
 ## 調査ソース
 
