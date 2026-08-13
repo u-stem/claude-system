@@ -54,6 +54,11 @@ make_fixture() {
   printf '%s\n' '# hooks index' '- `gamma.sh` — does a thing' \
     > "$d/adapters/claude-code/user-level/hooks/_README.md"
 
+  printf '%s\n' '9.9.999' > "$d/adapters/claude-code/VERSION"
+  printf '%s\n' '# claude-code adapter' '' \
+    '[`./VERSION`](./VERSION) を参照(現在: 9.9.999)。' \
+    > "$d/adapters/claude-code/README.md"
+
   printf '%s\n' '# ADR 0001: First' '' '- **Status**: Accepted' '' '## Context' 'x' \
     > "$d/meta/decisions/0001-first.md"
   printf '%s\n' '# ADR 0002: Second' '' '- **Status**: Accepted' '' '## Context' 'x' \
@@ -115,6 +120,40 @@ make_fixture "$FIX"
 printf '%s\n' '# ADR 0003: Third' '' '- **Status**: Accepted' '' '## Context' \
   'Phase 10 で切り替える予定。' > "$FIX/meta/decisions/0003-third.md"
 pass_case "ADR bodies are exempt from stale wording" "$CHECK" --root "$FIX"
+
+# --- adapter VERSION vs the prose that repeats it --------------------------------
+# The pin and the sentence naming it drifted twice: ADR 0022 raised VERSION and
+# left the README at the older value, and ADR 0023 had to fix both at once. Two
+# places holding one fact is exactly what a textual check can hold together.
+make_fixture "$FIX"
+printf '%s\n' '9.9.1000' > "$FIX/adapters/claude-code/VERSION"
+fail_case "adapter VERSION ahead of the README prose is caught" "$CHECK" --root "$FIX"
+
+# Dropping the sentence must not be a way to pass. Otherwise the cheapest fix
+# for a red check is deleting the statement the check exists to protect.
+make_fixture "$FIX"
+printf '%s\n' '# claude-code adapter' '' '前提バージョンは VERSION を参照。' \
+  > "$FIX/adapters/claude-code/README.md"
+fail_case "adapter README without the version prose is caught" "$CHECK" --root "$FIX"
+
+# An adapter with no VERSION file is not yet pinned (adapters/codex is a bare
+# directory today) and must not be dragged into the check.
+make_fixture "$FIX"
+rm -f "$FIX/adapters/claude-code/VERSION"
+pass_case "adapter without a VERSION file is skipped" "$CHECK" --root "$FIX"
+
+# The message must carry both values, or the operator still has to open two
+# files to learn which one is stale.
+make_fixture "$FIX"
+printf '%s\n' '9.9.1000' > "$FIX/adapters/claude-code/VERSION"
+msg="$("$CHECK" --root "$FIX" 2>&1 || true)"
+if printf '%s' "$msg" | /usr/bin/grep -q '9.9.1000' \
+   && printf '%s' "$msg" | /usr/bin/grep -q '9.9.999'; then
+  PASS=$((PASS + 1))
+else
+  FAIL=$((FAIL + 1))
+  echo "FAIL: version parity message names both the pin and the prose" >&2
+fi
 
 # --- ADR status vocabulary -----------------------------------------------------
 make_fixture "$FIX"

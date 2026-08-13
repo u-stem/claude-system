@@ -36,6 +36,7 @@ Checks:
   4. no expired phase wording outside the historical record
   5. ADR Status values are in the documented vocabulary, point at an ADR that
      exists, and are acknowledged by the ADR that supersedes them
+  6. each adapter's VERSION pin matches the prose in its README
 EOF
 }
 
@@ -176,6 +177,39 @@ check_adr_status() {
 }
 
 check_adr_status
+
+# ---------------------------------------------------------------------------
+# 6. Adapter VERSION pin vs the prose that repeats it
+# ---------------------------------------------------------------------------
+# One fact lives in two places: adapters/<tool>/VERSION and the sentence in the
+# same directory's README that names it. They drifted twice — ADR 0022 raised
+# the pin and left the prose behind, and ADR 0023 found the README two releases
+# stale while fixing something else. Nothing mechanical was watching, so both
+# times a human had to notice.
+#
+# An adapter with no VERSION file is not pinned yet and is skipped. But once a
+# pin exists, a README without the sentence fails: deleting the statement must
+# not be the cheapest way to a green check.
+check_version_parity() {
+  local vfile readme pinned stated
+  for vfile in "$ROOT"/adapters/*/VERSION; do
+    [[ -e "$vfile" ]] || continue
+    readme="$(dirname "$vfile")/README.md"
+    [[ -f "$readme" ]] || continue
+
+    pinned="$(head -1 "$vfile" | tr -d '[:space:]')"
+    [[ -n "$pinned" ]] || continue
+
+    stated="$(/usr/bin/sed -n 's/.*現在: *\([0-9][0-9.]*\).*/\1/p' "$readme" | head -1)"
+    if [[ -z "$stated" ]]; then
+      err "${readme#"$ROOT"/}: no '現在: <version>' prose to check against ${vfile#"$ROOT"/} (pinned $pinned)"
+    elif [[ "$stated" != "$pinned" ]]; then
+      err "${vfile#"$ROOT"/} pins $pinned but ${readme#"$ROOT"/} says 現在: $stated"
+    fi
+  done
+}
+
+check_version_parity
 
 if [[ "$FAILED" -eq 0 ]]; then
   echo "check-doc-parity: clean"
