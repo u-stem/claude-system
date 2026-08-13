@@ -22,6 +22,7 @@ Phase 9(`v0.1.0-rc1` リリース候補化)で消化しきれなかった、ま�
 | 10 | レトロ連動の自動化 | トリガー待ち(月次レトロ 3 ヶ月後) |
 | 11 | principles / practices 層の見直し履歴 | 継続保留(四半期見直し定例化後) |
 | 18 | `git tag v0.1.0` の発行可否 | 運用者判断待ち(ADR 0025) |
+| 19 | Betterleaks の並行運用検証 | **次回の harness sync で最初に着手**(ADR 0023 / 0026) |
 | 12 | migrate スクリプトの壊れた symlink 耐性 | **解決済み** → クローズ記録 |
 | 13 | settings.json 配置の責務整合 | **解決済み** → クローズ記録 |
 | 14 | ADR 0011 実装(委譲オーケストレーション) | **解決済み** → クローズ記録 |
@@ -49,6 +50,33 @@ Phase 9(`v0.1.0-rc1` リリース候補化)で消化しきれなかった、ま�
 ### 決着したら
 
 [ADR 0025](./decisions/0025-symlink-switchover-record-and-release-tagging.md) に `## Update` を追記し、本項目をクローズ記録へ移す。
+
+---
+
+## 19. Betterleaks の並行運用検証(次回の harness sync で最初に着手)
+
+### 経緯
+
+gitleaks v8 は feature-complete 宣言済みで、後継は原作者主導の Betterleaks。[ADR 0021](./decisions/0021-harness-sync-2.1.217.md) では「据え置き」、[ADR 0023](./decisions/0023-harness-sync-2.1.226.md) §10 で「見送り」から「正式な再評価対象」へ格上げし、手順まで確定した。しかし [ADR 0026](./decisions/0026-harness-sync-2.1.229.md) の同期でも着手されず、**2 回連続の先送り**になった。
+
+真因は判断の是非ではなく**約束の保管場所**にある。ADR 本文の散文に置かれた「次回やる」は grep されず機械検出もされないため、次回の作業者(未来の自分)が能動的に読み返さないかぎり回収されない。ADR 0025 が新設した TODO 転記規約([`decisions/README.md`](./decisions/README.md))の 2 例目として、本ファイルへ転記する。
+
+### やること
+
+`.gitleaks.toml` + Phase 7b hooks + CI に対する**並行運用検証**。乗り換えではなく読み取り専用の計測であり、ガードレールは 1 行も変えない:
+
+1. Betterleaks を取得(`Bash(gitleaks *)` は allow だが `betterleaks` は allow 外。permissions の追加要否も判断する)
+2. 現行 `.gitleaks.toml` をそのまま食わせ、旧 config 互換の主張を実地確認
+3. このリポジトリに対して両者を dry-run で走らせ、**false positive の差分を実測**
+4. ADR 0008 の custom rule(絶対パス内ユーザー名の検出)が同等に効くかを個別に確認
+
+### 判断基準
+
+差分が無いか、Betterleaks 側が真陽性を増やし偽陽性を増やさないなら採用を検討する。偽陽性が増えるなら不採用(偽陽性を出す検査は無効化され、無効化された検査は何も守らない)。
+
+### 3 回目の先送りをする場合
+
+据え置く判断自体は正当でありうるが、その場合は**理由を ADR に明記**し、本項目のトリガー条件を書き換える。「次回」とだけ書いて送ることを繰り返さない。
 
 ---
 
