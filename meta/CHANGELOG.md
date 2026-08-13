@@ -2,6 +2,47 @@
 
 このリポジトリの変更履歴。Phase 単位でセクション化する。
 
+## Claude Code 2.1.229 への harness 同期(2026-08-13)
+
+3 パッチ分の差分を追従させた([ADR 0026](./decisions/0026-harness-sync-2.1.229.md))。機械層の変更自体は小さい(VERSION と README の 2 箇所)が、**検証手段の側に欠陥が見つかった**ことがこの回の主題になった。
+
+**検証が証明になっていなかった**
+
+当初計画は hook payload の回帰確認を「`loop-report.sh` で当日ログを見て `agent_type` / `spawn_depth` / `model` が空でないことを確認する」としていた。`devil-advocate` の反証で 3 段階に崩れた:
+
+1. `loop-report.sh` が読むのは SubagentStop / PostToolUse / PostToolUseFailure の 3 系統で、`pre-bash-guard.sh` が依存する **PreToolUse payload を一度も読まない**
+2. `subagent-stop-record.sh` は payload から `agent_type` が消えても meta.json から補填する。**「非空」を合格条件にした瞬間、検出対象の故障に盲目になる**
+3. 既存テストの payload は合成であり、2.1.229 が送っている証明にはならない
+
+そのまま進めていれば ADR に「実測で回帰なしを確認」と書かれ、実際には信号が死んでいても記録は緑になった。ADR 0023 §1 が糾弾した失敗型を、検証手段の側で再現するところだった。
+
+能動負テストに差し替えた: subagent に `git push --dry-run` を実行させ、**deny されること**と `pre-bash-guard.log` に `agent_type: Explore` 付きの記録が残ることを確認。これで PreToolUse の発火・`agent_type` の実在・パーサ動作・deny の honor が同時に立つ。陰性対照(`git status` は通る)と、意図的な失敗が `failure-log.jsonl` に載ることも併せて確認した。
+
+**もう 1 つの「宣言と実体」**
+
+ADR 0023 が `enabledPlugins` で発見した乖離と**同型の形が MCP 宣言系統に残っている**ことを実測で確認した。`tools/setup-mcp.sh` はサーバー名でしか冪等判定せず版を見ないため、pin を上げても登録済みなら実機に届かない。`tools/doctor.sh` は当該ファイルを `jq empty` の構文チェックにしか掛けていない。
+
+ただし `enabledPlugins` とは決定的に違う点がある: opt-in MCP は**未登録が正常状態**なので、同じ検査を作ると常時 WARN になる。何を異常と定義するかの設計が先に要るため、今回は塞がずに記録し定点観測へ昇格させた。
+
+**手で 2 回直した drift を機械化した**
+
+`adapters/<tool>/VERSION` と同ディレクトリ README の「現在: `<version>`」表記の一致を `tests/check-doc-parity.sh` が検査するようにした(TDD、テスト 21 ケース)。この対は ADR 0022 → 0023 間で 2 重にズレ、今回で手作業の是正が 2 回目だった。pin があるのに散文が無い README も失敗にしてある — 散文を消すことが赤を消す最短経路になってはならない。実装後、VERSION だけを上げた状態で検査が実際にズレを捕まえることを確認した。
+
+**先送りの保管場所を変えた**
+
+Betterleaks の並行運用検証は ADR 0023 §10 で手順まで決めながら、今回も着手せず 2 回連続の先送りになった。判断自体は範囲の問題として正当でありうるが、真因は**約束の保管場所**にある — ADR 本文の散文は grep されず機械検出もされない。`meta/TODO-for-v0.2.md` 項目 19 へ転記し、トリガーを「次回の harness sync で最初に着手」と明示、3 回目を送るなら理由を ADR に書くことを条件にした(ADR 0025 が新設した転記規約の 2 例目)。
+
+**その他の判断**
+
+- `chrome-devtools-mcp` 1.7.0 は公開 3 日で `supply-chain-hygiene` の 7 日ルールに抵触するため見送り。この規約は `bunx` / `claude mcp add` 経路では機械的に守られない(`check-package-age.sh` はパッケージの**初**公開日しか見ない)ことを確認手順として `update-check.md` に明記した
+- `CLAUDE_CODE_WORKFLOW_PREFIX_STAGGER_MS` と plugin marketplace の `command` ソースはいずれも不採用。後者は供給網の閉包を弱める方向
+- 影響範囲マップに「slash command の frontmatter 仕様」行を追加し、マップ(11 行)と ADR の走査記録(13 行)の様式乖離を解消
+- `~/.claude/` に増えた 6 ディレクトリ(`plans/` `sessions/` `teams/` `jobs/` `daemon/` `chrome/`)は `cleanup-claude-code-runtime.sh` の削除対象外に倒れている。ADR 0023 §6 とは逆向きで安全側のため TARGETS は変更しない
+
+**この回が解決していないこと**
+
+モデル世代表記の追随漏れ(「Fable 5 期」が 3 箇所)と `meta/claude-version-log.md` の停止は範囲外として送った。後者は 1 行足せば済む問題ではなく、ファイルの所掌が「モデル履歴」なのか「ハーネス同期履歴」なのか曖昧になっているのが本体。
+
 ## 記録乖離の返済と、手戻りの計測開始(2026-08-09)
 
 「auto mode だと計画がずさんなまま進むのではないか」という運用者の問いを起点に棚卸しを行った。当初は **Stop hook による完了ゲート**(新規 hook 6 本 + テスト 39 ケース)を設計したが、`devil-advocate` の反証で**中核が誤っていると判明し破棄した**。反証の要点は 3 つ:
