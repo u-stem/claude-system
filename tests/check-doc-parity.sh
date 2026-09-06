@@ -37,7 +37,12 @@ Checks:
   4. no expired phase wording outside the historical record
   5. ADR Status values are in the documented vocabulary, point at an ADR that
      exists, and are acknowledged by the ADR that supersedes them
-  6. each adapter's VERSION pin matches the prose in its README
+  6. every ADR is listed in meta/decisions/README.md's ADR 一覧 table; an ADR
+     numbered 0027+ that names an overturned ADR in its 覆す決定 section is
+     acknowledged back in that ADR's index row; every 出典 in the 現行の決定
+     tables names a file that exists; ADRs numbered 0027+ stay at or under
+     60 lines
+  7. each adapter's VERSION pin matches the prose in its README
 EOF
 }
 
@@ -201,6 +206,123 @@ check_adr_status() {
 }
 
 check_adr_status
+
+# ---------------------------------------------------------------------------
+# 5b. New-format ADR (0027+) parity with the decision index
+# ---------------------------------------------------------------------------
+# ADR 0027 replaced the Status-based Superseded chain with a decision index
+# (meta/decisions/README.md) plus an optional per-ADR "## 覆す決定" section.
+# A devil's-advocate review of that change noted nothing checks the index and
+# the ADRs stay in sync, so a wrong or missing row would go unnoticed the same
+# way ADR 0005's reserved-then-reused number did.
+ADR_README="$ROOT/meta/decisions/README.md"
+
+# ADR number from a decisions-dir filename, e.g. "0027-foo.md" -> "0027".
+adr_num_from_path() {
+  local base
+  base="$(basename "$1")"
+  printf '%s' "${base%%-*}"
+}
+
+# Every ADR file must appear in the README's "ADR 一覧" table, or the index
+# can silently fall behind the files it claims to catalog.
+check_adr_indexed() {
+  local dir="$ROOT/meta/decisions"
+  [[ -d "$dir" ]] || return 0
+  if [[ ! -f "$ADR_README" ]]; then
+    err "meta/decisions/README.md is missing"
+    return 0
+  fi
+  local list_section
+  list_section="$(/usr/bin/sed -n '/^## ADR 一覧/,$p' "$ADR_README")"
+  local f self
+  for f in "$dir"/[0-9][0-9][0-9][0-9]-*.md; do
+    [[ -e "$f" ]] || continue
+    self="$(adr_num_from_path "$f")"
+    if ! printf '%s\n' "$list_section" | /usr/bin/grep -qE "\[${self}\]"; then
+      err "ADR ${self}: not listed in the ADR 一覧 table of meta/decisions/README.md"
+    fi
+  done
+}
+
+# ADRs numbered 0027 and later may carry a "## 覆す決定" section naming the
+# ADR(s) they overturn. Each named ADR's own row in the index must name the
+# overturning ADR back, the same trail the old Status chain enforced.
+check_adr_overturns_annotated() {
+  local dir="$ROOT/meta/decisions"
+  [[ -d "$dir" ]] || return 0
+  [[ -f "$ADR_README" ]] || return 0
+  local list_section
+  list_section="$(/usr/bin/sed -n '/^## ADR 一覧/,$p' "$ADR_README")"
+  local f self overturn_section n row
+  for f in "$dir"/[0-9][0-9][0-9][0-9]-*.md; do
+    [[ -e "$f" ]] || continue
+    self="$(adr_num_from_path "$f")"
+    (( 10#$self >= 27 )) || continue
+    overturn_section="$(/usr/bin/awk '
+      /^## 覆す決定/ { flag = 1; next }
+      /^## / { flag = 0 }
+      flag { print }
+    ' "$f")"
+    [[ -n "$overturn_section" ]] || continue
+    while IFS= read -r n; do
+      [[ -n "$n" ]] || continue
+      row="$(printf '%s\n' "$list_section" | /usr/bin/grep -E "^\| \[${n}\]" || true)"
+      if [[ -z "$row" ]]; then
+        err "ADR ${self}: 覆す決定 names ${n}, which has no row in the ADR 一覧 table"
+      elif ! printf '%s' "$row" | /usr/bin/grep -qF "${self}"; then
+        err "ADR ${self}: overturns ${n}, but the ADR 一覧 row for ${n} does not name ${self}"
+      fi
+    done < <(printf '%s' "$overturn_section" | /usr/bin/grep -oE '[0-9]{4}' | sort -u)
+  done
+}
+
+# Every 出典 (source) named in the README's 現行の決定 tables must resolve to
+# an ADR file that exists. Entries with no 4-digit number (a bare 注記 or
+# CHANGELOG reference) name no ADR and are not checked.
+check_adr_source_columns_exist() {
+  local dir="$ROOT/meta/decisions"
+  [[ -d "$dir" ]] || return 0
+  [[ -f "$ADR_README" ]] || return 0
+  local section
+  section="$(/usr/bin/sed -n '/^## 現行の決定/,/^## ADR 一覧/p' "$ADR_README")"
+  local line last_col n
+  while IFS= read -r line; do
+    [[ "$line" == '|'*'|'* ]] || continue
+    last_col="${line%|}"
+    last_col="${last_col##*|}"
+    /usr/bin/grep -qE '[0-9]{4}' <<<"$last_col" || continue
+    while IFS= read -r n; do
+      [[ -n "$n" ]] || continue
+      local -a matches=( "$dir/${n}-"*.md )
+      if [[ ! -e "${matches[0]}" ]]; then
+        err "meta/decisions/README.md 現行の決定表: 出典 ${n} を指す行があるが meta/decisions/${n}-*.md が存在しない"
+      fi
+    done < <(/usr/bin/grep -oE '[0-9]{4}' <<<"$last_col")
+  done <<<"$section"
+}
+
+# The short-form cap ADR 0027 introduced: ADRs numbered 0027+ must fit in 60
+# lines, or the format that was supposed to stay short quietly grows back.
+check_adr_short_form_length() {
+  local dir="$ROOT/meta/decisions"
+  [[ -d "$dir" ]] || return 0
+  local f self lines
+  for f in "$dir"/[0-9][0-9][0-9][0-9]-*.md; do
+    [[ -e "$f" ]] || continue
+    self="$(adr_num_from_path "$f")"
+    (( 10#$self >= 27 )) || continue
+    lines="$(/usr/bin/wc -l < "$f" | tr -d '[:space:]')"
+    if (( lines > 60 )); then
+      err "ADR ${self}: ${lines} lines, over the 60-line cap for ADRs numbered 0027 and later"
+    fi
+  done
+}
+
+check_adr_indexed
+check_adr_overturns_annotated
+check_adr_source_columns_exist
+check_adr_short_form_length
 
 # ---------------------------------------------------------------------------
 # 6. Adapter VERSION pin vs the prose that repeats it

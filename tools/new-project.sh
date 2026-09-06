@@ -214,39 +214,30 @@ EOF
   cat > "$proj_dir/docs/adr/0001-tech-stack.md.draft" <<EOF
 # 0001. 技術スタック: (未確定)
 
-- **Status**: Draft
+- **Status**: Proposed
 - **Date**: $(date +%Y-%m-%d)
 - **Decider**: プロジェクトオーナー
 
-## Context
+## 決定
 
-{{TODO: プロジェクトの目的・要件を記入}}
+{{TODO: 採用する技術スタックを記入}}
 
-## Decision
+## 根拠
 
-{{TODO: 採用する技術スタックと根拠を記入}}
+{{TODO: プロジェクトの目的・要件と、それに対する適合理由を記入}}
 
-## Alternatives Considered
+## 再評価トリガー
 
-{{TODO: 検討した他の選択肢を記入}}
+{{TODO: 何が起きたらこの決定を見直すかを記入}}
+
+## 不採用と理由
+
+{{TODO: 検討した他の選択肢と不採用の理由を記入}}
 
 - 候補 1:
 - 候補 2:
 
-## Consequences
-
-{{TODO: メリット / デメリット / トレードオフを記入}}
-
-### Positive
--
-
-### Negative
--
-
-### Neutral
--
-
-## 関連
+## 影響ファイル
 
 - project-tech-stack-decision skill: ~/ws/claude-system/adapters/claude-code/user-level/skills/project-tech-stack-decision/SKILL.md
 - adr-writing skill: ~/ws/claude-system/adapters/claude-code/user-level/skills/adr-writing/SKILL.md
@@ -292,40 +283,31 @@ create_from_template() {
     cat > "$adr_dir/0001-tech-stack.md.draft" <<EOF
 # 0001. 技術スタック: $template
 
-- **Status**: Draft
+- **Status**: Proposed
 - **Date**: $(date +%Y-%m-%d)
 - **Decider**: プロジェクトオーナー
 
-## Context
-
-{{TODO: プロジェクトの目的・要件を記入}}
-
-## Decision
+## 決定
 
 \`$template\` テンプレートを使用する。
 内訳: {{TODO: テンプレートの技術スタック内訳を記入}}
 
-## Alternatives Considered
+## 根拠
 
-{{TODO: 検討した他の選択肢を記入}}
+{{TODO: プロジェクトの目的・要件と、それに対する適合理由を記入}}
+
+## 再評価トリガー
+
+{{TODO: 何が起きたらこの決定を見直すかを記入}}
+
+## 不採用と理由
+
+{{TODO: 検討した他の選択肢と不採用の理由を記入}}
 
 - 候補 1:
 - 候補 2:
 
-## Consequences
-
-{{TODO: メリット / デメリット / トレードオフを記入}}
-
-### Positive
--
-
-### Negative
--
-
-### Neutral
--
-
-## 関連
+## 影響ファイル
 
 - project-tech-stack-decision skill: ~/ws/claude-system/adapters/claude-code/user-level/skills/project-tech-stack-decision/SKILL.md
 EOF

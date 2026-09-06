@@ -84,10 +84,11 @@ description: 新規プロジェクトの技術スタックを選定する
 [`adr-writing`](~/ws/claude-system/adapters/claude-code/user-level/skills/adr-writing/SKILL.md) skill を呼び出し、プロジェクト側の `docs/adr/0001-tech-stack.md` として記録する。
 
 - **Status**: `Accepted`(議論を残したい場合のみ `Proposed`)
-- **Context**: ステップ 1 の要件
-- **Decision**: ステップ 4 の選定結果
-- **Alternatives Considered**: ステップ 3 で評価した他候補と不採用理由
-- **Consequences**: Positive / Negative / Neutral
+- **決定**: ステップ 4 の選定結果
+- **根拠**: ステップ 1 の要件と、ステップ 4 で言語化した選定理由
+- **再評価トリガー**: 想定リスクが顕在化したとき、またはステップ 4 で挙げた回避策が効かなくなったとき
+- **不採用と理由**: ステップ 3 で評価した他候補と不採用理由
+- **影響ファイル**: `docs/adr/0001-tech-stack.md`、プロジェクト `CLAUDE.md` の技術スタック欄
 
 プロジェクト初期化前なら、後から `docs/adr/` を作成して 0001 として配置する。
 

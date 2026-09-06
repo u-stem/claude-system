@@ -27,6 +27,8 @@
 
 `devil-advocate` の 10 項目のうち、`explorer` 削除で `test-subagent-stop-audit.sh` が実ファイル依存で赤になる点(fixture を `refactor-planner` に差し替え)、組み込み `Explore` に越権監査が効かない点(ADR に代償として明記)、`project-templates/` 等 10 ファイルの追随漏れ(削除識別子の全文 grep を受け入れ条件に追加)を反映した。
 
+実装後のレビュー連鎖(`code-reviewer` → `devil-advocate`(`model: fable` で初稼働)→ `security-auditor`)でさらに直したこと: MCP 不採用の出典を ADR 0003 から 0027 へ(3 箇所)、`Bash(betterleaks *)` の allow を `dir` / `git` / `config` / `version` に絞り送信系サブコマンドを deny、CLAUDE.md §8 の「機械的に deny 済み」を Edit / Write に限定して自己確認項目を復元、ADR 0027 の「覆す決定」と索引の一覧注記の不一致(0018 §1 と Betterleaks 据え置きの連鎖 0018 / 0021 / 0022 / 0023)を揃え、凍結した 26 本の ADR に凍結スタンプ 1 行を一括追記、`check-doc-parity.sh` に「全番号が一覧にある / 覆す欄と注記の相互一致 / 出典の実在 / 60 行上限」の 4 検査を追加、`bashOutputMaxChars: 30000` を明示、旧形式(Context / Decision / Consequences)の残置(プロジェクトテンプレートの ADR README と 0001、`tools/new-project.sh` の draft、glossary)を新形式へ。残った指摘は TODO 23〜25。
+
 ## Claude Code 2.1.229 への harness 同期(2026-08-13)
 
 3 パッチ分の差分を追従させた([ADR 0026](./decisions/0026-harness-sync-2.1.229.md))。機械層の変更自体は小さい(VERSION と README の 2 箇所)が、**検証手段の側に欠陥が見つかった**ことがこの回の主題になった。

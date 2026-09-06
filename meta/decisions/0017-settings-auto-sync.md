@@ -1,6 +1,7 @@
 # ADR 0017: Deterministic Settings Rendering and Auto-Sync
 
 - **Status**: Accepted
+- **凍結**: 2026-09-06 以降編集しない。現行の状態は [`README.md`](./README.md)(決定索引)が表す
 - **Date**: 2026-06-10
 - **Decider**: リポジトリオーナー(ADR 0001 の識別子規約に従う)
 

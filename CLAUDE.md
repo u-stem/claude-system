@@ -63,7 +63,7 @@
 
 - 履歴・申し送り・棚卸し・ADR・用語集の置き場
 - 各 Phase の TODO ファイル(`TODO-for-phase-N.md`)は当該 Phase で消化し、完了したら削除する
-- ADR は連番(欠番禁止)、Status は最新に保つ
+- ADR は連番(欠番禁止)。0001〜0026 は凍結して編集しない。現行の決定は `meta/decisions/README.md`(決定索引)が表し、新規 ADR は 60 行以内の 5 項目(`practices/adr-workflow.md`)
 
 ## 言語規約
 
@@ -108,7 +108,7 @@ Phase 7b のフック有効化以降は `tools/disable-guardrails.sh` で一時�
 
 - 継続課題・持ち越し事項: [`meta/TODO-for-v0.2.md`](./meta/TODO-for-v0.2.md)
 - 完了履歴(Phase 0-10 の時系列): [`meta/CHANGELOG.md`](./meta/CHANGELOG.md)
-- 初期構築時の Phase 仕様(`~/.claude-system-bootstrap/`)は bootstrap 完了をもって役割を終えた歴史的資料。新規作業の判断単位は ADR(`meta/decisions/`)+ CHANGELOG で記録する
+- 初期構築時の Phase 仕様(`~/.claude-system-bootstrap/`)は bootstrap 完了をもって役割を終えた歴史的資料。新規作業の判断単位は決定索引(`meta/decisions/README.md`)+ 短い ADR + CHANGELOG で記録する
 - 完了報告は user-level [`CLAUDE.md`](./adapters/claude-code/user-level/CLAUDE.md) の「完了時の必須報告フォーマット」に従う(`git diff --stat` の証跡を必ず添付)
 
 ## 関連

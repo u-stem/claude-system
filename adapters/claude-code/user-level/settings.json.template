@@ -8,6 +8,8 @@
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
 
+  "// bashOutputMaxChars": "Bash 出力の inline 上限(文字数)。ハーネス既定と同値を明示する。超過分はファイルに退避され読める。旧 pre-bash-output-cap.sh(末尾 200 行以外を不可逆に捨てる書き換え)は ADR 0027 で撤去し、この上限に依る",
+  "bashOutputMaxChars": 30000,
   "respectGitignore": true,
   "language": "japanese",
   "// model": "Fable 5.1 が主モデル: 日常のコーディング/エージェント用途で最上位の品質。[1m] を明示指定して 1M 窓を確定。fallbackModel は過負荷・不達時の縮退先(v2.1.166 追加、配列・最大 3 件)で、1 世代前の既知良品として Opus 5 を [1m] 込みで維持。effortLevel は最難作業(オーケストレーション + 難所推論)への校正として xhigh(ADR 0013)",

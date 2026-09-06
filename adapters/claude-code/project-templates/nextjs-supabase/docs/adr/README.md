@@ -10,7 +10,7 @@
 - ファイル名: `NNNN-kebab-case-title.md`(4 桁ゼロ埋め、ハイフン区切りの英小文字タイトル)
 - 番号は意思決定が確定した順に**連続して**採番する
 - **欠番禁止**(撤回しても番号は残し、Status を `Withdrawn` 等にする)
-- 旧 ADR を覆す場合、新 ADR を採番し前 ADR の Status を `Superseded by NNNN` にする
+- 旧 ADR は編集しない。既存の決定を覆すときは、新 ADR の「覆す決定」節で旧番号を名指しし、本ファイルの一覧の当該行にも注記する
 
 ## Status の語彙
 
@@ -20,19 +20,18 @@
 | `Accepted` | 採択済み、現に運用されている |
 | `Rejected` | 提案されたが採択されなかった |
 | `Withdrawn` | 取り下げた |
-| `Deprecated` | 採択時の前提が崩れたため非推奨 |
-| `Superseded by NNNN` | 後続の ADR `NNNN` で置き換えられた |
 
 ## 必須セクション
 
-各 ADR は以下のセクションを最低限備える。雛形は `~/ws/claude-system/adapters/claude-code/project-fragments/adr-template.md` を参照:
+各 ADR は次の 5 項目を備える(60 行以内)。雛形は `~/ws/claude-system/adapters/claude-code/project-fragments/adr-template.md` を参照:
 
-- Context(なぜ必要か)
-- Decision(何を決めたか)
-- Consequences(Positive / Negative / Neutral)
-- Related(関連 ADR / Phase / コミット / ファイル)
+- 決定(何を決めたか)
+- 根拠(3 行以内、各行末に所在を 1 つ添える: URL・ログのパス・比較したコマンド)
+- 再評価トリガー(何が起きたら見直すか。「なし」なら明記する)
+- 不採用と理由(1 案 1 行)
+- 影響ファイル(変更したファイル・ディレクトリ)
 
-任意: Alternatives Considered / Implementation Notes
+任意: 覆す決定 / 代償
 
 ## 既存 ADR
 
@@ -41,6 +40,8 @@
 | [0001](./0001-architecture-overview.md) | Architecture Overview | Accepted | {{PROJECT_NAME}} の初期アーキテクチャ判断 |
 
 ## ADR を書くタイミング
+
+索引(本ファイルの一覧)を先に更新する。1 行に収まらない判断か、既存の決定を覆すときだけ ADR を起票する:
 
 - アーキテクチャの主要判断(フレームワーク採用 / 認証方式 / DB 設計の方針 等)
 - 機械的ガードレール(hooks / CI / lint ルール)を新設・撤去するとき
@@ -52,11 +53,11 @@
 
 - 単純なバグ修正 / typo / 文言調整
 - 単発の機能追加(commit メッセージで十分)
-- リファクタリング(必要なら本文の `Implementation Notes` で言及)
+- リファクタリング(必要なら本文の影響ファイルで言及)
 
 ## 関連
 
 - 起票手順: `~/ws/claude-system/adapters/claude-code/user-level/skills/adr-writing/SKILL.md`
-- 抽象運用: `~/ws/claude-system/practices/adr-workflow.md`
+- 運用規則: `~/ws/claude-system/practices/adr-workflow.md`
 - 雛形: `~/ws/claude-system/adapters/claude-code/project-fragments/adr-template.md`
-- claude-system 自身の ADR(参考形式): `~/ws/claude-system/meta/decisions/README.md`
+- claude-system 自身の決定索引(参考形式): `~/ws/claude-system/meta/decisions/README.md`

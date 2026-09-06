@@ -1,6 +1,7 @@
 # ADR 0022: Harness Sync 2.1.220 — Model Switch to Opus 5 and Effort Recalibration
 
 - **Status**: Accepted
+- **凍結**: 2026-09-06 以降編集しない。現行の状態は [`README.md`](./README.md)(決定索引)が表す
 - **Date**: 2026-07-25
 - **Decider**: リポジトリオーナー(ADR 0001 の識別子規約に従う)
 

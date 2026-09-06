@@ -17,9 +17,9 @@
 
 ## 根拠
 
-- `/skill-doctor` の実測で自前 13 件が 0 回、superpowers 5 skill が現役。`claude mcp list` と現行セッションの tool 一覧で MCP 宣言が一度も実機に届いていないことを確認
-- 公式 docs で `mcpServers` は settings の無効キー、`skillOverrides` は plugin 対象外、subagent は既定で背景実行かつ CLAUDE.md 階層を毎回ロード、`model: fable` が有効と確認
-- Betterleaks は既存設定と自前ルール(`user-identifier-path`)で gitleaks と同一の検出結果(陽性対照 2 種、履歴 16 件、作業木 0 件)
+- `/skill-doctor` の実測で自前 13 件が 0 回、superpowers 5 skill が現役。`claude mcp list` と現行セッションの tool 一覧で MCP 宣言が一度も実機に届いていないことを確認(一覧は `meta/CHANGELOG.md` 2026-09-06)
+- 公式 docs で `mcpServers` は settings の無効キー、`skillOverrides` は plugin 対象外、subagent は既定で背景実行かつ CLAUDE.md 階層を毎回ロード、`model: fable` が有効と確認(https://code.claude.com/docs/en/ の settings-reference / skills / sub-agents / model-config)
+- Betterleaks は既存設定と自前ルール(`user-identifier-path`)で gitleaks と同一の検出結果(陽性対照 2 種、履歴 16 件、作業木 0 件。`betterleaks git` と `gitleaks git` を同一 `.gitleaks.toml` で比較)
 
 ## 再評価トリガー
 
@@ -39,9 +39,9 @@
 
 ## 覆す決定
 
-ADR 0012(出力 cap hook)、ADR 0016 / 0022(model pin と subagent tier の据え置き)、ADR 0024 §4(per-skill 無効化の待機)、ADR 0026 §4(MCP 宣言系統の検査設計)。旧 ADR は編集しない。
+ADR 0012(出力 cap hook)、ADR 0016 / 0022(model pin と subagent tier の据え置き)、ADR 0018 §1(MCP pin)、ADR 0018 §4 / 0021 §4 / 0022 §7 / 0023 §10(Betterleaks 据え置き)、ADR 0026 §4(MCP 宣言系統の検査設計)。ADR 0024 §4 の条件付き約束(per-skill 無効化)は決定本体を変えずトリガー未成立で閉じた。旧 ADR は編集しない。
 
-## 代償と範囲外
+## 代償(任意)
 
 - 組み込み `Explore` は Bash を持ち、`subagent-stop-audit.sh` の越権監査は定義ファイルの無い組み込みエージェントに効かない。防衛は `pre-bash-guard.sh` とハーネスの tool 制限
 - `principles/` 4 ファイルの字数超過、TODO 項目 18(v0.1.0 タグ)は運用者判断待ち、n8n 導入は別計画

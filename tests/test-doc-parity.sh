@@ -66,6 +66,18 @@ make_fixture() {
     > "$d/meta/decisions/0001-first.md"
   printf '%s\n' '# ADR 0002: Second' '' '- **Status**: Accepted' '' '## Context' 'x' \
     > "$d/meta/decisions/0002-second.md"
+
+  # meta/decisions/README.md is the decision index ADR 0027 introduced: every
+  # ADR file must be listed in its "ADR 一覧" table, and every 出典 named in
+  # its "現行の決定" tables must resolve to a real ADR file.
+  printf '%s\n' '# 決定索引' '' '## 現行の決定' '' \
+    '| 決定 | 根拠 | 再評価トリガー | 退けた案 | 出典 |' '|---|---|---|---|---|' \
+    '| x | y | z | w | 0001 |' '' \
+    '## ADR 一覧(0001〜0002 は凍結)' '' \
+    '| # | タイトル | Status | 日付 |' '|---|---|---|---|' \
+    '| [0001](./0001-first.md) | First | Accepted | 2026-01-01 |' \
+    '| [0002](./0002-second.md) | Second | Accepted | 2026-01-01 |' \
+    > "$d/meta/decisions/README.md"
 }
 
 FIX="$TMP/repo"
@@ -128,6 +140,15 @@ pass_case "CHANGELOG is exempt from stale wording" "$CHECK" --root "$FIX"
 make_fixture "$FIX"
 printf '%s\n' '# ADR 0003: Third' '' '- **Status**: Accepted' '' '## Context' \
   'Phase 10 で切り替える予定。' > "$FIX/meta/decisions/0003-third.md"
+printf '%s\n' '# 決定索引' '' '## 現行の決定' '' \
+  '| 決定 | 根拠 | 再評価トリガー | 退けた案 | 出典 |' '|---|---|---|---|---|' \
+  '| x | y | z | w | 0001 |' '' \
+  '## ADR 一覧(0001〜0003 は凍結)' '' \
+  '| # | タイトル | Status | 日付 |' '|---|---|---|---|' \
+  '| [0001](./0001-first.md) | First | Accepted | 2026-01-01 |' \
+  '| [0002](./0002-second.md) | Second | Accepted | 2026-01-01 |' \
+  '| [0003](./0003-third.md) | Third | Accepted | 2026-01-01 |' \
+  > "$FIX/meta/decisions/README.md"
 pass_case "ADR bodies are exempt from stale wording" "$CHECK" --root "$FIX"
 
 # --- adapter VERSION vs the prose that repeats it --------------------------------
@@ -198,6 +219,110 @@ make_fixture "$FIX"
 printf '%s\n' '# ADR 0001: First' '' '- **Status**: Superseded by 0002' '' '## Context' 'x' \
   > "$FIX/meta/decisions/0001-first.md"
 fail_case "supersede without a back-reference is caught" "$CHECK" --root "$FIX"
+
+# --- decision index parity (meta/decisions/README.md, ADR 0027) ----------------
+# Every ADR file must be listed in the README's "ADR 一覧" table, or the index
+# can silently fall behind the files it claims to catalog.
+make_fixture "$FIX"
+printf '%s\n' '# ADR 0003: Third' '' '- **Status**: Accepted' '' '## Context' 'x' \
+  > "$FIX/meta/decisions/0003-third.md"
+fail_case "ADR missing from the README's ADR 一覧 table is caught" "$CHECK" --root "$FIX"
+
+make_fixture "$FIX"
+printf '%s\n' '# ADR 0003: Third' '' '- **Status**: Accepted' '' '## Context' 'x' \
+  > "$FIX/meta/decisions/0003-third.md"
+printf '%s\n' '# 決定索引' '' '## 現行の決定' '' \
+  '| 決定 | 根拠 | 再評価トリガー | 退けた案 | 出典 |' '|---|---|---|---|---|' \
+  '| x | y | z | w | 0001 |' '' \
+  '## ADR 一覧(0001〜0003 は凍結)' '' \
+  '| # | タイトル | Status | 日付 |' '|---|---|---|---|' \
+  '| [0001](./0001-first.md) | First | Accepted | 2026-01-01 |' \
+  '| [0002](./0002-second.md) | Second | Accepted | 2026-01-01 |' \
+  '| [0003](./0003-third.md) | Third | Accepted | 2026-01-01 |' \
+  > "$FIX/meta/decisions/README.md"
+pass_case "ADR listed in the README's ADR 一覧 table passes" "$CHECK" --root "$FIX"
+
+# --- 覆す決定 back-reference (ADRs numbered 0027 and later) ---------------------
+# ADR 0027 replaced Status-based supersession with a "## 覆す決定" section that
+# names the ADR it overturns. The overturned ADR's row in the index must name
+# the new ADR back, the same acknowledgement rule the old Status chain enforced.
+make_fixture "$FIX"
+printf '%s\n' '# ADR 0027: Overturn' '' '- **Status**: Accepted' '' '## 決定' 'x' '' \
+  '## 覆す決定' '' 'ADR 0001 を覆す。' \
+  > "$FIX/meta/decisions/0027-overturn.md"
+printf '%s\n' '# 決定索引' '' '## 現行の決定' '' \
+  '| 決定 | 根拠 | 再評価トリガー | 退けた案 | 出典 |' '|---|---|---|---|---|' \
+  '| x | y | z | w | 0001 |' '' \
+  '## ADR 一覧(0001〜0002 は凍結)' '' \
+  '| # | タイトル | Status | 日付 |' '|---|---|---|---|' \
+  '| [0001](./0001-first.md) | First | Accepted | 2026-01-01 |' \
+  '| [0002](./0002-second.md) | Second | Accepted | 2026-01-01 |' \
+  '| [0027](./0027-overturn.md) | Overturn | Accepted | 2026-09-06 |' \
+  > "$FIX/meta/decisions/README.md"
+fail_case "覆す決定 without a back-reference in the overturned ADR's row is caught" \
+  "$CHECK" --root "$FIX"
+
+make_fixture "$FIX"
+printf '%s\n' '# ADR 0027: Overturn' '' '- **Status**: Accepted' '' '## 決定' 'x' '' \
+  '## 覆す決定' '' 'ADR 0001 を覆す。' \
+  > "$FIX/meta/decisions/0027-overturn.md"
+printf '%s\n' '# 決定索引' '' '## 現行の決定' '' \
+  '| 決定 | 根拠 | 再評価トリガー | 退けた案 | 出典 |' '|---|---|---|---|---|' \
+  '| x | y | z | w | 0001 |' '' \
+  '## ADR 一覧(0001〜0002 は凍結)' '' \
+  '| # | タイトル | Status | 日付 |' '|---|---|---|---|' \
+  '| [0001](./0001-first.md) | First(0027 が覆す) | Accepted | 2026-01-01 |' \
+  '| [0002](./0002-second.md) | Second | Accepted | 2026-01-01 |' \
+  '| [0027](./0027-overturn.md) | Overturn | Accepted | 2026-09-06 |' \
+  > "$FIX/meta/decisions/README.md"
+pass_case "覆す決定 with a back-reference in the overturned ADR's row passes" \
+  "$CHECK" --root "$FIX"
+
+# --- README 現行の決定 出典 column must name an existing ADR --------------------
+make_fixture "$FIX"
+printf '%s\n' '# 決定索引' '' '## 現行の決定' '' \
+  '| 決定 | 根拠 | 再評価トリガー | 退けた案 | 出典 |' '|---|---|---|---|---|' \
+  '| x | y | z | w | 0099 |' '' \
+  '## ADR 一覧(0001〜0002 は凍結)' '' \
+  '| # | タイトル | Status | 日付 |' '|---|---|---|---|' \
+  '| [0001](./0001-first.md) | First | Accepted | 2026-01-01 |' \
+  '| [0002](./0002-second.md) | Second | Accepted | 2026-01-01 |' \
+  > "$FIX/meta/decisions/README.md"
+fail_case "README 出典 column naming a nonexistent ADR is caught" "$CHECK" --root "$FIX"
+
+make_fixture "$FIX"
+pass_case "README 出典 column naming an existing ADR passes" "$CHECK" --root "$FIX"
+
+# --- ADRs numbered 0027 and later must stay within the 60-line cap -------------
+make_fixture "$FIX"
+{
+  printf '%s\n' '# ADR 0027: Long' '' '- **Status**: Accepted' '' '## 決定'
+  for ((i = 0; i < 60; i++)); do printf 'line %d\n' "$i"; done
+} > "$FIX/meta/decisions/0027-long.md"
+printf '%s\n' '# 決定索引' '' '## 現行の決定' '' \
+  '| 決定 | 根拠 | 再評価トリガー | 退けた案 | 出典 |' '|---|---|---|---|---|' \
+  '| x | y | z | w | 0001 |' '' \
+  '## ADR 一覧(0001〜0002 は凍結)' '' \
+  '| # | タイトル | Status | 日付 |' '|---|---|---|---|' \
+  '| [0001](./0001-first.md) | First | Accepted | 2026-01-01 |' \
+  '| [0002](./0002-second.md) | Second | Accepted | 2026-01-01 |' \
+  '| [0027](./0027-long.md) | Long | Accepted | 2026-09-06 |' \
+  > "$FIX/meta/decisions/README.md"
+fail_case "ADR numbered 0027+ over the 60-line cap is caught" "$CHECK" --root "$FIX"
+
+make_fixture "$FIX"
+printf '%s\n' '# ADR 0027: Short' '' '- **Status**: Accepted' '' '## 決定' 'x' \
+  > "$FIX/meta/decisions/0027-short.md"
+printf '%s\n' '# 決定索引' '' '## 現行の決定' '' \
+  '| 決定 | 根拠 | 再評価トリガー | 退けた案 | 出典 |' '|---|---|---|---|---|' \
+  '| x | y | z | w | 0001 |' '' \
+  '## ADR 一覧(0001〜0002 は凍結)' '' \
+  '| # | タイトル | Status | 日付 |' '|---|---|---|---|' \
+  '| [0001](./0001-first.md) | First | Accepted | 2026-01-01 |' \
+  '| [0002](./0002-second.md) | Second | Accepted | 2026-01-01 |' \
+  '| [0027](./0027-short.md) | Short | Accepted | 2026-09-06 |' \
+  > "$FIX/meta/decisions/README.md"
+pass_case "ADR numbered 0027+ within the 60-line cap passes" "$CHECK" --root "$FIX"
 
 # --- argument handling ----------------------------------------------------------
 pass_case "--help works" "$CHECK" --help

@@ -1,6 +1,7 @@
 # ADR 0014: Tool-Call Parse-Error Resilience
 
 - **Status**: Accepted
+- **凍結**: 2026-09-06 以降編集しない。現行の状態は [`README.md`](./README.md)(決定索引)が表す
 - **実装状況**: 層 0 / 層 A 実装済み、層 B(cmux watchdog 自動継続)は Deferred(§Decision 参照)
 - **Date**: 2026-06-05
 - **Decider**: リポジトリオーナー(ADR 0001 の識別子規約に従う)

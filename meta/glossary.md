@@ -131,8 +131,10 @@ SemVer に従う。
 | **Status: Proposed** | 提案中、まだ採択されていない |
 | **Status: Rejected** | 提案されたが採択されなかった(本文は議論記録として残す) |
 | **Status: Withdrawn** | 一度採択されたが、後継 ADR で置き換えられたわけでもなく単に取り下げた |
-| **Status: Deprecated** | 採択時の前提が崩れたため非推奨。後継 ADR への参照を Related に書く |
-| **Status: Superseded by NNNN** | 後続の ADR で置き換えられた |
+| **Status: Deprecated** | 0001〜0026 に残る凍結された履歴上の語彙(新規 ADR では使わない) |
+| **Status: Superseded by NNNN** | 0001〜0026 に残る凍結された履歴上の語彙(新規 ADR では使わない) |
+
+新規 ADR の Status 語彙は `Proposed` / `Accepted` / `Rejected` / `Withdrawn` の 4 語のみ。現行の状態は個々の ADR の Status ではなく `meta/decisions/README.md`(決定索引)が表す。
 
 ---
 

@@ -4,12 +4,7 @@
 - **Date**: {{ADR_DATE}}
 - **Decider**: {{DECIDER}}
 
-## Context
-
-{{PROJECT_NAME}} を立ち上げるにあたり、初期アーキテクチャの選定理由をここに記録する。
-本 ADR は**初期判断のスナップショット**であり、後続の主要判断は別 ADR(0002 以降)で記録する。
-
-## Decision
+## 決定
 
 | 軸 | 採用 | 理由 |
 |----|------|------|
@@ -22,36 +17,33 @@
 | テスト | bun test / Vitest | 軽量、TS ネイティブ、bun との統合 |
 | 機密検出 | gitleaks(pre-commit + GitHub Actions) | 二重防御 |
 
-## Alternatives Considered
+## 根拠
 
-| 代替案 | 採否 | 理由 |
-|--------|------|------|
-| Remix / SvelteKit | 不採用 | エコシステム規模 / Vercel との統合度合い |
-| 自前 Express + Postgres | 不採用 | 認証・Storage・RLS を自作する負担、Supabase で吸収できる |
-| Firebase | 不採用 | RLS 相当(Security Rules)の表現力が SQL ベースより制限される、Postgres から離れたくない |
-| pnpm / npm | 不採用 | bun の起動速度・組み込み test runner を優先 |
+{{PROJECT_NAME}} の立ち上げにあたり、セキュリティ境界を DB(Supabase RLS)に寄せることを優先した。Next.js + Supabase + Vercel はエコシステムが厚く、問題発生時の参考資料が多い。bun + TypeScript strict で型の網と CI 速度を両立する。
+本 ADR は**初期判断のスナップショット**であり、後続の主要判断は別 ADR(0002 以降)で記録する。
 
-## Consequences
+## 再評価トリガー
 
-### Positive
+- いずれかの軸でメジャー更新が必要になったとき(別 ADR で記録する)
+- RLS の具体ポリシーを設計するとき(別 ADR で個別に判断する)
 
-- セキュリティ境界が DB(Supabase RLS)に寄り、Service Role 漏洩リスクを最小化できる
-- Next.js + Supabase + Vercel の組み合わせはエコシステムが厚く、問題発生時の参考資料が多い
-- bun + TypeScript strict で型の網と CI 速度を両立
+## 不採用と理由
 
-### Negative
+| 代替案 | 不採用の理由 |
+|--------|------|
+| Remix / SvelteKit | エコシステム規模 / Vercel との統合度合い |
+| 自前 Express + Postgres | 認証・Storage・RLS を自作する負担、Supabase で吸収できる |
+| Firebase | RLS 相当(Security Rules)の表現力が SQL ベースより制限される、Postgres から離れたくない |
+| pnpm / npm | bun の起動速度・組み込み test runner を優先 |
+
+## 代償
 
 - bun はまだ Node.js 互換性の境界で hit する場面がある(必要なら fallback 設計)
 - Supabase ロックイン(将来の DB 移行コスト)を受容する
 - Vercel の vendor 依存(Edge / Serverless 制約)
 
-### Neutral
-
-- 各種バージョンは migration を伴うため、メジャー更新は別 ADR で記録する
-- RLS の具体ポリシーは別 ADR(0002 以降)で個別に判断する
-
-## Related
+## 影響ファイル
 
 - 共通基盤: `~/ws/claude-system/adapters/claude-code/project-fragments/web-apps-common.md`
 - 関連 skill: `nextjs-supabase-base` / `nextjs-supabase-rls` / `typescript-strict`
-- claude-system ADR: `~/ws/claude-system/meta/decisions/`(0001 / 0002 / 0003 を全プロジェクトで遵守)
+- claude-system の決定索引: `~/ws/claude-system/meta/decisions/`(0001 / 0002 / 0003 を全プロジェクトで遵守)
