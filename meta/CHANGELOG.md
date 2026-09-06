@@ -2,6 +2,28 @@
 
 このリポジトリの変更履歴。Phase 単位でセクション化する。
 
+## 観測ループ第一弾: `loop-report.sh --json` の実装と実データ計測(2026-09-06)
+
+TODO-for-v0.2 項目 26 の 1(claude-system 運用ループ)の最初のフローを実データで検証した。ホスト側の契約は本リポジトリの `tools/loop-report.sh --json`、失敗ログの原因分類とドラフト生成はワークフローエンジン側(Private 側)が担う([ADR 0028](./decisions/0028-n8n-workflow-engine-boundary.md))。
+
+**変えたこと**
+
+- `tools/loop-report.sh --json`(スキーマ `cc-loop-draft/1` で失敗ログのみを単一 JSON 出力)、`$HOME` と scratchpad 形式パスの秘匿処理、200 字切詰めで途中に残る接頭辞(`scrub_tail`)の除去、契約テスト `tests/test-loop-report-json.sh` 10 ケース
+
+**測ったこと**
+
+- fixture 5 件は 9 秒、実データ 26 件・24 シグネチャは 24 秒
+- ラベル分布: other 16 / syntax 5 / missing-dependency 3 / test-assertion 1 / type-error 1。原因が error 文に書かれている件は全て正しいラベルが付き、`other` は error が終了コードだけの件に限られた(手動判定、全 26 件を確認)
+
+**気づいたこと**
+
+- failure hook が探索コマンドの非ゼロ終了を category `unknown` として記録しており、これが昇格候補の第 1 号になった(TODO-for-v0.2 項目 10 に材料として追記)
+- `daily-routine.md` の failure-log 旧パス記載は今回は未修正のまま残っている
+
+**直したこと**
+
+- レビューで見つかったコミットメッセージ内の実パス断片を `git commit --amend` で除去した
+
 ## セルフホスト n8n 基盤の導入(2026-09-06)
 
 用途 3 系統(運用ループ / プロダクト運用 / 個人)を 4 分割し、基盤だけを先に建てた([ADR 0028](./decisions/0028-n8n-workflow-engine-boundary.md))。真実源は Private repo、本リポジトリには切り分け・境界・配置の 3 決定と TODO だけを置く。

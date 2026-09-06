@@ -117,6 +117,7 @@ Phase 9(`v0.1.0-rc1` リリース候補化)で消化しきれなかった、ま�
 基盤([ADR 0028](./decisions/0028-n8n-workflow-engine-boundary.md)、2026-09-06)の上に用途別のフローを順に載せる。各々 brainstorming から始め、spec と実体は Private 側に置く。
 
 1. claude-system 運用ループ(項目 10 のレトロ連動・観測ループ)。外向きノードを持つ `cc-*` フローを作る前に項目 24 の deny を入れる。集計はホスト側 `loop-report.sh` で行い、結果 1 ファイルだけを read-only で渡す
+   進捗(2026-09-06): 観測側の初フローを Private 側に実装(failure-log の原因分類・プロジェクト跨ぎ再発の検出・昇格候補ドラフト、明示起動のみ)。ホスト側は `tools/loop-report.sh --json` が集計と `$HOME` の秘匿を担う。自動起動の判断は項目 10 のまま
 2. プロダクト運用(Supabase / Vercel / GitHub)。inbound webhook が要るなら外部公開(Tunnel)の可否をこの spec で決める
 3. 個人ワークフロー(メール / カレンダー / メモ)。通知チャネルの選定を含む
 
@@ -363,6 +364,7 @@ drawzzz 再開時:
 - 月次レトロを 3 ヶ月続けて手動運用した後、定型部分が見えてきたら検討
 - クロック起算: **2026-07**(初回レトロ実走、[ADR 0019](./decisions/0019-loop-engineering-phased-adoption.md))。手動運用の道具(`tools/loop-report.sh`)は同 ADR で整備済み。自動起動の判断は本項目に委ねたまま
 - 機構候補はワークフローエンジン(セルフホスト n8n、[ADR 0028](./decisions/0028-n8n-workflow-engine-boundary.md))。判断時期は変えない。実装するときは項目 26 の 1 として brainstorming から始め、集計はホスト側で行って結果 1 ファイルだけを渡す
+- 材料(2026-09-06): 実データ 26 件の分類は 24 秒。`unknown` 14 件は探索コマンドの非ゼロ終了で、記録規則の見直し候補
 
 ---
 
