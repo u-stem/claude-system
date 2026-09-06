@@ -2,6 +2,31 @@
 
 このリポジトリの変更履歴。Phase 単位でセクション化する。
 
+## Fable 5.1 同期と使用実績に基づく剪定(2026-09-06)
+
+実インストール版 2.1.263 と運用モデル Fable 5.1 に機械層を追随させ、同時にリポジトリの無駄を実測で剪定した([ADR 0027](./decisions/0027-fable-5-1-sync-and-pruning.md))。記録方式もこの回から決定索引方式に改めた。
+
+**何を測ったか**
+
+- 上流 CHANGELOG 2.1.231〜263 の全文(ローカルキャッシュ)と公式 docs 6 ページで、`mcpServers` が settings の無効キーであること、subagent が既定で背景実行になったこと、`bashOutputMaxChars` の追加、`model: fable` alias の有効性を確認した
+- `claude -p /skill-doctor` で自前 skill / command 13 件が 180 日 0 回、superpowers の 5 skill が現役と判明した。ADR 0024 §4 が待っていた「重複 7 skill の無効化」は使用実績が前提を否定したため閉じた
+- `claude mcp list` と現行セッションの tool 一覧で、inline 宣言の playwright が一度もロードされていないこと、opt-in MCP が未登録であることを確認した
+- Betterleaks 1.8.1 を導入し、既存 `.gitleaks.toml` のまま gitleaks 8.30.1 と突き合わせた。陽性対照 2 種(GitHub PAT 形式、`user-identifier-path` 自前ルール)、履歴 16 件(ADR 0008 既知)、作業木 0 件のすべてで一致した
+
+**何を変えたか**
+
+- settings: `model` を `claude-fable-5-1[1m]`、`fallbackModel` を `["claude-opus-5[1m]"]`。no-op の `ENABLE_PROMPT_CACHING_1H`、無効キー `mcpServers`、空の `PreCompact` / `SessionEnd` 結線を削除
+- subagent: `devil-advocate` と `security-auditor` を `model: fable`。`explorer` は組み込み `Explore` に置き換えて削除
+- 削除: MCP 宣言系統(`mcp/servers.template.json` / `tools/setup-mcp.sh`)、command 4 本(`review` `check` `test` `_index`)、skill 6 本、`pre-bash-output-cap.sh`、非仕様 frontmatter `recommended_model`
+- 散文: user-level CLAUDE.md を 10,021 → 5,887 bytes、`update-check.md` を 6,946 → 4,298 bytes。世代・版の履歴と機械強制済みの根拠散文を落とした
+- 秘密検出のローカル層(`tools/setup.sh` / `tools/doctor.sh` / pre-commit テンプレート)を Betterleaks に置換。CI は gitleaks-action のまま(TODO 20)
+- superpowers 6.2.0 → 6.3.0(公開 2026-08-12、持ち込み能力は不変)
+- 記録: `practices/adr-workflow.md` を索引優先に書き換え、`meta/decisions/README.md` を現行の決定索引に作り替えた。旧 ADR 0001〜0026 は凍結
+
+**反証で直したこと**
+
+`devil-advocate` の 10 項目のうち、`explorer` 削除で `test-subagent-stop-audit.sh` が実ファイル依存で赤になる点(fixture を `refactor-planner` に差し替え)、組み込み `Explore` に越権監査が効かない点(ADR に代償として明記)、`project-templates/` 等 10 ファイルの追随漏れ(削除識別子の全文 grep を受け入れ条件に追加)を反映した。
+
 ## Claude Code 2.1.229 への harness 同期(2026-08-13)
 
 3 パッチ分の差分を追従させた([ADR 0026](./decisions/0026-harness-sync-2.1.229.md))。機械層の変更自体は小さい(VERSION と README の 2 箇所)が、**検証手段の側に欠陥が見つかった**ことがこの回の主題になった。

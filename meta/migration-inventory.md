@@ -1,5 +1,7 @@
 # claude-settings 棚卸しインベントリ
 
+> Phase 0.5(2026-04-26)時点の記録。以後更新しない歴史記録であり、`tests/check-doc-parity.sh` の陳腐化検査から除外されている。
+
 - **棚卸し日**: 2026-04-26
 - **旧リポジトリ**: `~/ws/claude-settings/`(GitHub 既存リポジトリに保全済み)
 - **作成元**: Phase 0.5

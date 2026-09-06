@@ -1,86 +1,59 @@
 # ADR テンプレート
 
-プロジェクト内 `docs/adr/NNNN-<slug>.md` にコピーして使う ADR の標準テンプレート。
-詳細運用は `~/ws/claude-system/adapters/claude-code/user-level/skills/adr-writing/SKILL.md` 参照。
+プロジェクト内 `docs/adr/NNNN-<slug>.md` にコピーして使う決定記録のテンプレート(`tools/new-adr.sh` はこの fenced block を抜き出す)。
+運用は `~/ws/claude-system/practices/adr-workflow.md`(索引が先、ADR は例外、根拠は実物の隣)に従う。
 
 ---
 
 ```markdown
 # ADR NNNN: <短いタイトル>
 
-- **Status**: Proposed | Accepted | Rejected | Withdrawn | Deprecated | Superseded by NNNN
+- **Status**: Proposed | Accepted | Rejected | Withdrawn
 - **Date**: YYYY-MM-DD
 - **Decider**: <意思決定者(本名・新規連絡先は書かない、ADR 0001 準拠)>
 
-## Context
+## 決定
 
-なぜこの判断が必要になったか。背景・制約・関係者・代替案の事情を、後から読んでも経緯が辿れるように書く。
+何を決めたか。番号付きで、条件があれば条件も 1 行に。
 
-- 何が起きていたか
-- どの制約があったか(技術 / 期日 / 互換性 / 既存設計)
-- 誰が関与したか(役割で記述、本名は書かない)
-- 検討すべきだった代替案の事情
+## 根拠
 
-## Decision
+3 行以内。測った事実、参照した一次資料、比較した数値。
 
-何を決めたか。曖昧さなく記述する。条件分岐があるなら表で示す。
+## 再評価トリガー
 
-(可能なら図 / 表 / コード片で具体化)
+何が起きたらこの決定を見直すか。「なし」なら明記する。
 
-## Alternatives Considered(任意、複雑な決定では推奨)
+## 不採用と理由
 
-| 代替案 | 採否 | 理由 |
-|--------|------|------|
-| 案 A | 不採用 | <なぜ捨てたか> |
-| 案 B | 採用 | <なぜ選んだか> |
-| 案 C | 不採用 | <なぜ捨てたか> |
+- <案>: <3〜6 語の理由>
 
-## Consequences
+## 覆す決定(任意)
 
-決定の結果として起きること:
+索引の該当行と旧 ADR 番号。旧 ADR は編集しない。
 
-### Positive
+## 影響ファイル
 
-- 良くなる点
-
-### Negative
-
-- 副作用 / コスト
-
-### Neutral
-
-- 中立的な影響、注意点
-
-## Implementation Notes(任意)
-
-実装上のメモ。コミット ID、関連 PR、デプロイ計画等。
-
-## Related
-
-- 関連 ADR(番号で参照、例: `[ADR 0001](./0001-anonymity-policy.md)`)
-- 関連 Phase / コミット / ファイル
-- 外部参照(必要なら URL。Public→Private リンクは禁止、ADR 0002 準拠)
+変更したファイルとディレクトリ。
 ```
 
 ## 使い方
 
-1. プロジェクトの `docs/adr/` ディレクトリで最大連番 + 1 を確認
-2. 上のテンプレートを `docs/adr/NNNN-<kebab-case-slug>.md` にコピー
-3. 不要な任意セクション(Alternatives Considered / Implementation Notes)は削除
-4. `docs/adr/README.md` の表に新 ADR の行を追加(ある場合)
+1. `docs/adr/README.md`(決定索引)に決定・根拠・再評価トリガー・退けた案を 1 行で追加する。1 行に収まらない判断だけ ADR に進む
+2. `tools/new-adr.sh <slug>` で採番(欠番禁止)し、上の 5 項目を 60 行以内で埋める
+3. 経緯(検証の顛末、途中の訂正)は ADR に書かず変更履歴に 1 エントリ残す
+4. 将来の実行を約束する行は同じコミットで TODO ファイルへ転記する
 5. ADR 0001 / 0002 遵守(本名 / 新規連絡先 / Public→Private URL を含めない)
 
 ## チェックリスト
 
-- [ ] 連番に欠番がない
-- [ ] Status が現状を正確に反映している
-- [ ] Context / Decision / Consequences / Related が埋まっている
-- [ ] 本名・personal email literal が含まれていない
-- [ ] Public→Private リンクが含まれていない
-- [ ] 既存 ADR を覆すなら旧 ADR の Status を `Superseded by NNNN` に更新済み
+- [ ] 索引の該当行を先に更新した
+- [ ] 60 行以内、5 項目が埋まっている
+- [ ] 退けた案に理由がある
+- [ ] 覆す決定があれば番号を名指しし、旧 ADR は編集していない
+- [ ] 本名・personal email literal・Public→Private リンクが含まれていない
 
 ## 関連
 
-- [`adapters/claude-code/user-level/skills/adr-writing/SKILL.md`](~/ws/claude-system/adapters/claude-code/user-level/skills/adr-writing/SKILL.md) — 起票手順
-- [`practices/adr-workflow.md`](~/ws/claude-system/practices/adr-workflow.md) — 抽象運用
-- [`meta/decisions/README.md`](~/ws/claude-system/meta/decisions/README.md) — claude-system 自身の ADR 規約(参考形式)
+- [`practices/adr-workflow.md`](~/ws/claude-system/practices/adr-workflow.md) — 運用規則
+- [`meta/decisions/README.md`](~/ws/claude-system/meta/decisions/README.md) — claude-system 自身の決定索引(参考形式)

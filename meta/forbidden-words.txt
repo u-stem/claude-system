@@ -3,7 +3,7 @@
 # 用途:
 #   - 不変層(principles/)から「特定 AI 開発ツールに依存する語」が漏れていないことを
 #     CI / hooks で機械的に検証する
-#   - Phase 7b のガードレール(hooks / GitHub Actions)はこのファイルを唯一の真実源として読む
+#   - ガードレール(hooks / GitHub Actions / tests)はこのファイルを唯一の真実源として読む
 #
 # 形式:
 #   - 1 行 1 語

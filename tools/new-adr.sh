@@ -76,28 +76,25 @@ if [[ ! -s "$OUT" ]]; then
 - **Date**: $(date +%Y-%m-%d)
 - **Decider**: プロジェクトオーナー
 
-## Context
+## 決定
 
 TODO
 
-## Decision
+## 根拠
 
 TODO
 
-## Consequences
+## 再評価トリガー
 
-### Positive
--
+TODO
 
-### Negative
--
+## 不採用と理由
 
-### Neutral
--
+- TODO
 
-## Related
+## 影響ファイル
 
--
+- TODO
 EOF
 fi
 

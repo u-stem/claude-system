@@ -22,13 +22,16 @@ Phase 9(`v0.1.0-rc1` リリース候補化)で消化しきれなかった、ま�
 | 10 | レトロ連動の自動化 | トリガー待ち(月次レトロ 3 ヶ月後) |
 | 11 | principles / practices 層の見直し履歴 | 継続保留(四半期見直し定例化後) |
 | 18 | `git tag v0.1.0` の発行可否 | 運用者判断待ち(ADR 0025) |
-| 19 | Betterleaks の並行運用検証 | **次回の harness sync で最初に着手**(ADR 0023 / 0026) |
+| 20 | Betterleaks の CI 置換 | 条件待ち(保守された Action の確認) |
+| 21 | `@` 参照先の実在検査 | トリガー待ち(リンク切れが実害になったとき) |
+| 22 | セルフホスト n8n の導入計画 | 次の計画セッション(brainstorming から) |
 | 12 | migrate スクリプトの壊れた symlink 耐性 | **解決済み** → クローズ記録 |
 | 13 | settings.json 配置の責務整合 | **解決済み** → クローズ記録 |
 | 14 | ADR 0011 実装(委譲オーケストレーション) | **解決済み** → クローズ記録 |
 | 15 | ADR 0012 実装(トークン経済の機械化) | **解決済み** → クローズ記録 |
 | 16 | VERSION pin を実インストール版へ同期 | **解決済み** → クローズ記録 |
 | 17 | MCP 登録経路(インライン / 宣言)の二重管理整理 | **解決済み** → クローズ記録 |
+| 19 | Betterleaks の並行運用検証 | **解決済み** → クローズ記録 |
 
 ---
 
@@ -53,30 +56,40 @@ Phase 9(`v0.1.0-rc1` リリース候補化)で消化しきれなかった、ま�
 
 ---
 
-## 19. Betterleaks の並行運用検証(次回の harness sync で最初に着手)
+## 20. Betterleaks の CI 置換(条件待ち)
 
-### 経緯
+ローカル層(`tools/setup.sh` / `tools/doctor.sh` / pre-commit テンプレート)は 2026-09-06 に Betterleaks へ置換した([ADR 0027](./decisions/0027-fable-5-1-sync-and-pruning.md))。CI(`secrets-scan.yml` の gitleaks-action、`doctor.yml` の gitleaks 取得)は据え置き。
 
-gitleaks v8 は feature-complete 宣言済みで、後継は原作者主導の Betterleaks。[ADR 0021](./decisions/0021-harness-sync-2.1.217.md) では「据え置き」、[ADR 0023](./decisions/0023-harness-sync-2.1.226.md) §10 で「見送り」から「正式な再評価対象」へ格上げし、手順まで確定した。しかし [ADR 0026](./decisions/0026-harness-sync-2.1.229.md) の同期でも着手されず、**2 回連続の先送り**になった。
+### トリガー
 
-真因は判断の是非ではなく**約束の保管場所**にある。ADR 本文の散文に置かれた「次回やる」は grep されず機械検出もされないため、次回の作業者(未来の自分)が能動的に読み返さないかぎり回収されない。ADR 0025 が新設した TODO 転記規約([`decisions/README.md`](./decisions/README.md))の 2 例目として、本ファイルへ転記する。
+- Betterleaks の保守された GitHub Action(または `gh release download` で取得できる署名付きバイナリ)を確認できたとき
+- gitleaks のセキュリティ修正が止まったとき(その時点で CI の検査が古くなる)
 
 ### やること
 
-`.gitleaks.toml` + Phase 7b hooks + CI に対する**並行運用検証**。乗り換えではなく読み取り専用の計測であり、ガードレールは 1 行も変えない:
+`secrets-scan.yml` と `doctor.yml` の取得手順を差し替え、`.gitleaks.toml` のまま緑になることを確認する。
 
-1. Betterleaks を取得(`Bash(gitleaks *)` は allow だが `betterleaks` は allow 外。permissions の追加要否も判断する)
-2. 現行 `.gitleaks.toml` をそのまま食わせ、旧 config 互換の主張を実地確認
-3. このリポジトリに対して両者を dry-run で走らせ、**false positive の差分を実測**
-4. ADR 0008 の custom rule(絶対パス内ユーザー名の検出)が同等に効くかを個別に確認
+---
 
-### 判断基準
+## 21. `@` 参照先の実在検査(トリガー待ち)
 
-差分が無いか、Betterleaks 側が真陽性を増やし偽陽性を増やさないなら採用を検討する。偽陽性が増えるなら不採用(偽陽性を出す検査は無効化され、無効化された検査は何も守らない)。
+`tests/check-circular-refs.sh` は `@<file>` 参照の循環だけを見て、参照先の実在を検査しない(`tools/doctor.sh` のヘルプ文は 2026-09-06 に実態へ合わせた)。削除の追随漏れは現状、削除識別子の全文 grep で人手検出している。
 
-### 3 回目の先送りをする場合
+### トリガー
 
-据え置く判断自体は正当でありうるが、その場合は**理由を ADR に明記**し、本項目のトリガー条件を書き換える。「次回」とだけ書いて送ることを繰り返さない。
+リンク切れが実害(参照先不在で能力単位が読めない等)として観測されたとき。それまでは grep 運用で足りる。
+
+---
+
+## 22. セルフホスト n8n の導入計画(次の計画セッション)
+
+運用者の意向(2026-09-06)。項目 10(レトロ連動の自動化)と観測ループがセッション外の常駐オーケストレータを必要としている。
+
+### 先に決めること
+
+- n8n でしか組めないフローを 3〜5 本列挙し、ハーネス標準機能(スケジュール実行 / ループ / 背景セッション / セッション間メッセージング)と切り分ける
+- 資格情報と workflow export を Public の claude-system に置かない設計(Private 側か端末ローカル)
+- コンテナイメージの pin と公開後 7 日ルールの適用
 
 ---
 
@@ -153,7 +166,7 @@ Phase 9 検証では重複の実害は確認できなかったため継続保留
 | 対象ファイル | 削減方針 |
 |---|---|
 | `~/ws/kairous/.claude/rules/code-quality.md` | 汎用部削除、kairous 固有(`constants.ts` / `database.ts` SSoT)のみ残す |
-| `~/ws/kairous/.claude/rules/security.md` | env / Supply Chain 汎用部削除、`security-audit` skill を `@` 参照。kairous 固有(Supabase RLS / Edge Functions service_role / `src/middleware.ts` CSP / `src/lib/env.ts`)は残す |
+| `~/ws/kairous/.claude/rules/security.md` | env / Supply Chain 汎用部削除、`security-auditor` subagent か組み込み `/security-review` を参照(`security-audit` skill は 2026-09-06 に削除)。kairous 固有(Supabase RLS / Edge Functions service_role / `src/middleware.ts` CSP / `src/lib/env.ts`)は残す |
 | `~/ws/kairous/.claude/rules/testing.md` | TDD 汎用部削除、`testing-typescript` skill を `@` 参照。Small/Medium/Large 分類 + CI flake / TZ / E2E ルールは残す |
 | `~/ws/kairous/.claude/rules/workflow.md` | エージェント委譲基準の Sonnet 期記述削除。PR 運用 / worktree / PBI 管理は残す |
 
@@ -340,6 +353,7 @@ drawzzz 再開時:
 | 15 | ADR 0012 実装(トークン経済の機械化) | [ADR 0012](./decisions/0012-token-economy-mechanization.md)(Accepted)。`practices/token-economy.md` 新設 + 出力キャップ hook `pre-bash-output-cap.sh`(PreToolUse + `updatedInput`)を導入・結線。`subagent-log.jsonl` を計測点に位置づけ |
 | 16 | VERSION pin を実インストール版へ同期 | [ADR 0016](./decisions/0016-fable-5-harness-settings-sync.md)(Accepted)。Fable 5 GA / Claude Code 2.1.170 への harness 同期と同一作業で `VERSION` を `2.1.170` へ、model pin を `claude-fable-5` へ更新。`fallbackModel` 新設、MCP pin・gitleaks-action v3 も併せて更新 |
 | 17 | MCP 登録経路の二重管理整理 | [ADR 0018](./decisions/0018-harness-sync-2.1.197.md) の code review follow-up。playwright を `servers.template.json` から除去し settings.json inline に一本化(常時=インライン / opt-in・secret=宣言の役割分担を確立)、runner を `bunx` に統一。実環境では未登録のため二重ロードの実害は発生前に解消。README「MCP 登録経路」節に方針を明記 |
+| 19 | Betterleaks の並行運用検証 | [ADR 0027](./decisions/0027-fable-5-1-sync-and-pruning.md)。Betterleaks 1.8.1 を既存 `.gitleaks.toml` のまま gitleaks 8.30.1 と突き合わせ、陽性対照 2 種・履歴 16 件・作業木 0 件のすべてで一致。ローカル層を置換し CI は項目 20 へ |
 
 ---
 
