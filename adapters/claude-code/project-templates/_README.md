@@ -5,7 +5,7 @@
 ## 配布方針
 
 - テンプレートは**コピーされる**前提(参照ではない)
-- Phase 7a で `tools/new-project.sh <project-name> <template-name>` 経由で展開予定
+- `tools/new-project.sh <project-name> <template-name>` 経由で展開する
 - 手動展開時は各テンプレートの `_TEMPLATE_USAGE.md` を参照
 - プレースホルダ規約: `{{PLACEHOLDER_NAME}}` 形式(英大文字 + アンダースコア)
 
@@ -44,7 +44,7 @@
 1. [`project-tech-stack-decision`](~/ws/claude-system/adapters/claude-code/user-level/skills/project-tech-stack-decision/SKILL.md) skill で候補を網羅的に検討する
 2. ADR として選定理由を記録する([`adr-writing`](~/ws/claude-system/adapters/claude-code/user-level/skills/adr-writing/SKILL.md))
 3. テンプレートを使う場合: 上記「成熟度」表で実戦経験を確認
-4. テンプレートを使わない場合: `tools/new-project.sh` の「ゼロから始める」モード(Phase 7a で実装予定)を使う
+4. テンプレートを使わない場合: `tools/new-project.sh` の「ゼロから始める」モード(テンプレート名 `none`、または対話モードで選択)を使う
 
 「主要スタックだから」「テンプレートにあるから」で機械的に選ぶことを避ける。
 
@@ -56,8 +56,8 @@
 | 静的サイト(認証・DB なし) | `nextjs-supabase` から Supabase 関連を削る、または将来の `nextjs-static` template を待つ |
 | Web ゲーム(2D / 3D) | `pixi-game`(skeleton 状態、肉付け後使用) |
 | ボードゲーム / カードゲームの設計 | `board-game-doc` |
-| ネイティブゲーム(Rust / Go / native) | `pixi-game` を参考に新 template を `skill-creation` 手順で作成 |
-| Python データ解析 / CLI | 将来の `python-cli` template を待つ、または手動構築 + 手で `python-style` skill 参照 |
+| ネイティブゲーム(Rust / Go / native) | `pixi-game` を参考に新 template を作成(スキャフォールドは手動、必要な skill は [`tools/new-skill.sh`](~/ws/claude-system/tools/new-skill.sh)) |
+| Python データ解析 / CLI | 将来の `python-cli` template を待つ、または手動構築 |
 
 ただし**この表に該当するからといってテンプレート利用が最善とは限らない**。前述のとおり `project-tech-stack-decision` skill で候補を比較した上で判断すること。
 
@@ -100,5 +100,5 @@
 
 - [`adapters/claude-code/project-fragments/README.md`](../project-fragments/README.md) — fragment 側(参照される)
 - [`practices/project-bootstrap.md`](~/ws/claude-system/practices/project-bootstrap.md) — 立ち上げ手順の抽象
-- [`adapters/claude-code/user-level/skills/skill-creation/SKILL.md`](~/ws/claude-system/adapters/claude-code/user-level/skills/skill-creation/SKILL.md) — skeleton を肉付ける手順の準用元
+- [`tools/new-skill.sh`](~/ws/claude-system/tools/new-skill.sh) — skeleton を肉付けるときに必要な skill を追加するスキャフォールドツール
 - [`tools/new-project.sh`](~/ws/claude-system/tools/new-project.sh) — テンプレートを使った新規プロジェクト立ち上げスクリプト

@@ -1,14 +1,13 @@
 ---
 name: nextjs-supabase-rls
 description: Supabase RLS ポリシーを設計・レビューする
-recommended_model: opus
 ---
 
 # Supabase RLS 設計
 
 Row Level Security ポリシーの設計・レビュー専用 skill。
 Next.js + Supabase の基本作法は別 skill `nextjs-supabase-base` を参照。
-**RLS は原子性とセキュリティの両方が問われるため `recommended_model: opus`**(`practices/model-selection.md` 準拠)。
+**RLS は原子性とセキュリティの両方が問われるため上位モデルを推奨**(`practices/model-selection.md` 準拠)。
 
 ## 目的
 

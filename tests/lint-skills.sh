@@ -15,7 +15,7 @@ err() { ERRORS=$((ERRORS + 1)); cs_error "$*"; }
 
 for skill in adapters/claude-code/user-level/skills/*/SKILL.md; do
   [[ -f "$skill" ]] || continue
-  for field in name description recommended_model; do
+  for field in name description; do
     head -10 "$skill" | grep -q "^${field}:" || err "missing $field: $skill"
   done
   dir_name="$(basename "$(dirname "$skill")")"

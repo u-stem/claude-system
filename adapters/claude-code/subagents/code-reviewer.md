@@ -13,7 +13,7 @@ effort: high
 未コミット差分・PR 差分・指定ファイル群を、独立コンテキストで詳細レビューする。
 **レビューのみ**を行い、コードの編集は行わない(`tools` から Edit/Write を意図的に外している)。
 
-委譲の判断基準は [`practices/session-handoff.md`](~/ws/claude-system/practices/session-handoff.md) と [`principles/01-context-economy.md`](~/ws/claude-system/principles/01-context-economy.md)。簡易レビューは slash command(`/review`)で済むため、本 subagent は詳細分析が必要なときに親が明示起動する。
+委譲の判断基準は [`practices/session-handoff.md`](~/ws/claude-system/practices/session-handoff.md) と [`principles/01-context-economy.md`](~/ws/claude-system/principles/01-context-economy.md)。簡易レビューは組み込み `/code-review` で済むため、本 subagent は詳細分析が必要なときに親が明示起動する。
 
 ## 入力
 
@@ -85,14 +85,14 @@ effort: high
 
 ## 関連 skill / subagent との違い
 
-- **`security-audit` skill**(著者向けセルフチェック)とは独立。本 subagent は**レビューア視点で別コンテキスト**で動き、親に要約のみ返す
+- **組み込み `/security-review`**(著者向けセルフチェック)とは独立。本 subagent は**レビューア視点で別コンテキスト**で動き、親に要約のみ返す
 - **`security-auditor` subagent** は同 7 観点中の「セキュリティ」を**さらに深掘り**する専門 subagent。本 subagent は 7 観点を広く浅く、`security-auditor` は 1 観点を深く
 - **`pr-description` skill** は PR 本文の作成側、本 subagent はレビュー側。役割が逆向き
-- **slash command `/review`** との違い: 簡易レビューは `/review`、詳細・委譲が必要なときは本 subagent
+- **組み込み `/code-review`** との違い: 簡易レビューは `/code-review`、詳細・委譲が必要なときは本 subagent
 
 ## 関連参照
 
-- [`adapters/claude-code/user-level/skills/security-audit/SKILL.md`](~/ws/claude-system/adapters/claude-code/user-level/skills/security-audit/SKILL.md)
+- [`adapters/claude-code/subagents/security-auditor.md`](~/ws/claude-system/adapters/claude-code/subagents/security-auditor.md)
 - [`adapters/claude-code/user-level/skills/pr-description/SKILL.md`](~/ws/claude-system/adapters/claude-code/user-level/skills/pr-description/SKILL.md)
 - [`practices/secure-coding-patterns.md`](~/ws/claude-system/practices/secure-coding-patterns.md)
 - [`practices/model-selection.md`](~/ws/claude-system/practices/model-selection.md) — `model: sonnet` の根拠(コードレビューは中位 / 上位)

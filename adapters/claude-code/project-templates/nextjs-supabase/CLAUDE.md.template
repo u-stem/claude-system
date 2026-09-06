@@ -43,7 +43,7 @@
   - `nextjs-supabase-rls` — テーブル / ポリシー追加・変更時
   - `typescript-strict` — TS の型設計判断時
 - レビュー時:
-  - `security-audit` — 認証・認可・依存追加・PR レビュー時のセルフチェック
+  - 組み込み `/security-review` — 認証・認可・依存追加・PR レビュー時のセルフチェック
   - `dependency-review` — 依存パッケージ追加・更新時
 - doc / commit:
   - `japanese-tech-writing` — README / ADR / docs を日本語で書くとき
@@ -58,7 +58,7 @@
 - **`code-reviewer`**: 変更行 100 行超 / 5 ファイル超のレビュー
 - **`security-auditor`**: 認証・認可・依存・機密関連の変更レビュー(原子性 + セキュリティ系)
 - **`refactor-planner`**: 構造改善計画立案(計画のみ、実装はしない)
-- **`explorer`**: 内部コードベース探索(10 ファイル以上の調査)
+- 組み込み **`Explore`**: 内部コードベース探索(10 ファイル以上の調査)
 - **`doc-writer`**: コード差分に追従する doc 更新提案
 - **`research-summarizer`**: 外部資料(公式ドキュメント / RFC / Issue)調査
 

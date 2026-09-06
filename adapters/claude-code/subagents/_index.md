@@ -18,7 +18,7 @@ subagent は独立コンテキストを持つ専門タスク実行単位(根拠�
 
 ### 委譲トリガー(定量基準)
 
-- 広範な探索: 5 クエリ超 / 10 ファイル以上の横断 → `explorer`(内部)/ `research-summarizer`(外部)
+- 広範な探索: 5 クエリ超 / 10 ファイル以上の横断 → 組み込み `Explore`(内部。CLAUDE.md を読まないため安価、Bash を持つ点は `pre-bash-guard.sh` が防衛)/ `research-summarizer`(外部)
 - 大量出力の予測: ログ走査・全文読解・一括変換 → 専門 subagent
 - 独立並列タスク: 相互依存なし → 1 メッセージで複数の Agent 呼び出し(並列ファンアウト)
 - 既知の 1 点参照・軽微な確認 → メイン直接実行(委譲しない)
@@ -45,15 +45,14 @@ model / effort 校正の根拠は [ADR 0013](~/ws/claude-system/meta/decisions/0
 | name | description | tools | model | effort | 旧 agents/ との対応 |
 |------|-------------|-------|-------|--------|---------------------|
 | [`code-reviewer`](./code-reviewer.md) | コードレビューを独立コンテキストで深掘りする | Read, Grep, Glob, Bash | sonnet | high | 旧 `code-reviewer.md` を簡素化(7 観点維持、出力フォーマット強化) |
-| [`security-auditor`](./security-auditor.md) | セキュリティ観点でコード・依存・設定を独立に監査する | Read, Grep, Glob, Bash | opus | high | 旧 `security-reviewer.md` を改名 + 監査範囲拡張(supply-chain 含む) |
+| [`security-auditor`](./security-auditor.md) | セキュリティ観点でコード・依存・設定を独立に監査する | Read, Grep, Glob, Bash | fable | high | 旧 `security-reviewer.md` を改名 + 監査範囲拡張(supply-chain 含む) |
 | [`doc-writer`](./doc-writer.md) | コード変更に伴うドキュメント更新を提案・適用する | Read, Write, Edit, Grep, Glob | haiku | medium | 旧 `doc-writer.md` を継承 + apply モード追加 |
 | [`refactor-planner`](./refactor-planner.md) | リファクタリング計画を立案する(実装はしない) | Read, Grep, Glob | opus | high | 旧 `refactor-planner.md` を継承 + 出力フォーマット強化 |
-| [`explorer`](./explorer.md) | コードベースを独立コンテキストで探索し要約を返す | Read, Grep, Glob | haiku | medium | 旧 `explorer.md` を継承 + 起動判断基準を明示 |
-| [`research-summarizer`](./research-summarizer.md) | 外部資料を WebSearch / WebFetch で調査し要約を返す | WebSearch, WebFetch, Read | sonnet | high | **新規**(v3 マスタープラン由来。`explorer` と内外で対比) |
+| [`research-summarizer`](./research-summarizer.md) | 外部資料を WebSearch / WebFetch で調査し要約を返す | WebSearch, WebFetch, Read | sonnet | high | **新規**(v3 マスタープラン由来。組み込み `Explore` と内外で対比) |
 | [`implementer`](./implementer.md) | 確定した計画に従いコードを実装する | Read, Grep, Glob, Edit, Write, Bash | sonnet | high | **新規**(唯一のコード writer。`refactor-planner` の計画を実装) |
-| [`devil-advocate`](./devil-advocate.md) | 意思決定・計画・主張を反証し代替案を出す | Read, Grep, Glob | opus | high | **新規**(反証専門。ADR 0013 校正で使った反証視点を常設化) |
+| [`devil-advocate`](./devil-advocate.md) | 意思決定・計画・主張を反証し代替案を出す | Read, Grep, Glob | fable | high | **新規**(反証専門。ADR 0013 校正で使った反証視点を常設化) |
 
-校正の含意: `code-reviewer` は最多用ロールゆえ opus+high の parse-error 露出を避け sonnet+high とし、opus 級の検出力は反復レビュー(毎回新規エージェント)+ 最終 opus ゲートで別途確保する([`practices/iterative-review.md`](~/ws/claude-system/practices/iterative-review.md))。`security-auditor` は低頻度 + 致命度最大のため opus+high を維持。`effort` 上限はモデル依存(haiku は xhigh/max 不可)で、値は未検証前提を含むため配置後に parse-error 発生率を監視する。
+内部探索は subagent 化せず組み込み `Explore` に委ねる(CLAUDE.md を読まないため安価。`Bash` を持つ点は `pre-bash-guard.sh` が subagent 由来の呼び出しを防衛する)。校正の含意: `code-reviewer` は最多用ロールゆえ opus+high の parse-error 露出を避け sonnet+high とし、opus 級の検出力は反復レビュー(毎回新規エージェント)+ 最終ゲートで別途確保する([`practices/iterative-review.md`](~/ws/claude-system/practices/iterative-review.md))。反証役(`devil-advocate`)と最終ゲート(`security-auditor`)は低頻度 + 致命度最大のため主モデル世代の上位側(現行: `fable`)を当てる。`effort` 上限はモデル依存(haiku は xhigh/max 不可)で、値は未検証前提を含むため配置後に parse-error 発生率を監視する。
 
 ### Phase 3 予告 / v3 マスタープラン / 旧 agents との差分整理
 
@@ -62,10 +61,10 @@ model / effort 校正の根拠は [ADR 0013](~/ws/claude-system/meta/decisions/0
 | `code-reviewer` | ◯ | ◯ | ◯ | **採用** | 全予告で一致 |
 | `doc-writer` | ◯ | ◯ | ◯ | **採用** | 全予告で一致 |
 | `refactor-planner` | ◯ | ◯ | ◯ | **採用** | 全予告で一致 |
-| `security-reviewer` / `security-auditor` | ◯ | ◯(改名) | ◯ | **採用(改名)** | `security-audit` skill と命名整合(audit ↔ auditor) |
-| `explorer` | ◯ | — | ◯ | **採用** | 内部探索は委譲頻度が高い、`research-summarizer` と相補 |
+| `security-reviewer` / `security-auditor` | ◯ | ◯(改名) | ◯ | **採用(改名)** | 監査(audit)の役割語に合わせて `auditor` へ改名 |
+| 内部探索 subagent | ◯ | — | ◯ | **採用 → 後に廃止** | 当初は委譲頻度の高さから専用 subagent としたが、CLAUDE.md を読まず起動が軽い組み込み `Explore` へ移行(`research-summarizer` と内外で相補) |
 | `research-summarizer` | — | ◯ | — | **採用** | 外部調査専門、原典 URL 付き要約 |
-| `test-runner` | ◯ | — | ◯ | **不採用** | Phase 7b の post-edit / post-stop hook が自動テストを担うため subagent 化の優位性が薄い。必要時に `skill-creation` 手順で追加可能 |
+| `test-runner` | ◯ | — | ◯ | **不採用** | post-edit / post-stop hook が自動テストを担うため subagent 化の優位性が薄い。必要時に `tools/new-skill.sh` で skill として追加可能 |
 | `adr-drafter` | — | ◯ | — | **不採用** | Phase 4 `adr-writing` skill で著者ワークフローを支援できる。on-demand のドラフト生成は一回性が高く subagent の常設価値が低い |
 | `implementer` | — | — | — | **採用(新規)** | 委譲チェーン(計画→実装→レビュー)の実装担当。唯一のコード writer。[ADR 0015](~/ws/claude-system/meta/decisions/0015-delegation-chain-and-mandatory-delegation.md) |
 | `devil-advocate` | — | — | — | **採用(新規)** | 委譲チェーンの反証担当。重い判断の前に前提を攻める。[ADR 0015](~/ws/claude-system/meta/decisions/0015-delegation-chain-and-mandatory-delegation.md) |
@@ -74,17 +73,17 @@ model / effort 校正の根拠は [ADR 0013](~/ws/claude-system/meta/decisions/0
 
 | 領域 | subagent | skill | 違い |
 |------|----------|-------|------|
-| コードレビュー | `code-reviewer` | (なし、`/review` slash command と連動予定) | subagent = 独立コンテキストで深掘り、重大度別出力。tools 最小権限で書き換え不能 |
-| セキュリティ | `security-auditor` | `security-audit` | skill = 著者向けセルフチェック / subagent = レビューア向け、別コンテキストで Critical/High/Medium 分類 |
+| コードレビュー | `code-reviewer` | (なし、組み込み `/code-review` と連動) | subagent = 独立コンテキストで深掘り、重大度別出力。tools 最小権限で書き換え不能 |
+| セキュリティ | `security-auditor` | (なし、組み込み `/security-review` と連動) | 組み込みコマンド = 著者向けセルフチェック / subagent = レビューア向け、別コンテキストで Critical/High/Medium 分類 |
 | 依存関係 | (`security-auditor` 内で対応) | `dependency-review` | skill = 依存追加時の著者作業 / subagent = 既存依存の総点検と `bun audit` 実行 |
 | ドキュメント追従 | `doc-writer` | `japanese-tech-writing` | skill = 文章作法、subagent = コード差分追従の提案 / 適用。出力文も skill の作法に従う |
 | リファクタ | `refactor-planner` | (なし、将来 `refactor` skill 追加余地) | subagent = 計画専門、実装しない。段階的ステップ + テスト戦略まで出力 |
-| コードベース探索 | `explorer` | (なし、将来 `investigate` skill 追加余地) | subagent = 大量探索を別コンテキストで実行、要約のみ親に返す |
+| コードベース探索 | (なし、組み込み `Explore`) | (なし、将来 `investigate` skill 追加余地) | 組み込みコマンド = 大量探索を別コンテキストで実行、要約のみ親に返す |
 | 実装(コード書き) | `implementer` | (なし、`testing-*` で作法) | subagent = 確定計画をコードに落とす唯一の writer。設計判断はしない(親 / `refactor-planner` が担う) |
 | 反証 / 意思決定検証 | `devil-advocate` | (なし) | subagent = 計画・決定・主張を別コンテキストから攻める。コード品質ではなく判断そのものを疑う |
 | 外部調査 | `research-summarizer` | (なし) | subagent = WebSearch / WebFetch 主体、原典 URL 付き要約。本人手の Web 検索を圧縮 |
-| ADR 起票 | (なし、Phase 4 で吸収) | `adr-writing` | skill のみで完結 |
-| テスト実行 | (なし、hook 化) | `testing-typescript` / `testing-python` | skill = TDD 設計、Phase 7b の post-edit / post-stop hook が自動実行 |
+| ADR 起票 | (なし) | `adr-writing` | skill のみで完結 |
+| テスト実行 | (なし、hook 化) | `testing-typescript` | skill = TDD 設計、post-edit / post-stop hook が自動実行 |
 | PR 説明 | (なし) | `pr-description` | skill のみ。subagent 化の必要性なし |
 | commit | (なし) | `commit-conventional` | skill のみ。コミットは判断単位で人間 / メイン Claude が切る |
 
@@ -95,7 +94,7 @@ model / effort 校正の根拠は [ADR 0013](~/ws/claude-system/meta/decisions/0
   name        : <subagent-name>            # ファイル名(拡張子除く)と一致
   description : <50 字以内、改行禁止>       # いつこの subagent を呼ぶべきか
   tools       : [<必要最小限のツールのみ列挙>]  # YAML 配列形式
-  model       : opus | sonnet | haiku       # practices/model-selection.md の判断基準
+  model       : opus | sonnet | haiku | fable  # practices/model-selection.md の判断基準
   effort      : low | medium | high | xhigh | max  # 任意。セッション effort を上書き。上限はモデル依存(ADR 0013)
   # effort は practices/model-selection.md の「推論深度」軸の Claude Code 翻訳(浅い=low〜medium / 標準=high / 深い=xhigh〜max。深い側は parse-error 安全性未検証のため subagent では未使用、ADR 0013 / 0022)
   ---
@@ -119,7 +118,6 @@ model / effort 校正の根拠は [ADR 0013](~/ws/claude-system/meta/decisions/0
 | `security-auditor` | Read, Grep, Glob, Bash | Edit, Write | 監査専門、修正はしない |
 | `doc-writer` | Read, Write, Edit, Grep, Glob | Bash | doc に集中、shell 副作用は不要 |
 | `refactor-planner` | Read, Grep, Glob | Edit, Write, Bash | 計画専門、実装はしない |
-| `explorer` | Read, Grep, Glob | Edit, Write, Bash | 探索専門、編集も shell も不要 |
 | `research-summarizer` | WebSearch, WebFetch, Read | Edit, Write, Grep, Glob, Bash | 外部 Web 専門、ローカルへの書き込み禁止 |
 | `implementer` | Read, Grep, Glob, Edit, Write, Bash | (なし) | 実装担当。コード writer ゆえ Edit/Write/Bash を許可する唯一の subagent |
 | `devil-advocate` | Read, Grep, Glob | Edit, Write, Bash | 反証専門、判断材料を返すのみでコードは編集しない |

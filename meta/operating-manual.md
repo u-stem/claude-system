@@ -13,6 +13,7 @@ claude-system の継続的な運用手順。日常運用は [`daily-routine.md`]
 
 1. `meta/retrospectives/_template.md` をコピーして `meta/retrospectives/YYYY-MM.md` を作成
 2. 過去 1 ヶ月の以下を眺める:
+   - `claude -p /skill-doctor` で自前 skill / command と plugin skill の使用回数を取る。180 日 0 回のものは削除候補に挙げる(2026-09-06 に 13 件を剪定した基準)
    - `tools/loop-report.sh --all --since <前月初日>` で失敗ログ・委譲ログ・subagent-audit を横断集計(失敗ログの正準パスは各プロジェクトの `<project>/.claude/failure-log.jsonl` / `subagent-log.jsonl`。アーカイブ `<project>/.claude/failure-log.archive/` も自動で合算される。subagent-audit はマシン全体 1 本の共有ログで `~/.claude-system-backups/hook-logs/subagent-audit.jsonl`)
    - 各プロジェクトの `git log --since '1 month ago' --oneline`
    - episodic-memory プラグインで `claude` コマンド検索した会話履歴
@@ -72,7 +73,6 @@ Claude Code 本体の更新時に適用する。
    - `hooks.<event>` の matcher / フィールド
    - 利用可能な hook event 種別
    - skill / subagent の frontmatter 仕様
-   - MCP server 設定スキーマ
    - `enabledPlugins` の挙動
    - env 変数(`CLAUDE_CODE_*`)
 3. 影響を受けるファイルを更新
@@ -138,7 +138,7 @@ Claude Code 本体の更新時に適用する。
    - `forbidden-words.txt` の誤検知: 禁止語そのものが過剰なら ADR 起票して削除を検討
    - `pre-bash-guard.sh` の誤検知: 該当パターンを除外する条件を追加(例外用 env 変数で opt-out)
    - `pre-edit-protect.sh` の誤検知: 保護パスに該当するが正当な編集の場合、`*.backup-*` 等のパターン定義を見直す
-   - `gitleaks` の偽陽性: `.gitleaks.toml` の `allowlist.regexes` または `paths` に追加
+   - `betterleaks`(ローカル層)/ `gitleaks`(CI)の偽陽性: `.gitleaks.toml` の `allowlist.regexes` または `paths` に追加
 3. 修正したら `tools/doctor.sh` で再確認
 4. CHANGELOG に記録
 

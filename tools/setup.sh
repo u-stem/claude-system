@@ -17,7 +17,7 @@ setup.sh — bootstrap a new machine for claude-system.
 
 Steps (all idempotent):
   1. macOS check
-  2. Required commands check (git, gh, bun, uv, gitleaks, jq, shellcheck, tree)
+  2. Required commands check (git, gh, bun, uv, betterleaks, jq, shellcheck, tree)
   3. Optional commands (chezmoi) — detection only, no integration here
   4. Ensure ~/.claude-system-backups/ exists
   5. Wire repo git hooks (core.hooksPath -> tools/githooks, settings auto-sync)
@@ -25,8 +25,7 @@ Steps (all idempotent):
 
 Missing tools are reported with `brew install` suggestions; nothing is auto-installed.
 
-Not run here (explicit, separate steps — both reach the network):
-  tools/setup-mcp.sh      register MCP servers
+Not run here (explicit, separate step — reaches the network):
   tools/setup-plugins.sh  install plugins declared in enabledPlugins (ADR 0023)
 EOF
 }
@@ -37,7 +36,7 @@ cs_require_macos
 cs_require_root_dir
 
 cs_step "Required tools"
-declare -a REQUIRED=(git gh bun uv gitleaks jq shellcheck tree)
+declare -a REQUIRED=(git gh bun uv betterleaks jq shellcheck tree)
 declare -a MISSING=()
 for cmd in "${REQUIRED[@]}"; do
   if command -v "$cmd" >/dev/null 2>&1; then
@@ -80,5 +79,4 @@ cs_step "Done"
 cs_success "setup.sh complete. Next steps:"
 echo "  - Link ~/.claude/:  tools/sync.sh --dry-run, then --force with CLAUDE_SYSTEM_ALLOW_SYNC=1."
 echo "  - Deploy settings:  tools/sync-settings.sh --apply."
-echo "  - MCP setup:        tools/setup-mcp.sh (interactive)."
 echo "  - Plugin setup:     tools/setup-plugins.sh (enabledPlugins are declarations only)."

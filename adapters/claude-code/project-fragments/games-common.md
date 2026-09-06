@@ -47,9 +47,9 @@
 
 ## 推奨 skill / subagent(ゲーム系で頻出)
 
-- 実装時: `typescript-strict`(Web ゲーム)、`rust-style` / `go-style`(native、現状は skeleton)
+- 実装時: `typescript-strict`(Web ゲーム)。native(Rust / Go 等)向け言語別 skill は現状未採用、必要になったら [`tools/new-skill.sh`](~/ws/claude-system/tools/new-skill.sh) で追加する
 - レビュー時: `code-reviewer` subagent
-- 探索: `explorer` subagent(ゲームコードは大きいことが多く委譲効果大)
+- 探索: 組み込み `Explore`(ゲームコードは大きいことが多く委譲効果大)
 
 ## 関連
 

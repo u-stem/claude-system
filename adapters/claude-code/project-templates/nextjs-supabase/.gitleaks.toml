@@ -5,7 +5,7 @@
 #
 # 参考:
 # - ~/ws/claude-system/practices/secrets-handling.md
-# - ~/ws/claude-system/adapters/claude-code/user-level/skills/security-audit/SKILL.md
+# - ~/ws/claude-system/adapters/claude-code/subagents/security-auditor.md
 
 [extend]
 useDefault = true

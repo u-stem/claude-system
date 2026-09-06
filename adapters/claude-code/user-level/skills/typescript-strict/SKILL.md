@@ -1,7 +1,6 @@
 ---
 name: typescript-strict
 description: TypeScript strict モード作法と型安全な実装パターン
-recommended_model: sonnet
 ---
 
 # TypeScript Strict 作法

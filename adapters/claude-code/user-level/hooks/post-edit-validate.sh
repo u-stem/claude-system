@@ -16,7 +16,7 @@ PATH_FIELD="$(printf '%s' "$INPUT" | jq -r '.tool_input.file_path // .tool_input
 
 # 1. SKILL.md frontmatter validation.
 if [[ "$(basename "$PATH_FIELD")" == "SKILL.md" ]]; then
-  for field in name description recommended_model; do
+  for field in name description; do
     if ! head -10 "$PATH_FIELD" | /usr/bin/grep -q "^${field}:"; then
       hk_warn "SKILL.md missing '$field': $PATH_FIELD"
     fi

@@ -1,13 +1,12 @@
 ---
 name: project-tech-stack-decision
 description: 新規プロジェクトの技術スタックを選定する
-recommended_model: opus
 ---
 
 # Project Tech Stack Decision
 
 新規プロジェクトの技術スタック選定を、要件言語化 → 候補列挙 → 比較 → 選定 → ADR 化の流れで支援する skill。
-原子性とアーキテクチャ判断を要するため `recommended_model: opus`。
+原子性とアーキテクチャ判断を要するため上位モデルを推奨。
 根拠抽象は [`practices/project-bootstrap.md`](~/ws/claude-system/practices/project-bootstrap.md)、判断軸の構造は [`practices/model-selection.md`](~/ws/claude-system/practices/model-selection.md) を参照。
 
 ## 目的

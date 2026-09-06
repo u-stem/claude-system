@@ -46,7 +46,6 @@ cat > "$DIR/SKILL.md" <<EOF
 ---
 name: $NAME
 description: TODO
-recommended_model: sonnet
 ---
 
 # $NAME

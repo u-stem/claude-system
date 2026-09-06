@@ -19,7 +19,7 @@
 | [`_lib.sh`](./_lib.sh) | 共通ライブラリ(source 専用) | — | — |
 | [`sync.sh`](./sync.sh) | `~/.claude/` シンボリックリンク配布(既定は `--dry-run`、適用は `--force` + `CLAUDE_SYSTEM_ALLOW_SYNC=1`)。settings.json の配置は `sync-settings.sh` へ移管済み | ◯ | sync |
 | [`sync-settings.sh`](./sync-settings.sh) | `~/.claude/settings.json` を template ⊕ マシン固有 overrides から決定論的に再生成(ADR 0017)。dry-run / `--apply` / `--check` | ◯ | sync-settings |
-| [`doctor.sh`](./doctor.sh) | リポジトリ整合性チェック(skill / subagent / command frontmatter / 禁止語 / shellcheck / gitleaks / ADR draft / 宣言プラグイン)。`--fast` は shellcheck と委譲テストを省く軽量層(Stop hook 用、実測 0.8s / full 6.7s) | ◯ | — |
+| [`doctor.sh`](./doctor.sh) | リポジトリ整合性チェック(skill / subagent / command frontmatter / 禁止語 / shellcheck / Betterleaks / ADR draft / 宣言プラグイン)。`--fast` は shellcheck と委譲テストを省く軽量層(Stop hook 用、実測 0.8s / full 6.7s) | ◯ | — |
 | [`setup.sh`](./setup.sh) | 新環境セットアップ(前提ツール検出 / バックアップディレクトリ作成 / doctor.sh 実行) | ◯ | — |
 | [`new-project.sh`](./new-project.sh) | 新規プロジェクト立ち上げ(対話 / 引数 / ゼロから始めるモード) | ◯(既存ディレクトリは拒否) | — |
 | [`adopt-project.sh`](./adopt-project.sh) | 既存プロジェクトを claude-system 管理下に取り込み(対話、CLAUDE.md バックアップ) | ◯ | — |
@@ -31,7 +31,6 @@
 | [`check-claude-version.sh`](./check-claude-version.sh) | インストール済み Claude Code と `adapters/.../VERSION` の差分を表示 | ◯ | — |
 | [`archive-failure-log.sh`](./archive-failure-log.sh) | `<project>/.claude/failure-log.jsonl` を `failure-log.archive/YYYY-MM.jsonl` へ退避(計測の連続性を保つ / ADR 0019)。`--dry-run` 対応。**hook からは自動実行しない** | ◯ | — |
 | [`loop-report.sh`](./loop-report.sh) | 失敗ログと subagent ログの横断集計(live + アーカイブ)。委譲エージェントとハーネス内部を分離集計(ADR 0024)。`--all` でプロジェクト横断 | ◯ | — |
-| [`setup-mcp.sh`](./setup-mcp.sh) | `adapters/.../mcp/servers.template.json` を読んで MCP を登録(secret 必須は skip) | ◯ | — |
 | [`setup-plugins.sh`](./setup-plugins.sh) | `settings.json.template` の `extraKnownMarketplaces` / `enabledPlugins` を読んでプラグインを実体化(宣言だけでは入らない / ADR 0023)。`--dry-run` 対応 | ◯ | — |
 | [`cleanup-claude-code-runtime.sh`](./cleanup-claude-code-runtime.sh) | `~/.claude/` のランタイム生成物(projects/ telemetry/ history.jsonl 等)を削除。**手動実行のみ** | ◯ | — |
 | [`disable-guardrails.sh`](./disable-guardrails.sh) | 緊急停止: `~/.claude/settings.json` の `hooks` を `{}` にする(バックアップ取得後)。`--dry-run` 対応 | ◯ | — |
@@ -53,7 +52,7 @@
 | dir | 用途 |
 |-----|------|
 | [`migrate/`](./migrate/) | Claude Code のバージョン更新に伴う移行スクリプト置き場(命名: `from-vA.B-to-vC.D.sh`) |
-| [`githooks/`](./githooks/) | versioned git hooks(post-commit / post-merge)。template 変更コミットを検知して `sync-settings.sh --apply` を実行。結線は `setup.sh` の `core.hooksPath` 設定(ADR 0017) |
+| [`githooks/`](./githooks/) | versioned git hooks(post-commit / post-merge / pre-push)。post-commit・post-merge は template 変更コミットを検知して `sync-settings.sh --apply` を実行。pre-push は `CS_ALLOW_PUSH=1` の無い push を拒否(ADR 0024 §2a)。結線は `setup.sh` の `core.hooksPath` 設定(ADR 0017) |
 
 ## 重要な制約
 
@@ -67,4 +66,3 @@
 
 - [`adapters/claude-code/README.md`](../adapters/claude-code/README.md) — 移行プレイブック、影響範囲マップ
 - [`tools/migrate/README.md`](./migrate/README.md) — 移行スクリプト規約
-- [`adapters/claude-code/user-level/mcp/servers.template.json`](../adapters/claude-code/user-level/mcp/servers.template.json) — MCP 宣言テンプレート

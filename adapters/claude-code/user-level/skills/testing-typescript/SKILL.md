@@ -1,7 +1,6 @@
 ---
 name: testing-typescript
 description: TypeScript のテスト戦略(Vitest / Bun test / Jest)
-recommended_model: sonnet
 ---
 
 # TypeScript Testing

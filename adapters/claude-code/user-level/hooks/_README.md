@@ -19,7 +19,6 @@ Phase 7b(Guardrails 層)で実装済み。`~/.claude/hooks/` にシンボリッ�
 |---------|-----------|------|
 | `pre-bash-guard.sh` | PreToolUse(Bash) | `--no-verify` / 破壊的コマンド / `cd` を deny(`cd` は eval 形も正規表現で捕捉。通常形・複合形・subagent は settings.json `permissions.deny` の `Bash(cd)` / `Bash(cd *)` が session 全体でカバー)。加えて **subagent からの `git push` を deny**(payload の `agent_type` で判別、commit と add は許可 / ADR 0024) |
 | `check-package-age.sh` | PreToolUse(Bash) | typosquatting / 侵害バージョン防御。`PACKAGE_MIN_AGE_DAYS`(既定 7)以内のパッケージを deny |
-| `pre-bash-output-cap.sh` | PreToolUse(Bash) | token 経済(ADR 0012)。test/build/lint の単純コマンドの stdout を `updatedInput` で `tail -n N` にキャップ。stderr と exit code は保持。`CLAUDE_BASH_OUTPUT_CAP`(既定 200、`0` で無効) |
 | `pre-edit-protect.sh` | PreToolUse(Edit\|Write) | `claude-settings/` / `*.backup-*` への書き込み阻止 + principles/practices への禁止語混入阻止 |
 | `post-edit-validate.sh` | PostToolUse(Edit\|Write) | SKILL.md frontmatter / 禁止語 / ユーザー識別子パス(ADR 0008)の検証 |
 | `record-rework-signal.sh` | PostToolUse(Edit\|Write) | 編集されたファイルを `.claude/rework-log.jsonl` に記録するだけ(**計測専用・何もブロックしない**)。同一ファイルの反復編集=手戻りを事後に数えるため。集計は `tools/loop-report.sh --rework` |
@@ -50,5 +49,5 @@ Phase 7b(Guardrails 層)で実装済み。`~/.claude/hooks/` にシンボリッ�
 ## 関連
 
 - [`adapters/claude-code/user-level/settings.json.template`](../settings.json.template) — hook の結線箇所
-- [`meta/decisions/0012-token-economy-mechanization.md`](../../../../meta/decisions/0012-token-economy-mechanization.md) — output-cap / 計測の根拠
+- [`meta/decisions/0012-token-economy-mechanization.md`](../../../../meta/decisions/0012-token-economy-mechanization.md) — 委譲量計測の根拠
 - [`adapters/claude-code/README.md`](../../README.md)

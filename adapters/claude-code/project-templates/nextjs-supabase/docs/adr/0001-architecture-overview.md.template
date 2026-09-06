@@ -53,5 +53,5 @@
 ## Related
 
 - 共通基盤: `~/ws/claude-system/adapters/claude-code/project-fragments/web-apps-common.md`
-- 関連 skill: `nextjs-supabase-base` / `nextjs-supabase-rls` / `typescript-strict` / `security-audit`
+- 関連 skill: `nextjs-supabase-base` / `nextjs-supabase-rls` / `typescript-strict`
 - claude-system ADR: `~/ws/claude-system/meta/decisions/`(0001 / 0002 / 0003 を全プロジェクトで遵守)

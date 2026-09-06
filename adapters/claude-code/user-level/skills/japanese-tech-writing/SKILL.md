@@ -1,7 +1,6 @@
 ---
 name: japanese-tech-writing
 description: 日本語の技術文書を書く(README / ADR / docs)
-recommended_model: sonnet
 ---
 
 # 日本語テクニカルライティング

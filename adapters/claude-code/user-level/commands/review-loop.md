@@ -13,7 +13,7 @@ description: レビュー→修正→レビューの反復ループ(立て直し
 - 変更が設計級(境界・契約の変更、セキュリティ感受面、100 行超 / 5 ファイル超)
 - 「問題なし」が再確認されず下流に流れるのを避けたいレビュー
 
-ごく小さく可逆な差分は `/review`(単発)で足りる。反復は固定費(往復・収束判定)が見合うときだけ。
+ごく小さく可逆な差分は組み込み `/code-review`(単発)で足りる。反復は固定費(往復・収束判定)が見合うときだけ。
 
 ## 委譲先と水準(校正済み)
 
@@ -22,9 +22,9 @@ description: レビュー→修正→レビューの反復ループ(立て直し
 | ループ本体のレビュー | `code-reviewer` subagent を**毎ラウンド新規起動**(B) | sonnet / high | 最多用ゆえ安定完走を優先。opus+xhigh の中断(parse-error)露出を避ける |
 | 修正の解消確認 | 直前ラウンドの `code-reviewer` を **SendMessage で継続**(A) | 同上(継続) | 「指摘 X はこの修正で解消したか / 回帰がないか」の追跡 |
 | 修正の適用 | メイン(または `refactor-planner` で方針立案) | — | レビューと修正の担当を分け独立性を保つ |
-| 最終ゲート | `security-auditor` subagent を新規起動(B + 強い水準) | opus / high | 収束後の小さくなった差分に一度だけ。能力由来の盲点を掬う |
+| 最終ゲート | `security-auditor` subagent を新規起動(B + 強い水準) | fable / high | 収束後の小さくなった差分に一度だけ。能力由来の盲点を掬う |
 
-セキュリティが主目的の低頻度・致命的レビューは、反復より単発の天井が効くため最初から `security-auditor`(opus/high)を当ててよい。
+セキュリティが主目的の低頻度・致命的レビューは、反復より単発の天井が効くため最初から `security-auditor`(fable/high)を当ててよい。
 
 ## 手順
 
@@ -48,7 +48,7 @@ description: レビュー→修正→レビューの反復ループ(立て直し
    - 新規 actionable がゼロ → 次へ。出続けるなら上限まで 2 へ戻る。上限到達時は残課題を明示して止める。
 
 6. **最終ゲート(B + 強い水準)**
-   - 収束後の差分に `security-auditor`(opus/high)を**一度だけ**新規起動。
+   - 収束後の差分に `security-auditor`(fable/high)を**一度だけ**新規起動。
    - 反復が構造的に拾えない能力由来の盲点をここで掬う。対象が小さいので強い水準を一度使うコストは小さい。
 
 7. **報告**
@@ -60,7 +60,7 @@ description: レビュー→修正→レビューの反復ループ(立て直し
 
 - `pipeline(files, review, verify)` で各ファイルを独立にレビュー→確認。各 stage の `agent()` に `agentType: 'code-reviewer'`(sonnet/high)を指定。
 - ループ本体は毎回新規 `agent()`(B)、修正確認のみ `SendMessage` 相当の継続を使う。
-- 全ファイル収束後、まとめてクリーンになった差分に最終ゲート 1 回(`agentType: 'security-auditor'`, opus/high)。
+- 全ファイル収束後、まとめてクリーンになった差分に最終ゲート 1 回(`agentType: 'security-auditor'`, fable/high)。
 - 収束は「K ラウンド連続で新規指摘ゼロ」(loop-until-dry)で判定し、上限ラウンドで打ち切る。
 
 Workflow はトークン消費が大きいため、ユーザーが明示的にオプトインした場合のみ起動する。通常は本コマンドの逐次手順で足りる。
@@ -77,6 +77,6 @@ Workflow はトークン消費が大きいため、ユーザーが明示的に�
 
 - practice: [`iterative-review`](../../../../practices/iterative-review.md)(本コマンドの設計元)
 - practice: [`model-selection`](../../../../practices/model-selection.md)(水準配分)
-- command: `/review`(単発簡易レビュー)
-- subagent: `code-reviewer`(sonnet/high) / `security-auditor`(opus/high) / `refactor-planner`(opus/high)
+- 組み込みコマンド: `/code-review`(単発簡易レビュー)。100 行超 / 5 ファイル超、または設計・API・データ契約の変更なら本コマンド(反復)か `code-reviewer` subagent(詳細単発)に切り替える
+- subagent: `code-reviewer`(sonnet/high) / `security-auditor`(fable/high) / `refactor-planner`(opus/high)
 - ADR: [`0013-role-based-effort-modulation`](../../../../meta/decisions/0013-role-based-effort-modulation.md)

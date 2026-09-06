@@ -4,7 +4,8 @@
 # - 各 project-templates/<name>/.pre-commit-config.yaml で本ファイルの内容を**コピー**して使用
 #   (.pre-commit-config.yaml 自体は include をサポートしないため、参照ではなくコピー)
 # - プロジェクト側は本テンプレートに**追記**する形で言語別 hook(typecheck / lint)を加える
-# - gitleaks の rev は VERSION 更新時に追従する(現状 v8.30.1 系)
+# - Betterleaks の rev は VERSION 更新時に追従する(現状 v1.8.1 系)。gitleaks 互換設定
+#   (.gitleaks.toml)をそのまま読む後継ツールで、CI 側は gitleaks-action を維持している
 #
 # 利用者向け:
 # - インストール: `brew install pre-commit` または `uv tool install pre-commit`
@@ -14,15 +15,15 @@
 # 関連:
 # - ~/ws/claude-system/practices/secrets-handling.md — 機密情報の取り扱い
 # - ~/ws/claude-system/practices/supply-chain-hygiene.md — 依存パッケージ規律
-# - ~/ws/claude-system/adapters/claude-code/user-level/skills/security-audit/SKILL.md
+# - ~/ws/claude-system/adapters/claude-code/subagents/security-auditor.md
 
 repos:
-  # === 共通: 機密情報検出 ===
-  - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.30.1
+  # === 共通: 機密情報検出(ローカル層。CI は gitleaks-action) ===
+  - repo: https://github.com/betterleaks/betterleaks
+    rev: v1.8.1
     hooks:
-      - id: gitleaks
-        # プロジェクト個別の allowlist は .gitleaks.toml で設定する
+      - id: betterleaks
+        # プロジェクト個別の allowlist は .gitleaks.toml で設定する(Betterleaks が互換読み込み)
 
   # === 共通: 一般的な健全性チェック ===
   - repo: https://github.com/pre-commit/pre-commit-hooks

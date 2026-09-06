@@ -1,7 +1,6 @@
 ---
 name: dependency-review
 description: 依存パッケージの追加・更新時のレビュー
-recommended_model: sonnet
 ---
 
 # Dependency Review
@@ -72,10 +71,10 @@ High / Critical が出たら**マージ前に対処**(更新 / 別パッケー�
 - `PACKAGE_MIN_AGE_DAYS`(既定 7)以内のパッケージは hook で deny
 - 例外的に若いパッケージを採用したい場合は環境変数で project ローカルに override(`.claude/settings.local.json` の `env`)、判断理由を README / ADR に記録
 
-### 7. MCP サーバー / プラグイン
+### 7. プラグイン
 
-- `settings.json.template` の `mcpServers.*.args` でバージョン固定
-- 更新は `/update-check` 系 skill で意図的に
+- 導入済みプラグインは `settings.json.template` の `auditedPluginVersions` でバージョンを固定・監査(MCP は不採用、ADR 0003 / 0023)
+- 更新の検知は `/update-check` で意図的に
 - 自動更新を許容しない
 
 ## チェックリスト
@@ -99,5 +98,5 @@ High / Critical が出たら**マージ前に対処**(更新 / 別パッケー�
 ## 関連
 
 - [`practices/supply-chain-hygiene.md`](~/ws/claude-system/practices/supply-chain-hygiene.md) — 抽象戦略
-- [`adapters/claude-code/user-level/skills/security-audit/SKILL.md`](~/ws/claude-system/adapters/claude-code/user-level/skills/security-audit/SKILL.md) — 4 軸チェック内の依存関係軸
+- [`adapters/claude-code/subagents/security-auditor.md`](~/ws/claude-system/adapters/claude-code/subagents/security-auditor.md) — レビューア視点での依存関係の総点検
 - [`hooks/check-package-age.sh`](~/ws/claude-system/adapters/claude-code/user-level/hooks/check-package-age.sh) — 新興・typosquatting パッケージを実行前に検出するフック(実装済み)

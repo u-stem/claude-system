@@ -31,7 +31,7 @@ AI 協働開発のためのメタリポジトリ。
 | [`adapters/codex/`](./adapters/codex/) | OpenAI Codex CLI 用の枠(将来) | 現状プレースホルダ |
 | `projects/` | プロジェクト個別の統合情報 | gitignore 対象、中身は Private |
 | [`tools/`](./tools/README.md) | セットアップ・同期・診断スクリプト | 全スクリプト bash + `set -euo pipefail` + 冪等 |
-| [`tests/`](./tests/README.md) | システム自体の自動テスト | 禁止語検出 / frontmatter 検証 / 循環参照検出 |
+| [`tests/`](./tests/README.md) | システム自体の自動テスト | 禁止語検出 / frontmatter 検証 / 循環参照検出に加え、hooks・tools・doc-parity の振る舞いテスト 12 本 |
 | [`meta/`](./meta/README.md) | 変更履歴・ADR・用語集・運用マニュアル | CHANGELOG / decisions / retrospectives |
 | `.github/workflows/` | CI(`doctor` / `secrets-scan` / `shellcheck`) | push 毎に直近 3 ワークフロー実行 |
 
@@ -44,7 +44,7 @@ AI 協働開発のためのメタリポジトリ。
 ### 前提
 
 - macOS(Apple Silicon または Intel)
-- Homebrew(`bash` 5.x / `gh` / `gitleaks` / `shellcheck` / `jq` / `tree` 推奨)
+- Homebrew(`bash` 5.x / `gh` / `betterleaks` / `shellcheck` / `jq` / `tree` 推奨)
 - `~/ws/` ディレクトリ
 - Claude Code 本体は別途インストール済み
 
@@ -113,8 +113,8 @@ CLAUDE_SYSTEM_ALLOW_SYNC=1 ~/ws/claude-system/tools/sync.sh --force
 #   - 該当 fragment への @参照
 ```
 
-引数モードもある(`--name foo --template nextjs-supabase --fragment web-apps-common`)。
-ゼロから始めたい場合は `--template scratch` を指定。
+引数モードもある(`tools/new-project.sh <name> <template>`)。
+ゼロから始めたい場合は `tools/new-project.sh <name> none` を指定。
 
 ---
 
@@ -174,7 +174,7 @@ CLAUDE_SYSTEM_ALLOW_SYNC=1 ~/ws/claude-system/tools/sync.sh --force
 | 3 | PostToolUse hooks | 失敗を `failure-log.jsonl` に集約、繰り返し失敗を SessionStart で通知 | `user-level/hooks/log-*.sh`, `check-failure-patterns.sh` |
 | 4 | Stop hooks | セッション終了ごとに `doctor.sh --fast` を走らせ、実機ドリフト(symlink / settings 同期 / プラグイン整合 / 秘密混入)を `last-doctor.log` に記録する | `stop-session-doctor.sh` |
 | 5 | git hooks(pre-push) | `CS_ALLOW_PUSH=1` の無い push を拒否し、通す前にガード自己検査を走らせる。**誰が git を起動しても効く唯一の層**(ADR 0024 §2a) | `tools/githooks/pre-push` |
-| 6 | CI(GitHub Actions) | push 毎に doctor.sh + gitleaks + shellcheck | `.github/workflows/*.yml` |
+| 6 | CI(GitHub Actions) | push 毎に doctor.sh(ローカル層は Betterleaks を内包)+ gitleaks-action(CI 側の secrets scan)+ shellcheck | `.github/workflows/*.yml` |
 
 層 4 は**阻止しない**。記録と通知に徹する層であり、セッションの継続を止める機構は持たない。
 
@@ -203,7 +203,7 @@ CLAUDE_SYSTEM_ALLOW_SYNC=1 ~/ws/claude-system/tools/sync.sh --force
 | hooks を止めたいが何が変わるか分からない | `tools/disable-guardrails.sh --dry-run` で変更内容を確認 → 引数なしで実行。復帰は `enable-guardrails.sh`(同じく `--dry-run` 対応) |
 | `git push` が `CS_ALLOW_PUSH` を要求して止まる | 意図した動作(ADR 0024)。内容を確認のうえ `CS_ALLOW_PUSH=1 git push origin main` |
 | symlink 切り替えで何かが壊れた | `tools/migrate/rollback-from-claude-system.sh` で旧設定に戻す |
-| `gitleaks` が偽陽性 | `.gitleaks.toml` の `allowlist.regexes` か `paths` に追加 |
+| `betterleaks`(ローカル層)/ `gitleaks-action`(CI)が偽陽性 | 両者とも `.gitleaks.toml`(Betterleaks は gitleaks 互換設定をそのまま読む)の `allowlist.regexes` か `paths` に追加 |
 | 既存プロジェクト取り込み後に挙動が変 | `tools/unadopt-project.sh <project>` で撤回 → バックアップから復元 |
 
 詳細は [`meta/operating-manual.md`](./meta/operating-manual.md) の「ガードレールが誤検知したときの対処」を参照。

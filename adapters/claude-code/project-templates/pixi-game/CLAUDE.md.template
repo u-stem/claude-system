@@ -36,7 +36,7 @@
 
 - 実装時: `typescript-strict`
 - レビュー時: `code-reviewer` subagent
-- 探索: `explorer` subagent(ゲームコードは肥大しやすく委譲効果が大)
+- 探索: 組み込み `Explore`(ゲームコードは肥大しやすく委譲効果が大)
 
 ## プロジェクト固有の禁止事項
 
@@ -55,7 +55,7 @@
 - `.pre-commit-config.yaml` を追加(games 系の lint / typecheck を確定後)
 - 言語別 testing skill(`testing-typescript` 等)へのリンクを `_TEMPLATE_USAGE.md` で明示
 
-肉付け手順は `~/ws/claude-system/adapters/claude-code/user-level/skills/skill-creation/SKILL.md` の流れを準用。
+肉付け手順は `~/ws/claude-system/tools/new-skill.sh` で必要な skill を追加しつつ進める。
 
 ## 関連
 

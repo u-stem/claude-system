@@ -48,7 +48,10 @@ make_fixture() {
   printf '%s\n' '# tests index' '- `alpha.sh` — does a thing' > "$d/tests/README.md"
 
   printf '%s\n' '#!/usr/bin/env bash' > "$d/tools/beta.sh"
-  printf '%s\n' '# tools index' '- `beta.sh` — does a thing' > "$d/tools/README.md"
+  mkdir -p "$d/tools/githooks"
+  printf '%s\n' '#!/usr/bin/env bash' > "$d/tools/githooks/delta"
+  printf '%s\n' '# tools index' '- `beta.sh` — does a thing' \
+    '- `githooks/delta` — a versioned git hook' > "$d/tools/README.md"
 
   printf '%s\n' '#!/usr/bin/env bash' > "$d/adapters/claude-code/user-level/hooks/gamma.sh"
   printf '%s\n' '# hooks index' '- `gamma.sh` — does a thing' \
@@ -85,6 +88,12 @@ fail_case "tool script missing from tools/README.md is caught" "$CHECK" --root "
 make_fixture "$FIX"
 printf '%s\n' '#!/usr/bin/env bash' > "$FIX/adapters/claude-code/user-level/hooks/orphan.sh"
 fail_case "hook missing from hooks/_README.md is caught" "$CHECK" --root "$FIX"
+
+# tools/githooks/* carries no .sh suffix (versioned git hooks), so the tools/*.sh
+# glob alone never reaches it. It needs its own sweep of the same directory.
+make_fixture "$FIX"
+printf '%s\n' '#!/usr/bin/env bash' > "$FIX/tools/githooks/orphan"
+fail_case "extensionless githook missing from tools/README.md is caught" "$CHECK" --root "$FIX"
 
 # The failure message must name the offending file, or the operator has to
 # diff two listings by hand to find out what is missing.

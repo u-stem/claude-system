@@ -81,6 +81,6 @@ git commit -m "chore: initial commit from claude-system nextjs-supabase template
 ## 関連
 
 - 共通 fragment: `~/ws/claude-system/adapters/claude-code/project-fragments/web-apps-common.md`
-- skill: `nextjs-supabase-base` / `nextjs-supabase-rls` / `typescript-strict` / `security-audit`
+- skill: `nextjs-supabase-base` / `nextjs-supabase-rls` / `typescript-strict`
 - subagent: `code-reviewer` / `security-auditor` / `doc-writer`
 - 全テンプレート索引: `~/ws/claude-system/adapters/claude-code/project-templates/_README.md`

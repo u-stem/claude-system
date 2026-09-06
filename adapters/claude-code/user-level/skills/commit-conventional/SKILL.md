@@ -1,7 +1,6 @@
 ---
 name: commit-conventional
 description: Conventional Commits 規約に従ってコミットを切る
-recommended_model: sonnet
 ---
 
 # Conventional Commits

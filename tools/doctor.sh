@@ -41,15 +41,15 @@ Tiers:
 
 Checks:
   - ~/.claude symlink state (expected to point at claude-system)
-  - skill / subagent / command frontmatter (name, description, recommended_model/tools)
+  - skill / subagent / command frontmatter (name, description, tools)
   - skill directory name matches frontmatter `name`
   - SKILL.md / subagent body presence
-  - @<file> reference targets exist
+  - @<file> reference cycles (not target existence — see check-circular-refs.sh)
   - principles/ practices/ free of forbidden tool-specific words
   - VERSION file present
   - shellcheck on tools/ tests/ adapters/.../hooks (if installed)
   - JSON validity of settings.json.template / .gitleaks.toml (informational)
-  - gitleaks scan of tracked content (if installed)
+  - Betterleaks scan of tracked content, reading .gitleaks.toml (if installed)
   - ADR draft TODO placeholders ({{TODO: ...}}) in *.md.draft files
   - subagent effort value validity and haiku+xhigh/max combination (ADR 0013)
   - settings auto-sync wiring and drift (tools/sync-settings.sh --check, ADR 0017)
@@ -122,7 +122,7 @@ fi
 cs_step "skill frontmatter and structure"
 for skill in adapters/claude-code/user-level/skills/*/SKILL.md; do
   [[ -f "$skill" ]] || continue
-  for field in name description recommended_model; do
+  for field in name description; do
     if ! head -10 "$skill" | grep -q "^${field}:"; then
       fail "skill missing $field: $skill"
     fi
@@ -195,6 +195,19 @@ for cmd in adapters/claude-code/user-level/commands/*.md; do
       fail "command missing $field: $cmd"
     fi
   done
+  base_name="$(basename "$cmd" .md)"
+  name_field="$(head -10 "$cmd" | grep '^name:' | head -1 | cut -d: -f2 | tr -d ' ')"
+  if [[ -n "$name_field" && "$base_name" != "$name_field" ]]; then
+    fail "command file/name mismatch: file=$base_name name=$name_field ($cmd)"
+  fi
+  desc="$(head -10 "$cmd" | grep '^description:' | head -1 | sed 's/^description: //')"
+  if chars="$(cs_str_chars "$desc")"; then
+    if [[ "$chars" -gt 50 ]]; then
+      warn "command description over 50 chars ($chars): $cmd"
+    fi
+  else
+    warn "no UTF-8 locale available; skipped description length check: $cmd"
+  fi
   ok "command frontmatter: $cmd"
 done
 
@@ -235,7 +248,6 @@ cs_step "JSON validity"
 if command -v jq >/dev/null 2>&1; then
   declare -a JSON_FILES=(
     adapters/claude-code/user-level/settings.json.template
-    adapters/claude-code/user-level/mcp/servers.template.json
   )
   for json in "${JSON_FILES[@]}"; do
     [[ -f "$json" ]] || { warn "$json not found"; continue; }
@@ -289,22 +301,22 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 9. gitleaks (informational)
+# 9. Betterleaks (informational; gitleaks' local-layer successor, ADR pending)
 # ---------------------------------------------------------------------------
-cs_step "gitleaks scan"
-if command -v gitleaks >/dev/null 2>&1; then
+cs_step "Betterleaks scan"
+if command -v betterleaks >/dev/null 2>&1; then
   set +e
-  out="$(gitleaks detect --source . --no-git --redact 2>&1)"
+  out="$(betterleaks dir "$CS_ROOT" --config "$CS_ROOT/.gitleaks.toml" --redact --no-banner 2>&1)"
   rc=$?
   set -e
   if [[ $rc -eq 0 ]]; then
-    ok "gitleaks: no leaks found"
+    ok "betterleaks: no leaks found"
   else
-    fail "gitleaks reported issues:"
+    fail "betterleaks reported issues:"
     printf '%s\n' "$out" | tail -20 >&2
   fi
 else
-  warn "gitleaks not installed"
+  warn "betterleaks not installed"
 fi
 
 # ---------------------------------------------------------------------------

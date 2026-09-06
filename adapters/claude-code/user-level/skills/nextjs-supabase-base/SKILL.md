@@ -1,7 +1,6 @@
 ---
 name: nextjs-supabase-base
 description: Next.js + Supabase の基本作法に従って実装する
-recommended_model: sonnet
 ---
 
 # Next.js + Supabase 基本作法

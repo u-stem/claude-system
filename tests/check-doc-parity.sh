@@ -31,7 +31,8 @@ Usage:
 
 Checks:
   1. every tests/*.sh is named in tests/README.md
-  2. every tools/*.sh is named in tools/README.md
+  2. every tools/*.sh (including extensionless tools/githooks/*) is named in
+     tools/README.md
   3. every user-level hook is named in hooks/_README.md
   4. no expired phase wording outside the historical record
   5. ADR Status values are in the documented vocabulary, point at an ADR that
@@ -74,10 +75,33 @@ check_index_parity() {
   done
 }
 
+# Versioned git hooks (tools/githooks/*) carry no .sh suffix, so the *.sh glob
+# above never reaches them. They need their own sweep of the same directory,
+# scoped to a single subdir rather than folded into check_index_parity: that
+# function's *.sh glob is reused across tests/tools/hooks and widening it to
+# "every file" would also start flagging non-script files those dirs may hold.
+check_githooks_parity() {
+  local dir="tools/githooks" readme="tools/README.md"
+  [[ -d "$ROOT/$dir" ]] || return 0
+  if [[ ! -f "$ROOT/$readme" ]]; then
+    err "index missing: $readme (expected to describe $dir)"
+    return 0
+  fi
+  local f base
+  for f in "$ROOT/$dir"/*; do
+    [[ -f "$f" ]] || continue
+    base="$(basename "$f")"
+    if ! /usr/bin/grep -qF "$base" "$ROOT/$readme"; then
+      err "$dir/$base is not mentioned in $readme"
+    fi
+  done
+}
+
 check_index_parity "tests" "tests/README.md"
 check_index_parity "tools" "tools/README.md"
 check_index_parity "adapters/claude-code/user-level/hooks" \
                    "adapters/claude-code/user-level/hooks/_README.md"
+check_githooks_parity
 
 # ---------------------------------------------------------------------------
 # 4. Expired phase wording

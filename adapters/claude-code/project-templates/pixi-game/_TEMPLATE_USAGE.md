@@ -44,7 +44,7 @@ git init
 - [ ] `tsconfig.json` テンプレート(`typescript-strict` skill 準拠の strict + `noUncheckedIndexedAccess` 等)
 - [ ] アセットパイプラインの設計(別 ADR or `docs/architecture/assets.md`)
 
-肉付け時は `~/ws/claude-system/adapters/claude-code/user-level/skills/skill-creation/SKILL.md` の段階的開示の考え方を準用。
+肉付け時は [`principles/04-progressive-disclosure.md`](~/ws/claude-system/principles/04-progressive-disclosure.md) の段階的開示の考え方を準用。
 
 ## 関連
 

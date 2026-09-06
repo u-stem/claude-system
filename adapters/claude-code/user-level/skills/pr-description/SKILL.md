@@ -1,7 +1,6 @@
 ---
 name: pr-description
 description: Pull Request の本文(Summary / Test plan)を書く
-recommended_model: sonnet
 ---
 
 # PR Description

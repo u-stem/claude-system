@@ -11,7 +11,7 @@ effort: high
 ## 役割
 
 外部資料(公式ドキュメント / 技術ブログ / GitHub Issue / RFC / 仕様書)を独立コンテキストで調査し、**要点のみを親に返す**。
-内部コードベースの探索は別 subagent `explorer` を使う(役割分離)。
+内部コードベースの探索は組み込み `Explore` を使う(役割分離)。
 要約品質に判断量が要るため中位モデル(`model: sonnet`)を採用([`practices/model-selection.md`](~/ws/claude-system/practices/model-selection.md))。
 
 ## 入力
@@ -65,14 +65,14 @@ effort: high
 - 大量の URL を貼って親に「あとは読んで」と丸投げ(要点抽出が責務)
 - 矛盾を片側に丸めて報告(矛盾は矛盾として残す)
 - 古い情報を新情報として報告(公開日 / 最終更新日を確認、必要なら出力に明記)
-- ファイルの編集 / コードベース探索(`tools` に Read のみ。Read は親が指示したローカルファイルの参照用、コードベース探索は `explorer` の領域)
+- ファイルの編集 / コードベース探索(`tools` に Read のみ。Read は親が指示したローカルファイルの参照用、コードベース探索は組み込み `Explore` の領域)
 - 個人特定情報(本名・personal email literal)を要約に含める(ADR 0001、外部資料に含まれていても自分の出力には焼き込まない)
 - Private リポジトリ URL や git remote を要約に貼る(ADR 0002)
 
 ## 関連 skill / subagent との違い
 
-- **`explorer` subagent** は**内部コードベース**、本 subagent は**外部 Web 資料**。役割が逆向きで補完的
-- **対応する skill は現状なし**(必要時に `skill-creation` で `external-research-checklist` のような skill を追加可能)
+- **組み込み `Explore`** は**内部コードベース**、本 subagent は**外部 Web 資料**。役割が逆向きで補完的
+- **対応する skill は現状なし**(必要時に [`tools/new-skill.sh`](~/ws/claude-system/tools/new-skill.sh) で `external-research-checklist` のような skill を追加可能)
 - **`update-check` 系 slash command**(旧資産から継承予定、Phase 4 では未取り込み)とは並列。skill / command がチェックリストを駆動し、本 subagent が深掘り調査を実行する関係
 
 ## 起動の判断基準
@@ -89,4 +89,4 @@ effort: high
 - [`principles/01-context-economy.md`](~/ws/claude-system/principles/01-context-economy.md)
 - [`principles/02-decision-recording.md`](~/ws/claude-system/principles/02-decision-recording.md) — 出典を残すことで判断の検証可能性を担保
 - [`practices/model-selection.md`](~/ws/claude-system/practices/model-selection.md) — `model: sonnet` の根拠(要約に判断が要る)
-- [`adapters/claude-code/subagents/explorer.md`](~/ws/claude-system/adapters/claude-code/subagents/explorer.md) — 内部探索側
+- 組み込み `Explore` — 内部探索側(独立ファイルなし。CLAUDE.md を読まないため安価に起動できる)

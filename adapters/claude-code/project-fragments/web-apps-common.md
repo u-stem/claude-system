@@ -40,7 +40,7 @@ Web 系プロジェクト(Next.js / SvelteKit / Remix / Vue 系等)の**フレ�
 - CSP(Content-Security-Policy)で XSS / clickjacking を防御、`unsafe-inline` を避ける
 - Cookie は `Secure; HttpOnly; SameSite=Lax`(認証 cookie は Strict)
 - ユーザー入力は**境界で**検証(Zod / Valibot)、レンダリング前にエスケープ
-- 詳細は `~/ws/claude-system/adapters/claude-code/user-level/skills/security-audit/SKILL.md` 参照
+- 詳細は `security-auditor` subagent または組み込み `/security-review` 参照
 
 ## 推奨 skill / subagent(Web 系で頻出)
 
@@ -53,4 +53,4 @@ Web 系プロジェクト(Next.js / SvelteKit / Remix / Vue 系等)の**フレ�
 
 - [`principles/05-separation-of-concerns.md`](~/ws/claude-system/principles/05-separation-of-concerns.md) — 境界での検証
 - [`practices/secure-coding-patterns.md`](~/ws/claude-system/practices/secure-coding-patterns.md)
-- [`adapters/claude-code/user-level/skills/security-audit/SKILL.md`](~/ws/claude-system/adapters/claude-code/user-level/skills/security-audit/SKILL.md)
+- [`adapters/claude-code/subagents/security-auditor.md`](~/ws/claude-system/adapters/claude-code/subagents/security-auditor.md)

@@ -137,7 +137,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# Test D: tool-overreach — explorer uses Bash (not in [Read, Grep, Glob]),
+# Test D: tool-overreach — refactor-planner uses Bash (not in [Read, Grep, Glob]),
 # detected from the PER-AGENT transcript
 # ---------------------------------------------------------------------------
 
@@ -149,13 +149,13 @@ MAIN_TRANSCRIPT_D="$TMPDIR_TEST/session-d.jsonl"
 printf '{"role":"user","content":"main session, unrelated"}\n' > "$MAIN_TRANSCRIPT_D"
 
 AGENT_TRANSCRIPT_D="$SESSION_D/subagents/agent-${AGENT_ID_D}.jsonl"
-# "tool":"Bash" matches the grep pattern in the hook; explorer does not declare Bash.
+# "tool":"Bash" matches the grep pattern in the hook; refactor-planner does not declare Bash.
 printf '{"role":"assistant","content":"running command","tool":"Bash"}\n' > "$AGENT_TRANSCRIPT_D"
 
 PAYLOAD_D="$(jq -nc \
   --arg tp "$MAIN_TRANSCRIPT_D" \
   --arg aid "$AGENT_ID_D" \
-  '{"agent_type":"explorer","agent_id":$aid,"transcript_path":$tp,"hook_event_name":"SubagentStop"}')"
+  '{"agent_type":"refactor-planner","agent_id":$aid,"transcript_path":$tp,"hook_event_name":"SubagentStop"}')"
 
 CS_BACKUP_ROOT="$TMPDIR_TEST/backup-d" bash "$HOOK" <<< "$PAYLOAD_D"
 
@@ -180,13 +180,13 @@ MAIN_TRANSCRIPT_E="$TMPDIR_TEST/session-e.jsonl"
 printf '{"role":"user","content":"main session, unrelated"}\n' > "$MAIN_TRANSCRIPT_E"
 
 AGENT_TRANSCRIPT_E="$SESSION_E/subagents/agent-${AGENT_ID_E}.jsonl"
-# "tool":"Read" is in explorer's declared [Read, Grep, Glob]. No email or private links.
+# "tool":"Read" is in refactor-planner's declared [Read, Grep, Glob]. No email or private links.
 printf '{"role":"assistant","content":"reading file","tool":"Read"}\n' > "$AGENT_TRANSCRIPT_E"
 
 PAYLOAD_E="$(jq -nc \
   --arg tp "$MAIN_TRANSCRIPT_E" \
   --arg aid "$AGENT_ID_E" \
-  '{"agent_type":"explorer","agent_id":$aid,"transcript_path":$tp,"hook_event_name":"SubagentStop"}')"
+  '{"agent_type":"refactor-planner","agent_id":$aid,"transcript_path":$tp,"hook_event_name":"SubagentStop"}')"
 
 CS_BACKUP_ROOT="$TMPDIR_TEST/backup-e" bash "$HOOK" <<< "$PAYLOAD_E"
 
