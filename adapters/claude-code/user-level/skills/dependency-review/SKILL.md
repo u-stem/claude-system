@@ -73,7 +73,7 @@ High / Critical が出たら**マージ前に対処**(更新 / 別パッケー�
 
 ### 7. プラグイン
 
-- 導入済みプラグインは `settings.json.template` の `auditedPluginVersions` でバージョンを固定・監査(MCP は不採用、ADR 0003 / 0023)
+- 導入済みプラグインは `settings.json.template` の `auditedPluginVersions` でバージョンを固定・監査(MCP は不採用、ADR 0027 / 0023)
 - 更新の検知は `/update-check` で意図的に
 - 自動更新を許容しない
 

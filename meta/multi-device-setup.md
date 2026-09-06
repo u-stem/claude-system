@@ -68,7 +68,7 @@ $EDITOR ~/.claude/settings.json   # TODO コメント箇所を編集
 ~/ws/claude-system/tools/setup-plugins.sh   # extraKnownMarketplaces + enabledPlugins を実体化
 ```
 
-冪等で、`--dry-run` で事前確認できる。MCP(Model Context Protocol)は不採用のため対応する導入手順はない([ADR 0003](./decisions/0003-memory-architecture.md))。
+冪等で、`--dry-run` で事前確認できる。MCP(Model Context Protocol)は不採用のため対応する導入手順はない([ADR 0027](./decisions/0027-fable-5-1-sync-and-pruning.md)。Memory MCP の不採用は [ADR 0003](./decisions/0003-memory-architecture.md))。
 
 ### 6. 動作確認
 

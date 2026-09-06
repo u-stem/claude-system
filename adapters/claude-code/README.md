@@ -26,7 +26,7 @@ VERSION 更新時のチェックリストは [Claude Code 仕様変更時の影�
 | slash command | `user-level/commands/` | `review-loop` / `team` / `update-check` の 3 本(用途は後述の「slash command 一覧」) |
 | プラグイン管理(`enabledPlugins` / `extraKnownMarketplaces`) | settings.json 内 + `tools/setup-plugins.sh` | superpowers / elements-of-style / episodic-memory。**宣言と導入は 2 段階**(settings に宣言 → `setup-plugins.sh` が `claude plugin install` を実行)。宣言だけでは入らない(ADR 0023) |
 
-MCP(Model Context Protocol)は不採用([`meta/decisions/0003-memory-architecture.md`](../../meta/decisions/0003-memory-architecture.md))。`settings.json.template` に MCP サーバー設定は存在せず、登録用の設定ファイル・スクリプトも持たない。
+MCP(Model Context Protocol)は不採用([`meta/decisions/0027-fable-5-1-sync-and-pruning.md`](../../meta/decisions/0027-fable-5-1-sync-and-pruning.md)。Memory MCP の不採用は [ADR 0003](../../meta/decisions/0003-memory-architecture.md))。`settings.json.template` に MCP サーバー設定は存在せず、登録用の設定ファイル・スクリプトも持たない。
 
 ## slash command 一覧
 

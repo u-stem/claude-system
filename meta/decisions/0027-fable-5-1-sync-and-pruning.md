@@ -10,7 +10,7 @@
 1. ハーネス pin を 2.1.263、主モデルを `claude-fable-5-1[1m]`、`fallbackModel` を `["claude-opus-5[1m]"]` にする。`effortLevel` は `xhigh` 据え置き
 2. 反証役(`devil-advocate`)と最終ゲート(`security-auditor`)の subagent を `model: fable` にする。他は alias 据え置き
 3. 180 日間 0 回の自前 skill / command、実機に届かない宣言系統、ハーネスが代替する機構を削除する: MCP 宣言(`mcp/servers.template.json` / `tools/setup-mcp.sh` / `mcpServers` inline)、command 4 本(`review` `check` `test` `_index`)、skill 6 本(`go-style` `rust-style` `python-style` `testing-python` `skill-creation` `security-audit`)、`explorer` subagent(組み込み `Explore` へ)、`pre-bash-output-cap.sh`(native `bashOutputMaxChars` へ)、非仕様 frontmatter `recommended_model`、no-op の `ENABLE_PROMPT_CACHING_1H`、空の hook 結線
-4. user-level CLAUDE.md を 10,021 → 5,887 bytes に縮約する。機械強制済みの散文、世代・版の履歴、ハーネスがネイティブに行う指示を落とし、規則本体だけ残す
+4. user-level CLAUDE.md を 10,021 → 6,224 bytes に縮約する。機械強制済みの散文、世代・版の履歴、ハーネスがネイティブに行う指示を落とし、規則本体だけ残す
 5. 秘密検出のローカル層を Betterleaks 1.8.1 に置き換える(`.gitleaks.toml` をそのまま読む)。CI は gitleaks-action のまま
 6. 記録方式を決定索引方式に改める。旧 ADR は凍結し、現行状態は `meta/decisions/README.md` が表す
 7. superpowers を 6.3.0 に更新する(公開 2026-08-12、持ち込み能力は skills 14 / hooks 1 event で不変)

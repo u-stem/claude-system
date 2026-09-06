@@ -18,7 +18,7 @@
 - settings: `model` を `claude-fable-5-1[1m]`、`fallbackModel` を `["claude-opus-5[1m]"]`。no-op の `ENABLE_PROMPT_CACHING_1H`、無効キー `mcpServers`、空の `PreCompact` / `SessionEnd` 結線を削除
 - subagent: `devil-advocate` と `security-auditor` を `model: fable`。`explorer` は組み込み `Explore` に置き換えて削除
 - 削除: MCP 宣言系統(`mcp/servers.template.json` / `tools/setup-mcp.sh`)、command 4 本(`review` `check` `test` `_index`)、skill 6 本、`pre-bash-output-cap.sh`、非仕様 frontmatter `recommended_model`
-- 散文: user-level CLAUDE.md を 10,021 → 5,887 bytes、`update-check.md` を 6,946 → 4,298 bytes。世代・版の履歴と機械強制済みの根拠散文を落とした
+- 散文: user-level CLAUDE.md を 10,021 → 6,224 bytes、`update-check.md` を 6,946 → 4,298 bytes。世代・版の履歴と機械強制済みの根拠散文を落とした
 - 秘密検出のローカル層(`tools/setup.sh` / `tools/doctor.sh` / pre-commit テンプレート)を Betterleaks に置換。CI は gitleaks-action のまま(TODO 20)
 - superpowers 6.2.0 → 6.3.0(公開 2026-08-12、持ち込み能力は不変)
 - 記録: `practices/adr-workflow.md` を索引優先に書き換え、`meta/decisions/README.md` を現行の決定索引に作り替えた。旧 ADR 0001〜0026 は凍結

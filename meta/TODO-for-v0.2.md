@@ -25,6 +25,9 @@ Phase 9(`v0.1.0-rc1` リリース候補化)で消化しきれなかった、ま�
 | 20 | Betterleaks の CI 置換 | 条件待ち(保守された Action の確認) |
 | 21 | `@` 参照先の実在検査 | トリガー待ち(リンク切れが実害になったとき) |
 | 22 | セルフホスト n8n の導入計画 | 次の計画セッション(brainstorming から) |
+| 23 | Bash 経路の保護対象書き込みと symlink 切替の機械 deny | 検討(security-auditor 2026-09-06) |
+| 24 | 外向き送信(curl POST / gh api -X)の deny と組み込み Explore の事後監査 | 検討(同上) |
+| 25 | pre-push での秘密検査(Betterleaks)| 検討(同上) |
 | 12 | migrate スクリプトの壊れた symlink 耐性 | **解決済み** → クローズ記録 |
 | 13 | settings.json 配置の責務整合 | **解決済み** → クローズ記録 |
 | 14 | ADR 0011 実装(委譲オーケストレーション) | **解決済み** → クローズ記録 |
@@ -90,6 +93,33 @@ Phase 9(`v0.1.0-rc1` リリース候補化)で消化しきれなかった、ま�
 - n8n でしか組めないフローを 3〜5 本列挙し、ハーネス標準機能(スケジュール実行 / ループ / 背景セッション / セッション間メッセージング)と切り分ける
 - 資格情報と workflow export を Public の claude-system に置かない設計(Private 側か端末ローカル)
 - コンテナイメージの pin と公開後 7 日ルールの適用
+
+---
+
+## 23. Bash 経路の保護対象書き込みと symlink 切替の機械 deny(検討)
+
+`~/ws/claude-settings/` / `*.backup-*` / `~/.claude/` の symlink は Edit / Write に対してのみ deny と hook が効き、Bash 経由の `cp` / `tee` / `>` / `ln -sfn` / `mv` は指示層(user-level CLAUDE.md §8)でしか守れない(security-auditor 2026-09-06、Medium 2)。
+
+### やること
+
+`pre-bash-guard.sh` の DENY_PATTERNS に `ln -s … .claude` と書き込み系リダイレクト × `claude-settings` / `backup-` を足し、`tests/test-pre-bash-guard.sh` にケースを追加する。誤検知(正当な backup 作成)の範囲を先に決める。
+
+---
+
+## 24. 外向き送信の deny と組み込み Explore の事後監査(検討)
+
+`Bash(curl *)` / `Bash(gh *)` の前方一致 allow は `curl -X POST -d @file` や `gh api -X POST` を無確認で通し、組み込み `Explore` は CLAUDE.md を読まず `subagent-stop-audit.sh` の監査対象にもならない(security-auditor 2026-09-06、Medium 3)。
+
+### やること
+
+- deny 候補: `Bash(curl *-X POST*)` `Bash(curl *-d *)` `Bash(curl *--data*)` `Bash(curl *-T *)` `Bash(gh api *-X *)` `Bash(gh api *--method*)` `Bash(gh api *-f *)` `Bash(gh api *-F *)`。他プロジェクトのデプロイ手順を壊さないか先に棚卸しする
+- `subagent-stop-audit.sh` で transcript を解決できない組み込みエージェントは skip ではなく WARN として通知経路へ上げる
+
+---
+
+## 25. pre-push での秘密検査(検討)
+
+ローカルに publication をブロックする秘密検査が無く、最初のブロック層が push 後の CI になっている(security-auditor 2026-09-06、Low 5)。`tools/githooks/pre-push` の `CS_ALLOW_PUSH=1` 分岐で `betterleaks git <repo> --log-opts="<remote>..<local>" --config .gitleaks.toml --redact --no-banner` を先に走らせる(実測 47ms)。項目 20(CI 置換)と同時に扱う。
 
 ---
 

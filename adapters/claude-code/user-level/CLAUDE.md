@@ -21,6 +21,7 @@
 ### 自己確認
 - [ ] 指定範囲外のファイルを「ついで」で編集していない(`git diff --stat` で確認)
 - [ ] 機密情報をコミット対象に含めていない
+- [ ] 保護対象(`~/ws/claude-settings/`、`*.backup-*`、`~/.claude/` の symlink 切替)に書き込んでいない
 - [ ] 出力に本名・本人呼称・新規連絡先を含めていない(§2)
 ```
 
@@ -31,7 +32,7 @@
 編集するファイル、コミットメッセージ、PR 本文、生成テキストのすべてに適用する。
 
 - 本名・個人呼称・新規の連絡先・GitHub handle・個人メールの literal を書かない(例外: LICENSE の Copyright holder、`https://github.com/<handle>/<repo>` 形式の URL、明示的なプレースホルダ)。ローカルの `git config user.*` は override しない
-- Public な成果物から Private リソースへの直接リンク(URL / git remote)を作らない。旧設定への言及は事実のみとし、`meta/migration-from-claude-settings.md` に集約する
+- Public な成果物から Private リソースへの直接リンク(URL / git remote)を作らない。旧設定への言及は事実のみ、旧設計から昇華した内容の出典は抽象的に書き、`meta/migration-from-claude-settings.md` に集約する
 - `episodic-memory` の検索結果(内容・プロジェクト名・パス)を Public 成果物へ転記しない。横断索引のため Private の会話がヒットしうる
 - 新規ファイルとコミットメッセージは書く前に上記の literal を自分で grep する。機械検出は最終防衛線であって代替ではない
 
@@ -87,7 +88,8 @@
 - `// TODO: あとで直す` の放置(今やるか Issue 化する)。認識したバグの無断放置
 - principles / practices 層への特定ツール用語の混入(`meta/forbidden-words.txt` で機械検出)
 - subagent / 背景セッションからの `git push`。push は対話セッションで運用者確認を経る(`pre-bash-guard.sh` が止めるのは subagent のみ、pre-push が止めるのは本リポジトリのみ)
-- 次は settings / hooks が機械的に deny する: `~/ws/claude-settings/` と `*.backup-*` への書き込み、`~/.claude/` の symlink 切替、`--no-verify`、`cd`
+- 保護対象への書き込み: `~/ws/claude-settings/`(Read のみ可)、`*.backup-*`、`~/.claude/` の symlink 切替。Edit / Write は settings と hook が deny するが、Bash 経由の書き込みと symlink 切替は指示でしか守れない
+- `--no-verify` と `cd` は settings / hook が機械的に deny する
 
 ## 9. メモリ運用
 

@@ -19,7 +19,7 @@ claude-system で**今この瞬間に生きている決定**を 1 画面に集�
 |---|---|---|---|---|
 | 本名・個人呼称・新規連絡先を成果物に書かない。ローカル `git config user.*` を override しない | 個人情報が README / LICENSE / commit author に焼き込まれた実例 | 例外を許すときは ADR に理由を書く | なし | 0001 |
 | 追跡ファイルに GitHub handle と個人 email の literal を書かない(例外: LICENSE の Copyright holder、GitHub URL の path、commit 履歴、明示プレースホルダ) | 書かなければ allowlist も検出緩和も要らない | handle 例外の境界に迷うケース | allowlist 化、handle 完全禁止、検出 paths 除外 | 0006 |
-| Public 成果物から Private リソースへの直接リンクを作らない。旧設定との関係は `meta/migration-from-claude-settings.md` に集約 | 第三者にはリンクが切れ、境界が曖昧化する | なし | 都度の個別判断 | 0002 |
+| Public 成果物から Private リソースへの直接リンクを作らない。旧設計から昇華した内容の出典は抽象的に書き、旧設定との関係は `meta/migration-from-claude-settings.md` に集約 | 第三者にはリンクが切れ、境界が曖昧化する | なし | 都度の個別判断 | 0002 |
 | `/Users/<name>/` と `-Users-<name>-` を編集時 warn + commit 時 block の 2 段で検出。パターンは `hooks/_lib.sh` の単一ソース | 規範だけでは混入を偶然にしか見つけられない | multi-OS 展開 | block 統一、warn 統一 | 0008 |
 | 会話索引(episodic-memory)は全プロジェクト横断のまま、検索結果を Public 成果物へ転記しない | 除外設定が無く Private の会話がヒットする | 索引側に除外機構が付いたとき | 索引の分割 | 0023 |
 

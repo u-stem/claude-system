@@ -63,7 +63,6 @@ paths = [
   '''adapters/claude-code/project-templates/.*''',
   '''adapters/claude-code/project-fragments/.*''',
   '''adapters/claude-code/user-level/settings\.json\.template''',
-  '''adapters/claude-code/user-level/mcp/servers\.template\.json''',
   '''adapters/claude-code/user-level/hooks/.*''',
   '''\.claude/.*''',
   '''.*\.template''',
