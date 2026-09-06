@@ -32,7 +32,7 @@ bash tools/doctor.sh                  # full: lint + 委譲テストを一括実
 | [`test-hooks-lib.sh`](./test-hooks-lib.sh) | hooks 共通ライブラリ `_lib.sh` の出力契約 |  |
 | [`test-log-bash-failure.sh`](./test-log-bash-failure.sh) | 層 3。失敗の `failure-log.jsonl` への記録(ADR 0020) |  |
 | [`test-check-failure-patterns.sh`](./test-check-failure-patterns.sh) | 層 3。再発検出と SessionStart 通知 |  |
-| [`test-loop-report-json.sh`](./test-loop-report-json.sh) | `tools/loop-report.sh --json` の契約(スキーマ `cc-loop-draft/1`、live+アーカイブ結合、`--since` フィルタ、`$HOME` scrub、path 非漏洩、単一 JSON 出力) |  |
+| [`test-loop-report-json.sh`](./test-loop-report-json.sh) | `tools/loop-report.sh --json` の契約(スキーマ `cc-loop-draft/1`、`scope` / `since` / `generated`、live+アーカイブ結合、`--since` フィルタ、ホームパスの scrub(literal / dash 形 / 切詰めが作った断片 / 他アカウント)、path 非漏洩、`dropped_lines`、`--all` の 0 件と 2 件、単一 JSON 出力) | 24 ケース。ホーム断片は実行時に `$HOME` から導出 |
 | [`test-subagent-stop-record.sh`](./test-subagent-stop-record.sh) | `subagent-log.jsonl` の記録(ADR 0012 の計測点) |  |
 | [`test-subagent-stop-audit.sh`](./test-subagent-stop-audit.sh) | subagent 出力の監査 |  |
 | [`test-sync-settings.sh`](./test-sync-settings.sh) | `settings.json` の決定論的レンダリングと overrides のマージ(ADR 0017) | throwaway HOME |
