@@ -83,7 +83,7 @@ OUT_A_SINCE="$(bash "$LOOP_REPORT" --project "$PROJA" --json --since 2026-07-05)
 
 # ---------------------------------------------------------------------------
 # Fixture B: $HOME scrubbing, truncation, missing `intent`, used for
-# (e) (f) (g) (i)
+# (e) (f) (g) (i) (j)
 # ---------------------------------------------------------------------------
 
 PROJB="$TMPDIR_TEST/scrub-proj"
@@ -94,11 +94,15 @@ LONG_ERR="$(printf 'x%.0s' $(seq 1 400))"
 # truncates before this feature runs would leave behind (case i). Built from
 # $HOME at runtime, never hard-coded.
 HOME_TAIL_FRAGMENT="${HOME:0:10}"
+# Same idea for the scratchpad dash form (case j).
+HOMEDASH_VAL="${HOME//\//-}"
+HOMEDASH_TAIL_FRAGMENT="${HOMEDASH_VAL:0:10}"
 LOGB="$PROJB/.claude/failure-log.jsonl"
 {
   printf '{"ts":"2026-01-01T00:00:00Z","category":"test","error":"%s/x","exit_code":1,"cmd":"cat file"}\n' "$HOME"
   printf '{"ts":"2026-01-02T00:00:00Z","category":"test","error":"%s","exit_code":1,"cmd":"echo hi"}\n' "$LONG_ERR"
   printf '{"ts":"2026-01-03T00:00:00Z","category":"test","error":"e3","exit_code":1,"cmd":"%s"}\n' "$HOME_TAIL_FRAGMENT"
+  printf '{"ts":"2026-01-04T00:00:00Z","category":"test","error":"e4","exit_code":1,"cmd":"scratchpad-run-%s"}\n' "$HOMEDASH_TAIL_FRAGMENT"
 } > "$LOGB"
 
 OUT_B="$(bash "$LOOP_REPORT" --project "$PROJB" --json)"
@@ -126,6 +130,13 @@ printf '%s' "$OUT_B" | grep -qF '/Users/' \
   && err "Test (i) [no /Users/ substring]: expected no '/Users/' in output, got: $OUT_B"
 [[ "$(printf '%s' "$OUT_B" | jq -r '.projects[0].entries[2].cmd | endswith("~")')" == "true" ]] \
   || err "Test (i) [tail scrubbed]: expected cmd to end with '~', got: $(printf '%s' "$OUT_B" | jq -r '.projects[0].entries[2].cmd')"
+
+# (j) same tail rule, dashed form: a cmd ending in a truncated scratchpad-style
+# $HOME fragment is scrubbed too
+[[ "$(printf '%s' "$OUT_B" | jq -r '.projects[0].entries[3].cmd | contains("-Users-")')" == "false" ]] \
+  || err "Test (j) [no -Users- substring]: expected no '-Users-' in cmd, got: $(printf '%s' "$OUT_B" | jq -r '.projects[0].entries[3].cmd')"
+[[ "$(printf '%s' "$OUT_B" | jq -r '.projects[0].entries[3].cmd | endswith("~")')" == "true" ]] \
+  || err "Test (j) [tail scrubbed]: expected cmd to end with '~', got: $(printf '%s' "$OUT_B" | jq -r '.projects[0].entries[3].cmd')"
 
 # ---------------------------------------------------------------------------
 # Summary
