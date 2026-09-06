@@ -86,6 +86,11 @@ fi
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 
+# Malformed JSONL lines discarded by jsonl_sanitize since the last reset.
+# emit_json_report zeroes it per project and reports it as dropped_lines;
+# the text mode never reads it.
+JSONL_DROPPED=0
+
 PROJECTS=()
 if [[ "$ALL" == "1" ]]; then
   shopt -s nullglob
@@ -111,9 +116,21 @@ fi
 # individually with `fromjson? // empty` drops bad lines silently instead of
 # failing the pipeline. Every prep_*/merge_* function below sanitizes its
 # input(s) through this before handing them to jq's structured filters.
+#
+# Dropping silently is right for the text mode (a human reads the totals), but
+# a --json consumer cannot tell a clean log from a half-parsed one, so the
+# discarded count accumulates in JSONL_DROPPED. awk counts a last line that has
+# no trailing newline, which `wc -l` would miss on exactly the half-written
+# record this filter exists to survive.
 jsonl_sanitize() {
   local src="$1" out="$2"
   jq -R -c 'fromjson? // empty' "$src" > "$out" 2>/dev/null || : > "$out"
+  local raw kept
+  raw="$(awk 'END{print NR}' "$src" 2>/dev/null || echo 0)"
+  kept="$(awk 'END{print NR}' "$out" 2>/dev/null || echo 0)"
+  if [[ "$raw" -gt "$kept" ]]; then
+    JSONL_DROPPED=$((JSONL_DROPPED + raw - kept))
+  fi
 }
 
 # Merge live + archived failure-log JSONL for one project, chronologically
@@ -148,14 +165,16 @@ merge_failure_log() {
 
 # Build one entry object per the cc-loop-draft/1 schema (ADR 0028), scrubbing
 # any $HOME literal (both the plain form and the scratchpad dash form used
-# under $TMPDIR) so a host path never leaves the machine.
+# under $TMPDIR) so a host path never leaves the machine. Home paths are all
+# this removes: secrets, third-party identifiers and project names stay.
 json_failure_entries() {
   local file="$1"
   jq -c --arg home "$HOME" --arg homedash "${HOME//\//-}" '
     # A field that other hooks already truncated (e.g. log-bash-failure.sh
-    # cuts `cmd` to 200 chars before this feature existed) can end mid-way
-    # through $HOME, so the exact-literal scrub below has nothing complete
-    # left to match. This catches that: if the string ends with a *proper*
+    # cuts `cmd` to 200 chars before this feature existed), or one the 300/200
+    # cut below shortens, can end mid-way through $HOME, so the exact-literal
+    # scrub has nothing complete left to match. This catches that: if the
+    # string ends with a *proper*
     # prefix of $needle at least 8 chars long (longer than "/Users/", which
     # would otherwise false-positive on unrelated text), replace that tail
     # with "~". Tried longest prefix first, at most one replacement — a
@@ -180,17 +199,29 @@ json_failure_entries() {
              end
            )).out
         end;
-    def scrub:
+    # Whole-literal replacement. Runs before the length cut, on the full
+    # string, so an occurrence that the cut would have sliced in half is
+    # already gone by then.
+    def scrub_literal:
       (if ($home | length) > 0 then split($home) | join("~") else . end)
-      | (if ($homedash | length) > 0 then split($homedash) | join("~") else . end)
-      | scrub_tail($home)
-      | scrub_tail($homedash);
+      | (if ($homedash | length) > 0 then split($homedash) | join("~") else . end);
+    # Runs after the length cut: the cut is itself a truncation, so it can
+    # leave a fresh $HOME prefix sitting at the new end of the string, and a
+    # rule applied before it would already be done. The closing gsub covers
+    # the macOS home directory of any other account, which the $HOME rules
+    # cannot see; it is after the cut for the same reason.
+    def scrub_tails:
+      scrub_tail($home)
+      | scrub_tail($homedash)
+      | gsub("/Users/[A-Za-z0-9._-]+"; "~");
     {
       ts: (.ts // null),
-      category: (.category // "unknown"),
-      error: ((.error // "") | tostring | scrub | .[0:300]),
-      exit_code: (.exit_code // null),
-      cmd: ((.cmd // "") | tostring | scrub | .[0:200]),
+      # tostring keeps a non-string category (a future hook could write one)
+      # from silently changing the schema the consumer parses.
+      category: ((.category // "unknown") | tostring),
+      error: ((.error // "") | tostring | scrub_literal | .[0:300] | scrub_tails),
+      exit_code: (.exit_code | if type == "number" then . else null end),
+      cmd: ((.cmd // "") | tostring | scrub_literal | .[0:200] | scrub_tails),
       intent: (.intent // "real")
     }
   ' "$file"
@@ -199,6 +230,9 @@ json_failure_entries() {
 # Emit the merged failure log (live + archive, --since filtered, ts sorted) as
 # one JSON document on stdout for the workflow-engine side (ADR 0028). Prints
 # nothing else: no cs_step banners, no "Generated:" line, no text sections.
+# Each project object also carries dropped_lines, the number of malformed
+# JSONL lines skipped for it, so a consumer can tell a clean log from a
+# half-parsed one.
 emit_json_report() {
   local generated since_json scope
   generated="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -217,18 +251,27 @@ emit_json_report() {
   projects_file="$WORKDIR/json-projects.jsonl"
   : > "$projects_file"
 
-  local idx=0 proj claude_dir name fl_out entries_json
-  for proj in "${PROJECTS[@]}"; do
+  # ${PROJECTS[@]+...} rather than a plain "${PROJECTS[@]}": expanding an
+  # empty array under `set -u` aborts on bash 3.2 (the system bash on macOS),
+  # which would break the "stdout always carries one JSON document" contract
+  # for --all on a machine with no matching projects.
+  local idx=0 proj claude_dir name fl_out
+  for proj in ${PROJECTS[@]+"${PROJECTS[@]}"}; do
     idx=$((idx + 1))
     claude_dir="$proj/.claude"
     name="$(basename "$proj")"
 
     fl_out="$WORKDIR/json-fl-$idx.jsonl"
+    JSONL_DROPPED=0
     merge_failure_log "$claude_dir" "$fl_out"
 
-    entries_json="$(json_failure_entries "$fl_out" | jq -s '.')"
-    jq -nc --arg name "$name" --argjson entries "$entries_json" \
-      '{name: $name, entries: $entries}' >> "$projects_file"
+    # Streamed into jq instead of passed as --argjson: one project-year of
+    # entries can exceed ARG_MAX and take the whole report down with
+    # "Argument list too long". `jq -s` on empty input still yields [], so
+    # the shape for a project with no records is unchanged.
+    json_failure_entries "$fl_out" \
+      | jq -sc --arg name "$name" --argjson dropped "$JSONL_DROPPED" \
+        '{name: $name, dropped_lines: $dropped, entries: .}' >> "$projects_file"
   done
 
   jq -s --arg generated "$generated" --argjson since "$since_json" --arg scope "$scope" \
@@ -317,7 +360,7 @@ emit_rework_report() {
   echo "  files edited 3+ times in one session (rework candidates):"
   local found
   found="$(jq -rs '
-    group_by(.session_id + " " + .file)
+    group_by(.session_id + "\u0000" + .file)
     | map(select(length >= 3))
     | sort_by(-length)
     | .[:10][]
@@ -472,7 +515,9 @@ ALL_SL="$WORKDIR/all-subagent.jsonl"
 : > "$ALL_SL"
 
 idx=0
-for proj in "${PROJECTS[@]}"; do
+# See the note in emit_json_report: an empty array is not expandable under
+# `set -u` on bash 3.2.
+for proj in ${PROJECTS[@]+"${PROJECTS[@]}"}; do
   idx=$((idx + 1))
   claude_dir="$proj/.claude"
 
