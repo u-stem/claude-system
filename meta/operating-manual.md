@@ -16,6 +16,8 @@ claude-system の継続的な運用手順。日常運用は [`daily-routine.md`]
    - `claude -p /skill-doctor` で自前 skill / command と plugin skill の使用回数を取る。180 日 0 回のものは削除候補に挙げる(2026-09-06 に 13 件を剪定した基準)
    - `tools/loop-report.sh --all --since <前月初日>` で失敗ログ・委譲ログ・subagent-audit を横断集計(失敗ログの正準パスは各プロジェクトの `<project>/.claude/failure-log.jsonl` / `subagent-log.jsonl`。アーカイブ `<project>/.claude/failure-log.archive/` も自動で合算される。subagent-audit はマシン全体 1 本の共有ログで `~/.claude-system-backups/hook-logs/subagent-audit.jsonl`)
    - ワークフローエンジン(ADR 0028)が動いていれば `tools/loop-report.sh --all --since <前月初日> --json` の出力をそのフローに渡すと、失敗ログの原因分類つきの繰り返しパターン表と昇格候補のドラフトが返る(明示起動のみ。採否は人間、ADR 0019 §5。手順は Private 側の README)
+     - `--json` が置換するのはホームパスだけである。運用者自身の `$HOME`、その dash 形(scratchpad 形式)、および他アカウントの `/Users/<name>` の 3 つ。秘密・第三者の識別子・未公開のプロジェクト名は消さない
+     - とくに `cmd` は先頭 200 字がそのまま乗るため、運用者が打った検索文字列のような識別子を運びうる。返ってきたドラフトは手順 3 で目視してから貼る
    - 各プロジェクトの `git log --since '1 month ago' --oneline`
    - episodic-memory プラグインで `claude` コマンド検索した会話履歴
 3. 以下のテンプレートに沿って書き起こす:
@@ -23,7 +25,7 @@ claude-system の継続的な運用手順。日常運用は [`daily-routine.md`]
    - `廃止したい skill`(過去 1 ヶ月で起動されなかった、または挙動が悪い)
    - `principles に追加したい原則`(複数文脈で妥当性が確認できた)
    - `ガードレールの誤検知`(発火したが正当な操作だったケース)
-   - `failure-log.jsonl の繰り返しパターン`(ドラフトがあれば貼ってから読む)
+   - `failure-log.jsonl の繰り返しパターン`(ドラフトがあれば、**秘密 / 第三者の識別子 / 未公開のプロジェクト名**の 3 点を目視で確認してから貼る。機械的な最終防衛線は pre-push の秘密検査を想定しているが、[TODO 項目 25](./TODO-for-v0.2.md) のとおり未導入で、現状の最初の遮断層は push 後の CI である)
    - `次月までに着手する 1 つ`
 4. 失敗ログをアーカイブ: `tools/archive-failure-log.sh --all --month YYYY-MM`(各プロジェクトの failure-log.jsonl を `failure-log.archive/` に月別に保存し、本体をクリアする)
 5. 必要なら ADR 起票(`tools/new-adr.sh` で連番起票)

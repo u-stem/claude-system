@@ -30,7 +30,7 @@
 | [`cleanup-backups.sh`](./cleanup-backups.sh) | `~/.claude-system-backups/` の古いファイルを削除(デフォルト 30 日) | ◯ | — |
 | [`check-claude-version.sh`](./check-claude-version.sh) | インストール済み Claude Code と `adapters/.../VERSION` の差分を表示 | ◯ | — |
 | [`archive-failure-log.sh`](./archive-failure-log.sh) | `<project>/.claude/failure-log.jsonl` を `failure-log.archive/YYYY-MM.jsonl` へ退避(計測の連続性を保つ / ADR 0019)。`--dry-run` 対応。**hook からは自動実行しない** | ◯ | — |
-| [`loop-report.sh`](./loop-report.sh) | 失敗ログと subagent ログの横断集計(live + アーカイブ)。委譲エージェントとハーネス内部を分離集計(ADR 0024)。`--all` でプロジェクト横断。`--json` は失敗ログのみをスキーマ `cc-loop-draft/1` の単一 JSON として出力(ワークフローエンジン側 ADR 0028 向け) | ◯ | — |
+| [`loop-report.sh`](./loop-report.sh) | 失敗ログと subagent ログの横断集計(live + アーカイブ)。委譲エージェントとハーネス内部を分離集計(ADR 0024)。`--all` でプロジェクト横断。`--json` は失敗ログのみをスキーマ `cc-loop-draft/1` の単一 JSON として出力(ワークフローエンジン側 ADR 0028 向け)。置換するのはホームパスだけ(自身の `$HOME`、その dash 形、他アカウントの `/Users/<name>`)で、秘密・第三者の識別子・プロジェクト名は残る | ◯ | — |
 | [`setup-plugins.sh`](./setup-plugins.sh) | `settings.json.template` の `extraKnownMarketplaces` / `enabledPlugins` を読んでプラグインを実体化(宣言だけでは入らない / ADR 0023)。`--dry-run` 対応 | ◯ | — |
 | [`cleanup-claude-code-runtime.sh`](./cleanup-claude-code-runtime.sh) | `~/.claude/` のランタイム生成物(projects/ telemetry/ history.jsonl 等)を削除。**手動実行のみ** | ◯ | — |
 | [`disable-guardrails.sh`](./disable-guardrails.sh) | 緊急停止: `~/.claude/settings.json` の `hooks` を `{}` にする(バックアップ取得後)。`--dry-run` 対応 | ◯ | — |

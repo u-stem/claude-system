@@ -8,20 +8,24 @@ TODO-for-v0.2 項目 26 の 1(claude-system 運用ループ)の最初のフロ�
 
 **変えたこと**
 
-- `tools/loop-report.sh --json`(スキーマ `cc-loop-draft/1` で失敗ログのみを単一 JSON 出力)、`$HOME` と scratchpad 形式パスの秘匿処理、200 字切詰めで途中に残る接頭辞(`scrub_tail`)の除去、契約テスト `tests/test-loop-report-json.sh` 10 ケース
+- `tools/loop-report.sh --json`(スキーマ `cc-loop-draft/1` で失敗ログのみを単一 JSON 出力)、ホームパスの置換(`$HOME` literal / その dash 形 / 切詰めが末尾に残す接頭辞 `scrub_tail` / 他アカウントの `/Users/<name>`)、契約テスト `tests/test-loop-report-json.sh` 24 ケース
+- 置換対象はホームパスに限られる。秘密・第三者の識別子・未公開のプロジェクト名は残るため、レトロへ貼る前の目視を運用手順に明記した(`meta/operating-manual.md` 手順 3)
 
 **測ったこと**
 
-- fixture 5 件は 9 秒、実データ 26 件・24 シグネチャは 24 秒
+- fixture 5 件は 10 秒、実データ 26 件・25 シグネチャは 23 秒
 - ラベル分布: other 16 / syntax 5 / missing-dependency 3 / test-assertion 1 / type-error 1。原因が error 文に書かれている件は全て正しいラベルが付き、`other` は error が終了コードだけの件に限られた(手動判定、全 26 件を確認)
 
 **気づいたこと**
 
 - failure hook が探索コマンドの非ゼロ終了を category `unknown` として記録しており、これが昇格候補の第 1 号になった(TODO-for-v0.2 項目 10 に材料として追記)
-- `daily-routine.md` の failure-log 旧パス記載は今回は未修正のまま残っている
+- `daily-routine.md` の failure-log 旧パス記載(`~/.claude/projects/<scope>/`)は本変更で正準パス `<project>/.claude/failure-log.jsonl` に修正した
 
 **直したこと**
 
+- 1 プロジェクト分の entries を `--argjson` で argv に載せていた組み立てをパイプ + `jq -s` に置換した(実測: 2.4 MB / 6000 件で `Argument list too long`、exit 126、stdout 0 バイト)
+- scrub の順序をホームパス literal → 切詰め → 末尾規則に変え、切詰めが末尾に作る断片を捕まえるようにした。あわせて `category` の `tostring`、`exit_code` の数値化、bash 3.2 での空配列展開(`--all` が stdout 空のまま exit 0 になる)、不正 JSONL 行の件数 `dropped_lines` を追加した
+- `tools/loop-report.sh` に生の NUL バイトが 1 個あり git が binary 扱いにしていた(レビューパッケージに差分が 1 行も入らなかった)。jq の `\u0000` 表記に置き換えてテキスト diff が取れるようにした
 - レビューで見つかったコミットメッセージ内の実パス断片を `git commit --amend` で除去した
 
 ## セルフホスト n8n 基盤の導入(2026-09-06)

@@ -43,7 +43,7 @@ git status
 - PostToolUse hooks: 失敗を `failure-log.jsonl` に集約
 - Stop hooks: 未解決 lint/type error を残したまま終了するのを阻止
 
-エラーが連続するときだけ `~/.claude/projects/<scope>/failure-log.jsonl` を眺める。
+エラーが連続するときだけ `<project>/.claude/failure-log.jsonl` を眺める。
 
 ---
 
@@ -62,7 +62,7 @@ git status
 git log --oneline origin/main..HEAD
 
 # 3. failure-log.jsonl を一瞥(任意)
-cat ~/.claude/projects/<scope>/failure-log.jsonl 2>/dev/null | tail -10
+cat .claude/failure-log.jsonl 2>/dev/null | tail -10
 ```
 
 ### 確認ポイント

@@ -110,6 +110,8 @@ Phase 9(`v0.1.0-rc1` リリース候補化)で消化しきれなかった、ま�
 
 ローカルに publication をブロックする秘密検査が無く、最初のブロック層が push 後の CI になっている(security-auditor 2026-09-06、Low 5)。`tools/githooks/pre-push` の `CS_ALLOW_PUSH=1` 分岐で `betterleaks git <repo> --log-opts="<remote>..<local>" --config .gitleaks.toml --redact --no-banner` を先に走らせる(実測 47ms)。項目 20(CI 置換)と同時に扱う。
 
+`loop-report.sh --json` の出力をワークフローエンジンに渡し、返ってきたドラフトを `meta/retrospectives/` に貼る経路([操作手順](./operating-manual.md)の月次レトロ)は、この検査を機械的な最終防衛線として前提にしている。それまでは目視が唯一の遮断層である。
+
 ---
 
 ## 26. n8n 用途別導入(サブプロジェクト 1〜3)
@@ -364,7 +366,7 @@ drawzzz 再開時:
 - 月次レトロを 3 ヶ月続けて手動運用した後、定型部分が見えてきたら検討
 - クロック起算: **2026-07**(初回レトロ実走、[ADR 0019](./decisions/0019-loop-engineering-phased-adoption.md))。手動運用の道具(`tools/loop-report.sh`)は同 ADR で整備済み。自動起動の判断は本項目に委ねたまま
 - 機構候補はワークフローエンジン(セルフホスト n8n、[ADR 0028](./decisions/0028-n8n-workflow-engine-boundary.md))。判断時期は変えない。実装するときは項目 26 の 1 として brainstorming から始め、集計はホスト側で行って結果 1 ファイルだけを渡す
-- 材料(2026-09-06): 実データ 26 件の分類は 24 秒。`unknown` 14 件は探索コマンドの非ゼロ終了で、記録規則の見直し候補
+- 材料(2026-09-06): 実データ 26 件の分類は 23 秒(25 シグネチャ)。category `unknown` は 20 件あり、そのうちラベル other と組む 14 件は主に探索コマンドの非ゼロ終了だった。記録規則の見直し候補
 
 ---
 
