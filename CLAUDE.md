@@ -89,11 +89,11 @@ Conventional Commits:
 
 ## 必須検証
 
-編集後、以下のいずれかを実施(具体ツールは Phase 7a / 7b で整備):
+編集後、以下を実施する:
 
-- `principles/` `practices/` 編集時: 禁止語チェック(`while read word; do grep -ri "$word" principles/ practices/; done < meta/forbidden-words.txt`)
-- 設定テンプレート編集時: `jq` で JSON 妥当性、`gitleaks detect --source <path> --no-git --redact` で機密漏洩チェック
-- 全般: `tools/doctor.sh`(Phase 7a 実装予定)で整合性確認
+- `principles/` `practices/` 編集時: 禁止語チェック(`bash tests/lint-principles-language.sh`。`meta/forbidden-words.txt` のコメント行を読み飛ばすのはこのスクリプトだけなので、生の grep ループを使わない)
+- 設定テンプレート編集時: `jq` で JSON 妥当性、`betterleaks dir <path> --config .gitleaks.toml --redact` で機密漏洩チェック
+- 全般: `tools/doctor.sh`(full)で整合性確認。毎ターンの Stop hook は `--fast` を回す
 
 検証なしで「完了」と書かない([`principles/02-decision-recording.md`](./principles/02-decision-recording.md) - 検証されていない仮定を残さない)。
 
