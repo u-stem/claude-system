@@ -82,17 +82,23 @@ OUT_A_SINCE="$(bash "$LOOP_REPORT" --project "$PROJA" --json --since 2026-07-05)
   || err "Test (h) [first byte]: expected stdout to start with '{', got: ${OUT_A:0:1}"
 
 # ---------------------------------------------------------------------------
-# Fixture B: $HOME scrubbing, truncation, missing `intent`, used for (e) (f) (g)
+# Fixture B: $HOME scrubbing, truncation, missing `intent`, used for
+# (e) (f) (g) (i)
 # ---------------------------------------------------------------------------
 
 PROJB="$TMPDIR_TEST/scrub-proj"
 mkdir -p "$PROJB/.claude"
 
 LONG_ERR="$(printf 'x%.0s' $(seq 1 400))"
+# A record whose `cmd` is a $HOME prefix cut mid-string, as a hook that
+# truncates before this feature runs would leave behind (case i). Built from
+# $HOME at runtime, never hard-coded.
+HOME_TAIL_FRAGMENT="${HOME:0:10}"
 LOGB="$PROJB/.claude/failure-log.jsonl"
 {
   printf '{"ts":"2026-01-01T00:00:00Z","category":"test","error":"%s/x","exit_code":1,"cmd":"cat file"}\n' "$HOME"
   printf '{"ts":"2026-01-02T00:00:00Z","category":"test","error":"%s","exit_code":1,"cmd":"echo hi"}\n' "$LONG_ERR"
+  printf '{"ts":"2026-01-03T00:00:00Z","category":"test","error":"e3","exit_code":1,"cmd":"%s"}\n' "$HOME_TAIL_FRAGMENT"
 } > "$LOGB"
 
 OUT_B="$(bash "$LOOP_REPORT" --project "$PROJB" --json)"
@@ -113,6 +119,13 @@ printf '%s' "$OUT_B" | grep -qF '~/x' \
 # (g) a record without `intent` defaults to "real"
 [[ "$(printf '%s' "$OUT_B" | jq -r '.projects[0].entries[0].intent')" == "real" ]] \
   || err "Test (g) [default intent]: expected 'real', got: $(printf '%s' "$OUT_B" | jq -r '.projects[0].entries[0].intent')"
+
+# (i) a $HOME prefix truncated mid-string (no complete $HOME literal left for
+# the exact-match scrub to catch) is still scrubbed via the tail rule
+printf '%s' "$OUT_B" | grep -qF '/Users/' \
+  && err "Test (i) [no /Users/ substring]: expected no '/Users/' in output, got: $OUT_B"
+[[ "$(printf '%s' "$OUT_B" | jq -r '.projects[0].entries[2].cmd | endswith("~")')" == "true" ]] \
+  || err "Test (i) [tail scrubbed]: expected cmd to end with '~', got: $(printf '%s' "$OUT_B" | jq -r '.projects[0].entries[2].cmd')"
 
 # ---------------------------------------------------------------------------
 # Summary

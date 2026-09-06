@@ -152,9 +152,39 @@ merge_failure_log() {
 json_failure_entries() {
   local file="$1"
   jq -c --arg home "$HOME" --arg homedash "${HOME//\//-}" '
+    # A field that other hooks already truncated (e.g. log-bash-failure.sh
+    # cuts `cmd` to 200 chars before this feature existed) can end mid-way
+    # through $HOME, so the exact-literal scrub below has nothing complete
+    # left to match. This catches that: if the string ends with a *proper*
+    # prefix of $needle at least 8 chars long (longer than "/Users/", which
+    # would otherwise false-positive on unrelated text), replace that tail
+    # with "~". Tried longest prefix first, at most one replacement — a
+    # shorter accidental match should not pre-empt a longer real one.
+    # $HOME shorter than 8 chars skips the rule entirely (range() below then
+    # generates no candidates, so this is inert, not a separate branch).
+    def scrub_tail($needle):
+      ($needle | length) as $nlen
+      | . as $s
+      | ($s | length) as $slen
+      | if $nlen < 8 then $s
+        else
+          (reduce range($nlen - 1; 7; -1) as $n (
+             {done: false, out: $s};
+             if .done then .
+             else
+               ($needle[0:$n]) as $prefix
+               | if ($s | endswith($prefix)) then
+                   {done: true, out: ($s[0:($slen - $n)] + "~")}
+                 else .
+                 end
+             end
+           )).out
+        end;
     def scrub:
       (if ($home | length) > 0 then split($home) | join("~") else . end)
-      | (if ($homedash | length) > 0 then split($homedash) | join("~") else . end);
+      | (if ($homedash | length) > 0 then split($homedash) | join("~") else . end)
+      | scrub_tail($home)
+      | scrub_tail($homedash);
     {
       ts: (.ts // null),
       category: (.category // "unknown"),
