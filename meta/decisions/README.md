@@ -71,6 +71,12 @@ claude-system で**今この瞬間に生きている決定**を 1 画面に集�
 | doctor は `claude` CLI を呼ばない(毎ターンの Stop hook から走る) | 入れ子セッションの起動を避ける | なし | CLI 経由の宣言↔実体検査 | 0023 |
 | ハーネス pin は実インストール版に一致させ(`adapters/claude-code/VERSION`)、README の散文と `check-doc-parity.sh` で対にする | 2 回ずれた | なし | pin をテスト済み全版の列挙にする | 0026 |
 
+### 外部連携
+
+| 決定 | 根拠 | 再評価トリガー | 退けた案 | 出典 |
+|---|---|---|---|---|
+| セッション外・イベント / 時刻起点・外部 SaaS 連携はワークフローエンジン(セルフホスト n8n)、セッション起点はハーネス。Claude Code ↔ n8n は `localhost:5678/webhook/cc-*` と `docker compose` のみ、n8n からホスト実行しない、`.env` / `backups/` は Read deny + 指示(`compose exec … env` は機械保証しない)。真実源は Private repo、claude-system は記録のみ | 常駐が要る用途(TODO 10)と、境界を設計と呼べない permissions の実態 | TODO 10 の判断(2026-10)、24 時間稼働が要るフロー、Server CLI export の deprecated 化 | MCP 経由、claude-system 内テンプレート、docker.sock、広い carve-out、常駐バックアップ | 0028 |
+
 ### ガードレール
 
 | 決定 | 根拠 | 再評価トリガー | 退けた案 | 出典 |
@@ -127,3 +133,4 @@ claude-system で**今この瞬間に生きている決定**を 1 画面に集�
 | [0025](./0025-symlink-switchover-record-and-release-tagging.md) | symlink 切り替え記録とリリースタグ | Accepted | 2026-08-09 |
 | [0026](./0026-harness-sync-2.1.229.md) | ハーネス同期 2.1.229(§4 は 0027 が撤去で解決) | Accepted | 2026-08-13 |
 | [0027](./0027-fable-5-1-sync-and-pruning.md) | Fable 5.1 同期と使用実績に基づく剪定 | Accepted | 2026-09-06 |
+| [0028](./0028-n8n-workflow-engine-boundary.md) | ワークフローエンジン(セルフホスト n8n)の切り分け・境界・配置 | Accepted | 2026-09-06 |

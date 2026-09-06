@@ -24,10 +24,10 @@ Phase 9(`v0.1.0-rc1` リリース候補化)で消化しきれなかった、ま�
 | 18 | `git tag v0.1.0` の発行可否 | 運用者判断待ち(ADR 0025) |
 | 20 | Betterleaks の CI 置換 | 条件待ち(保守された Action の確認) |
 | 21 | `@` 参照先の実在検査 | トリガー待ち(リンク切れが実害になったとき) |
-| 22 | セルフホスト n8n の導入計画 | 次の計画セッション(brainstorming から) |
 | 23 | Bash 経路の保護対象書き込みと symlink 切替の機械 deny | 検討(security-auditor 2026-09-06) |
 | 24 | 外向き送信(curl POST / gh api -X)の deny と組み込み Explore の事後監査 | 検討(同上) |
 | 25 | pre-push での秘密検査(Betterleaks)| 検討(同上) |
+| 26 | n8n 用途別導入(運用ループ → プロダクト運用 → 個人) | 順次(各々 brainstorming から、ADR 0028) |
 | 12 | migrate スクリプトの壊れた symlink 耐性 | **解決済み** → クローズ記録 |
 | 13 | settings.json 配置の責務整合 | **解決済み** → クローズ記録 |
 | 14 | ADR 0011 実装(委譲オーケストレーション) | **解決済み** → クローズ記録 |
@@ -84,18 +84,6 @@ Phase 9(`v0.1.0-rc1` リリース候補化)で消化しきれなかった、ま�
 
 ---
 
-## 22. セルフホスト n8n の導入計画(次の計画セッション)
-
-運用者の意向(2026-09-06)。項目 10(レトロ連動の自動化)と観測ループがセッション外の常駐オーケストレータを必要としている。
-
-### 先に決めること
-
-- n8n でしか組めないフローを 3〜5 本列挙し、ハーネス標準機能(スケジュール実行 / ループ / 背景セッション / セッション間メッセージング)と切り分ける
-- 資格情報と workflow export を Public の claude-system に置かない設計(Private 側か端末ローカル)
-- コンテナイメージの pin と公開後 7 日ルールの適用
-
----
-
 ## 23. Bash 経路の保護対象書き込みと symlink 切替の機械 deny(検討)
 
 `~/ws/claude-settings/` / `*.backup-*` / `~/.claude/` の symlink は Edit / Write に対してのみ deny と hook が効き、Bash 経由の `cp` / `tee` / `>` / `ln -sfn` / `mv` は指示層(user-level CLAUDE.md §8)でしか守れない(security-auditor 2026-09-06、Medium 2)。
@@ -113,6 +101,7 @@ Phase 9(`v0.1.0-rc1` リリース候補化)で消化しきれなかった、ま�
 ### やること
 
 - deny 候補: `Bash(curl *-X POST*)` `Bash(curl *-d *)` `Bash(curl *--data*)` `Bash(curl *-T *)` `Bash(gh api *-X *)` `Bash(gh api *--method*)` `Bash(gh api *-f *)` `Bash(gh api *-F *)`。他プロジェクトのデプロイ手順を壊さないか先に棚卸しする
+- carve-out: `http://localhost:5678/webhook/cc-*` への POST だけを deny から除く([ADR 0028](./decisions/0028-n8n-workflow-engine-boundary.md) の境界)。`cc-*` 以外の localhost 送信は除外しない。項目 26 の 1(外向きノードを持つ `cc-*` フロー)より先に入れる
 - `subagent-stop-audit.sh` で transcript を解決できない組み込みエージェントは skip ではなく WARN として通知経路へ上げる
 
 ---
@@ -120,6 +109,16 @@ Phase 9(`v0.1.0-rc1` リリース候補化)で消化しきれなかった、ま�
 ## 25. pre-push での秘密検査(検討)
 
 ローカルに publication をブロックする秘密検査が無く、最初のブロック層が push 後の CI になっている(security-auditor 2026-09-06、Low 5)。`tools/githooks/pre-push` の `CS_ALLOW_PUSH=1` 分岐で `betterleaks git <repo> --log-opts="<remote>..<local>" --config .gitleaks.toml --redact --no-banner` を先に走らせる(実測 47ms)。項目 20(CI 置換)と同時に扱う。
+
+---
+
+## 26. n8n 用途別導入(サブプロジェクト 1〜3)
+
+基盤([ADR 0028](./decisions/0028-n8n-workflow-engine-boundary.md)、2026-09-06)の上に用途別のフローを順に載せる。各々 brainstorming から始め、spec と実体は Private 側に置く。
+
+1. claude-system 運用ループ(項目 10 のレトロ連動・観測ループ)。外向きノードを持つ `cc-*` フローを作る前に項目 24 の deny を入れる。集計はホスト側 `loop-report.sh` で行い、結果 1 ファイルだけを read-only で渡す
+2. プロダクト運用(Supabase / Vercel / GitHub)。inbound webhook が要るなら外部公開(Tunnel)の可否をこの spec で決める
+3. 個人ワークフロー(メール / カレンダー / メモ)。通知チャネルの選定を含む
 
 ---
 
@@ -363,6 +362,7 @@ drawzzz 再開時:
 
 - 月次レトロを 3 ヶ月続けて手動運用した後、定型部分が見えてきたら検討
 - クロック起算: **2026-07**(初回レトロ実走、[ADR 0019](./decisions/0019-loop-engineering-phased-adoption.md))。手動運用の道具(`tools/loop-report.sh`)は同 ADR で整備済み。自動起動の判断は本項目に委ねたまま
+- 機構候補はワークフローエンジン(セルフホスト n8n、[ADR 0028](./decisions/0028-n8n-workflow-engine-boundary.md))。判断時期は変えない。実装するときは項目 26 の 1 として brainstorming から始め、集計はホスト側で行って結果 1 ファイルだけを渡す
 
 ---
 
@@ -384,6 +384,7 @@ drawzzz 再開時:
 | 16 | VERSION pin を実インストール版へ同期 | [ADR 0016](./decisions/0016-fable-5-harness-settings-sync.md)(Accepted)。Fable 5 GA / Claude Code 2.1.170 への harness 同期と同一作業で `VERSION` を `2.1.170` へ、model pin を `claude-fable-5` へ更新。`fallbackModel` 新設、MCP pin・gitleaks-action v3 も併せて更新 |
 | 17 | MCP 登録経路の二重管理整理 | [ADR 0018](./decisions/0018-harness-sync-2.1.197.md) の code review follow-up。playwright を `servers.template.json` から除去し settings.json inline に一本化(常時=インライン / opt-in・secret=宣言の役割分担を確立)、runner を `bunx` に統一。実環境では未登録のため二重ロードの実害は発生前に解消。README「MCP 登録経路」節に方針を明記 |
 | 19 | Betterleaks の並行運用検証 | [ADR 0027](./decisions/0027-fable-5-1-sync-and-pruning.md)。Betterleaks 1.8.1 を既存 `.gitleaks.toml` のまま gitleaks 8.30.1 と突き合わせ、陽性対照 2 種・履歴 16 件・作業木 0 件のすべてで一致。ローカル層を置換し CI は項目 20 へ |
+| 22 | セルフホスト n8n の導入計画 | [ADR 0028](./decisions/0028-n8n-workflow-engine-boundary.md)。切り分け(セッション外・イベント起点はワークフローエンジン)/ 境界(`cc-*` webhook と compose のみ、`.env` は Read deny + 指示)/ 配置(真実源は Private repo)を決定し、基盤(compose / Postgres / バックアップ・復旧 / smoke)を Private repo に構築。用途別導入は項目 26 |
 
 ---
 

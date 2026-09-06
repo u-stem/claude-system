@@ -2,6 +2,25 @@
 
 このリポジトリの変更履歴。Phase 単位でセクション化する。
 
+## セルフホスト n8n 基盤の導入(2026-09-06)
+
+用途 3 系統(運用ループ / プロダクト運用 / 個人)を 4 分割し、基盤だけを先に建てた([ADR 0028](./decisions/0028-n8n-workflow-engine-boundary.md))。真実源は Private repo、本リポジトリには切り分け・境界・配置の 3 決定と TODO だけを置く。
+
+**何を測ったか**
+
+- 公式 compose(`n8n-io/n8n-hosting` withPostgres)と CLI docs、Docker Hub / GitHub release の公開日で pin を決めた(n8n 2.36.8 は公開 9 日、postgres 18.6 は 11 日)。`import:workflow --activeState=fromJson` は通常モードで使えず(実機 2.36.8)、`publish:workflow` + 再起動に置き換えた
+- permissions の実態: `Read(./.env)` は cwd 相対、`Bash(docker compose *)` は `up` / `exec` / `config` を含む、`gh *` は allow、`bash -c` とスクリプト実行は deny を迂回する(最終監査で実測)。境界は「Read deny + project deny + 指示」と正直に書いた
+- 実機検証: `/healthz`、サンプル webhook の echo、backup 2 回で export が不変、別 project(`-p n8n-restore`、port 15678)への復旧ドリル → smoke → 破棄、の 5 項目が通った
+
+**何を変えたか**
+
+- ADR 0028、決定索引の新節「外部連携」、用語集に「ワークフローエンジン」、TODO 22 をクローズし 26(用途別導入)を新設、TODO 10 / 24 に注記、settings template の docker 注記を事実に修正
+- Private 側: compose(postgres 18 + n8n + external runner、127.0.0.1 bind)、`.env` を literal に読むスクリプト群(backup / restore / upgrade / smoke / import)、単体テスト 12 件 + 統合テスト 5 件、pre-commit + Betterleaks、project deny
+
+**反証と監査で直したこと**
+
+devil-advocate(計画段階): 境界を機械保証と書かない、復旧ドリルを基盤に含める、記録の 4 重化を避ける。code-reviewer: `source .env` が `$` で落ち任意実行になる、`--port` が `load_env` に上書きされる、`upgrade.sh` が旧タグを pull する。security-auditor: `bash -c` 迂回の明記、`./workflows` rw mount の撤去(`docker compose cp` へ)、本番 restore の `--primary` 必須化、gitleaks の path allowlist 撤去、`cc-*` は命名規則で認可でないことの明記。実装中の事故 1 件: 最上位 Bash で `set -e` が効かず、プレースホルダ鍵で初期化されたボリュームを owner 作成前に削除して作り直した(auto memory に記録)。
+
 ## Fable 5.1 同期と使用実績に基づく剪定(2026-09-06)
 
 実インストール版 2.1.263 と運用モデル Fable 5.1 に機械層を追随させ、同時にリポジトリの無駄を実測で剪定した([ADR 0027](./decisions/0027-fable-5-1-sync-and-pruning.md))。記録方式もこの回から決定索引方式に改めた。
