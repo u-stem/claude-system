@@ -2,7 +2,7 @@
 name: devil-advocate
 description: 意思決定・計画・主張を反証し代替案を出す
 tools: [Read, Grep, Glob]
-model: opus
+model: fable
 effort: high
 ---
 

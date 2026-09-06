@@ -1,19 +1,18 @@
 {
   "//": "Claude Code user-level settings template. tools/sync-settings.sh が本 template ⊕ マシン固有 overrides をレンダリングして ~/.claude/settings.json に配置する(symlink ではなく cp。マシン固有値の差し込みのため / ADR 0017)。'//' で始まるキーは Claude Code 側で無視されるため JSON コメント代替として使用",
 
-  "// env": "サブプロセスへ機密 env を漏らさない、autocompact 閾値、1h prompt cache 等。EXPERIMENTAL_AGENT_TEAMS は Opus 4.7 期に厳格化(3 PBI 以上 + 完全独立ファイルのみ適用)し、Fable 5 期も有効維持(ADR 0010 / 0016)。AUTOCOMPACT_PCT_OVERRIDE は 85→70 に引き下げ(2026-05): 巨大コンテキスト(1M 窓の高%保持)が 'tool call could not be parsed' を誘発しやすいため早めに圧縮する。安易に戻さないこと",
+  "// env": "サブプロセスへ機密 env を漏らさない、autocompact 閾値等。EXPERIMENTAL_AGENT_TEAMS は 3 PBI 以上 + 完全独立ファイルのみ適用の厳格運用を維持(ADR 0010 / 0016)。AUTOCOMPACT_PCT_OVERRIDE は 85→70 に引き下げ(2026-05): 1M コンテキストのモデルでもツール呼び出しパースエラーを避けるため 70% で早期圧縮する。安易に戻さないこと",
   "env": {
     "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB": "1",
     "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "70",
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-    "ENABLE_PROMPT_CACHING_1H": "1"
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
 
   "respectGitignore": true,
   "language": "japanese",
-  "// model": "Opus 5 へ乗り換え(ADR 0022): 日常のコーディング/エージェント用途で Fable 5 同等以上・半額。[1m] を明示指定して 1M 窓を確定。長時間自律タスク・難所推論で品質不足を感じたら Fable 5 へ戻す(/model fable で一時切替可)。fallbackModel は過負荷・不達時の縮退先(v2.1.166 追加、配列・最大 3 件)で、1 世代前の既知良品として Opus 4.8 を維持(ADR 0016 の『安全クラシファイア整合』根拠は別系統機構の誤帰属だったため撤回、ADR 0022)。effortLevel は最難作業(オーケストレーション + 難所推論)への校正として xhigh(ADR 0013 / 0022 で machine-overrides の medium 上書きを解消)",
-  "model": "claude-opus-5[1m]",
-  "fallbackModel": ["claude-opus-4-8"],
+  "// model": "Fable 5.1 が主モデル: 日常のコーディング/エージェント用途で最上位の品質。[1m] を明示指定して 1M 窓を確定。fallbackModel は過負荷・不達時の縮退先(v2.1.166 追加、配列・最大 3 件)で、1 世代前の既知良品として Opus 5 を [1m] 込みで維持。effortLevel は最難作業(オーケストレーション + 難所推論)への校正として xhigh(ADR 0013)",
+  "model": "claude-fable-5-1[1m]",
+  "fallbackModel": ["claude-opus-5[1m]"],
   "effortLevel": "xhigh",
   "skipDangerousModePermissionPrompt": true,
   "skipAutoPermissionPrompt": true,
@@ -82,7 +81,7 @@
     "// permissions.allow.file_ops": "削除系(rm 等)は意図的に allow に入れない。都度 ask で十分",
     "// permissions.allow.network": "取得系のみ。送信系の curl -X POST 等は都度 ask",
     "// permissions.allow.docker": "観察系のみ allow。run / build / push 系は ask",
-    "// permissions.allow.audit_tools": "security-auditor subagent / dependency-review skill / supply-chain-hygiene practice で利用する読み取り系監査コマンド。bun audit / npm audit / uv pip audit は package manager のワイルドカードで covered、gitleaks のみ独立 allow が必要",
+    "// permissions.allow.audit_tools": "security-auditor subagent / dependency-review skill / supply-chain-hygiene practice で利用する読み取り系監査コマンド。bun audit / npm audit / uv pip audit は package manager のワイルドカードで covered、Betterleaks(ローカル層、.gitleaks.toml をそのまま読む gitleaks 後継)のみ独立 allow が必要",
     "allow": [
       "Bash(bun *)",
       "Bash(pnpm *)",
@@ -161,6 +160,7 @@
       "Bash(gitleaks detect *)",
       "Bash(gitleaks version)",
       "Bash(gitleaks version *)",
+      "Bash(betterleaks *)",
       "Read",
       "Grep",
       "Glob",
@@ -171,7 +171,7 @@
 
   "// hooks": "Phase 7b で結線。本物の実体は adapters/claude-code/user-level/hooks/*.sh で、~/.claude/hooks/ に symlink されている。緊急停止は tools/disable-guardrails.sh を使う(--dry-run で事前確認可)",
   "// hooks.SessionStart": "繰り返し失敗パターンを通知して self-improving loop を促す",
-  "// hooks.PreToolUse.Bash": "破壊的コマンド阻止 + 若いパッケージ阻止(supply-chain)+ 大量出力の末尾キャップ(token 経済、ADR 0012)。各 hook は対象外コマンドで早期 exit する。output-cap は test/build/lint の単純コマンドのみ updatedInput で stdout を tail。CLAUDE_BASH_OUTPUT_CAP=0 で無効化",
+  "// hooks.PreToolUse.Bash": "破壊的コマンド阻止 + 若いパッケージ阻止(supply-chain)。各 hook は対象外コマンドで早期 exit する",
   "// hooks.PreToolUse.Edit_Write": "claude-settings/ や *.backup-* への書き込み阻止 + principles/practices への禁止語混入阻止",
   "// hooks.PostToolUse.Edit_Write": "validate(SKILL.md frontmatter / 禁止語) + project dispatcher(.claude/hooks/post-edit.sh)",
   "// hooks.PostToolUseFailure.Bash": "Bash 失敗を category 判定して failure-log.jsonl に追記(self-referential feedback loop)。PostToolUse ではなく PostToolUseFailure にバインド: Claude Code は失敗した Bash コマンドで PostToolUse を発火しないため(v2.1.206 で実測確認)",
@@ -190,8 +190,7 @@
         "matcher": "Bash",
         "hooks": [
           {"type": "command", "command": "$HOME/ws/claude-system/adapters/claude-code/user-level/hooks/pre-bash-guard.sh"},
-          {"type": "command", "command": "$HOME/ws/claude-system/adapters/claude-code/user-level/hooks/check-package-age.sh"},
-          {"type": "command", "command": "$HOME/ws/claude-system/adapters/claude-code/user-level/hooks/pre-bash-output-cap.sh"}
+          {"type": "command", "command": "$HOME/ws/claude-system/adapters/claude-code/user-level/hooks/check-package-age.sh"}
         ]
       },
       {
@@ -241,9 +240,7 @@
           {"type": "command", "command": "$HOME/ws/claude-system/adapters/claude-code/user-level/hooks/subagent-stop-audit.sh"}
         ]
       }
-    ],
-    "PreCompact": [],
-    "SessionEnd": []
+    ]
   },
 
   "// extraKnownMarketplaces": "enabledPlugins の解決に必要な marketplace 宣言。`claude plugin marketplace add` は本キーを配置済み settings.json に直接書くが、settings.json は template ⊕ overrides の決定論的レンダリング成果物(ADR 0017)であるため、template に持たない限り次回 sync で消える。ADR 0023 で実測確認のうえ template 管理に移した(= 別マシンでも再現される)",
@@ -267,14 +264,6 @@
   "// auditedPluginVersions": {
     "elements-of-style@superpowers-marketplace": "1.0.0",
     "episodic-memory@superpowers-marketplace": "1.4.2",
-    "superpowers@superpowers-marketplace": "6.2.0"
-  },
-
-  "// mcpServers": "常時ロードする非 secret MCP のみ inline 宣言する(決定論・自動同期 / ADR 0017)。opt-in の非 secret(sequential-thinking / chrome-devtools)と secret 必須(github)は mcp/servers.template.json + setup-mcp.sh 経由。playwright の二重登録を解消し runner を bunx に統一(bun 優先 / ADR 0018 の review follow-up)。pin は 2 系統で同一に保つ",
-  "mcpServers": {
-    "playwright": {
-      "command": "bunx",
-      "args": ["-y", "@playwright/mcp@0.0.79"]
-    }
+    "superpowers@superpowers-marketplace": "6.3.0"
   }
 }

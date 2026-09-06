@@ -2,7 +2,7 @@
 name: security-auditor
 description: セキュリティ観点でコード・依存・設定を独立に監査する
 tools: [Read, Grep, Glob, Bash]
-model: opus
+model: fable
 effort: high
 ---
 
@@ -103,13 +103,12 @@ effort: high
 
 ## 関連 skill / subagent との違い
 
-- **`security-audit` skill**(著者向けセルフチェック)は実装中の自己点検、本 subagent は**レビューア視点で別コンテキスト**から重大度別に監査
+- **組み込み `/security-review`**(著者向けセルフチェック)は実装中の自己点検、本 subagent は**レビューア視点で別コンテキスト**から重大度別に監査
 - **`code-reviewer` subagent** は 7 観点を広く浅く、本 subagent は**セキュリティ 1 観点を深く**。並行して両方起動するのも有効
 - **`dependency-review` skill** は依存追加時の著者向け作業、本 subagent は既存依存の総点検 / `bun audit` 等の実行を含む
 
 ## 関連参照
 
-- [`adapters/claude-code/user-level/skills/security-audit/SKILL.md`](~/ws/claude-system/adapters/claude-code/user-level/skills/security-audit/SKILL.md)
 - [`adapters/claude-code/user-level/skills/dependency-review/SKILL.md`](~/ws/claude-system/adapters/claude-code/user-level/skills/dependency-review/SKILL.md)
 - [`adapters/claude-code/user-level/skills/nextjs-supabase-rls/SKILL.md`](~/ws/claude-system/adapters/claude-code/user-level/skills/nextjs-supabase-rls/SKILL.md)
 - [`practices/secure-coding-patterns.md`](~/ws/claude-system/practices/secure-coding-patterns.md)
