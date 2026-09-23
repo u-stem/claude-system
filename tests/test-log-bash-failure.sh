@@ -57,6 +57,11 @@ err() { ERRORS=$((ERRORS + 1)); cs_error "$*"; }
 TMPDIR_TEST="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR_TEST"' EXIT
 
+# Isolate hook diagnostic logs (adapters/.../hooks/_lib.sh) so this test does
+# not append to the operator's real ~/.claude-system-backups/hook-logs/.
+CS_BACKUP_ROOT="$TMPDIR_TEST/cs-backup-root"
+export CS_BACKUP_ROOT
+
 # ---------------------------------------------------------------------------
 # Test 1: PostToolUseFailure, docs-shape .tool_output with exit_code + stderr
 # ---------------------------------------------------------------------------

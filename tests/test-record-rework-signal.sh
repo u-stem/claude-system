@@ -21,6 +21,11 @@ err() { ERRORS=$((ERRORS + 1)); cs_error "$*"; }
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
+# Isolate hook diagnostic logs (adapters/.../hooks/_lib.sh) so this test does
+# not append to the operator's real ~/.claude-system-backups/hook-logs/.
+CS_BACKUP_ROOT="$TMP/cs-backup-root"
+export CS_BACKUP_ROOT
+
 PROJ="$TMP/proj"
 mkdir -p "$PROJ"
 LOG="$PROJ/.claude/rework-log.jsonl"

@@ -12,6 +12,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HOOK="$ROOT/adapters/claude-code/user-level/hooks/pre-bash-guard.sh"
 
+# Isolate hook diagnostic logs (adapters/.../hooks/_lib.sh) so this test does
+# not append to the operator's real ~/.claude-system-backups/hook-logs/.
+CS_BACKUP_ROOT="$(mktemp -d)"
+export CS_BACKUP_ROOT
+trap 'rm -rf "$CS_BACKUP_ROOT"' EXIT
+
 PASS=0
 FAIL=0
 
