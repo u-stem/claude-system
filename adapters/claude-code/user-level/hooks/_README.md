@@ -26,7 +26,7 @@ Phase 7b(Guardrails 層)で実装済み。`~/.claude/hooks/` にシンボリッ�
 | `log-bash-failure.sh` | PostToolUseFailure(Bash) | 終了コード ≠ 0 を category(test/check-types/check)判定して `log-failure.sh` に渡す。**PostToolUse では発火しない**ことが実測で判明し ADR 0020 で移行済み |
 | `log-failure.sh` | (補助) | `.claude/failure-log.jsonl` への JSONL 追記 |
 | `check-failure-patterns.sh` | SessionStart | `failure-log.jsonl` から繰り返し失敗を検出して通知(自己参照ループの起点) |
-| `stop-session-doctor.sh` | Stop | `doctor.sh --fast` を `ulimit -t 10` 付きでバックグラウンド実行し `last-doctor.log` に記録。**セッションを止めることはしない**(ADR 0024) |
+| `session-start-doctor.sh` | SessionStart | 前回の `last-doctor.log` にあった WARN/ERROR 行を通知したうえで、`doctor.sh --fast` を `ulimit -t 10` 付きでバックグラウンド実行し `last-doctor.log` を更新(成功時は `last-doctor.ok` にスタンプ)。毎ターンではなくセッション開始 1 回のみ、かつ結果を実際に読者(次セッション)へ届ける(ADR 0030。旧 `stop-session-doctor.sh` を置き換え) |
 | `notify-stop-failure.sh` | StopFailure | parse-error 等でセッションが異常終了したことを通知(ADR 0014 層 A。`StopFailure` の出力はハーネスに無視されるため副作用のみ) |
 | `post-stop-dispatcher.sh` | Stop | プロジェクト側 `.claude/hooks/post-stop.sh` へ委譲 |
 | `subagent-stop-record.sh` | SubagentStop | `subagent-log.jsonl` への基本記録(委譲量の計測点、ADR 0012) |

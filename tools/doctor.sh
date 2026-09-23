@@ -32,12 +32,13 @@ Tiers:
   --fast          Skips shellcheck and the delegated test suite, which together
                   are ~85% of the runtime (measured 2026-08-09: 6.10s full,
                   3.86s tests + 1.34s shellcheck). Both are pre-commit concerns
-                  already covered by CI, and the Stop hook re-runs this on every
-                  turn under a 10s CPU ulimit — at 6.10s the full run sat at 61%
-                  of that cap, where an overrun truncates last-doctor.log with
-                  no error. Everything that detects *drift in the live machine
+                  already covered by CI, and the SessionStart hook re-runs this
+                  once per session (not once per turn, since ADR 0030) under a
+                  10s CPU ulimit — at 6.10s the full run sat at 61% of that
+                  cap, where an overrun truncates last-doctor.log with no
+                  error. Everything that detects *drift in the live machine
                   state* (symlinks, settings sync, plugin parity, secrets) stays
-                  in the fast tier, because that is what a per-turn check is for.
+                  in the fast tier, because that is what a per-session check is for.
 
 Checks:
   - ~/.claude symlink state (expected to point at claude-system)
@@ -270,8 +271,13 @@ if [[ $FAST -eq 1 ]]; then
 elif command -v shellcheck >/dev/null 2>&1; then
   set +e
   # Note: `tools/*.sh` does not recurse, so subdirectories under tools/
-  # (currently `tools/migrate/`) need to be added explicitly.
-  shellcheck_targets=(tools/*.sh tools/migrate/*.sh tests/*.sh)
+  # (`tools/migrate/` may be empty) need to be added explicitly. Globs that
+  # match nothing are skipped so an empty directory does not hand shellcheck a
+  # literal pattern.
+  shellcheck_targets=()
+  for f in tools/*.sh tools/migrate/*.sh tests/*.sh; do
+    [[ -f "$f" ]] && shellcheck_targets+=("$f")
+  done
   # Versioned git hooks carry no .sh suffix, so no glob above reaches them.
   # They were the only executable shell in the repo outside every shellcheck
   # gate — including pre-push, which ADR 0024 §2a calls the one push guard that
@@ -374,7 +380,7 @@ else
            tests/test-subagent-stop-audit.sh tests/test-sync-settings.sh \
            tests/test-hooks-lib.sh tests/test-log-bash-failure.sh \
            tests/test-guardrails-dry-run.sh tests/test-doc-parity.sh \
-           tests/test-record-rework-signal.sh; do
+           tests/test-record-rework-signal.sh tests/test-session-start-doctor.sh; do
     if [[ -x "$t" ]]; then
       set +e
       out="$("$t" 2>&1)"

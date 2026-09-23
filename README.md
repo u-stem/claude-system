@@ -84,7 +84,7 @@ CLAUDE_SYSTEM_ALLOW_SYNC=1 ~/ws/claude-system/tools/sync.sh --force
 開発中
   └─ permissions.deny / hooks が機械的に守る
   └─ post-edit-validate / log-bash-failure が失敗を集約
-  └─ stop-session-doctor が未解決 lint/type error を Stop で阻止
+  └─ session-start-doctor が前回 doctor の WARN/ERROR を SessionStart で通知(ADR 0030)
 
 週次
   └─ cleanup-backups.sh(30 日経過バックアップ削除、自動化推奨)
@@ -152,14 +152,11 @@ CLAUDE_SYSTEM_ALLOW_SYNC=1 ~/ws/claude-system/tools/sync.sh --force
 ~/ws/claude-system/tools/doctor.sh           # 整合性確認
 ```
 
-旧設定からの初回移行に使った [`tools/migrate/from-claude-settings.sh`](./tools/migrate/from-claude-settings.sh) は役割を終えているが、ロールバック経路のため残置している。
+旧設定からの初回移行に使った `tools/migrate/from-claude-settings.sh` は退役(2026-09-23、ADR 0030)。最後の安全網は旧 `~/ws/claude-settings/`(Read 専用)と `tools/setup.sh` の再実行。
 
 ### ロールバック
 
-```bash
-~/ws/claude-system/tools/migrate/rollback-from-claude-system.sh
-# ~/.claude-system-backups/migration-<TIMESTAMP>/ 最新を確認 → 復元
-```
+`tools/migrate/rollback-from-claude-system.sh` は退役(2026-09-23、ADR 0030)。最後の安全網は旧 `~/ws/claude-settings/`(Read 専用)と `tools/setup.sh` の再実行。
 
 移行時の判断は [`meta/decisions/0005-bootstrap-completion-and-deferral.md`](./meta/decisions/0005-bootstrap-completion-and-deferral.md) を参照。
 
@@ -172,7 +169,7 @@ CLAUDE_SYSTEM_ALLOW_SYNC=1 ~/ws/claude-system/tools/sync.sh --force
 | 1 | `permissions.deny` | LLM の自制に頼らない物理ブロック | `settings.json.template` |
 | 2 | PreToolUse hooks | `--no-verify` / `git push --force` / typosquatting / 保護パスへの書き込み、および subagent からの `git push` を実行前に阻止(ADR 0024) | `user-level/hooks/pre-*.sh` |
 | 3 | PostToolUse hooks | 失敗を `failure-log.jsonl` に集約、繰り返し失敗を SessionStart で通知 | `user-level/hooks/log-*.sh`, `check-failure-patterns.sh` |
-| 4 | Stop hooks | セッション終了ごとに `doctor.sh --fast` を走らせ、実機ドリフト(symlink / settings 同期 / プラグイン整合 / 秘密混入)を `last-doctor.log` に記録する | `stop-session-doctor.sh` |
+| 4 | SessionStart hook(doctor) | SessionStart で前回の `last-doctor.log` の WARN/ERROR を文脈へ注入し、今回の `doctor.sh --fast` を背景で走らせて実機ドリフト(symlink / settings 同期 / プラグイン整合 / 秘密混入)を記録する(ADR 0030) | `stop-session-doctor.sh` |
 | 5 | git hooks(pre-push) | `CS_ALLOW_PUSH=1` の無い push を拒否し、通す前にガード自己検査を走らせる。**誰が git を起動しても効く唯一の層**(ADR 0024 §2a) | `tools/githooks/pre-push` |
 | 6 | CI(GitHub Actions) | push 毎に doctor.sh(ローカル層は Betterleaks を内包)+ gitleaks-action(CI 側の secrets scan)+ shellcheck | `.github/workflows/*.yml` |
 
@@ -202,7 +199,7 @@ CLAUDE_SYSTEM_ALLOW_SYNC=1 ~/ws/claude-system/tools/sync.sh --force
 | `cleanup-claude-code-runtime.sh` で消したくないものまで消えそう | 手動実行のみで自動化していない。`--dry-run` で対象を確認してから実行する |
 | hooks を止めたいが何が変わるか分からない | `tools/disable-guardrails.sh --dry-run` で変更内容を確認 → 引数なしで実行。復帰は `enable-guardrails.sh`(同じく `--dry-run` 対応) |
 | `git push` が `CS_ALLOW_PUSH` を要求して止まる | 意図した動作(ADR 0024)。内容を確認のうえ `CS_ALLOW_PUSH=1 git push origin main` |
-| symlink 切り替えで何かが壊れた | `tools/migrate/rollback-from-claude-system.sh` で旧設定に戻す |
+| symlink 切り替えで何かが壊れた | ロールバックスクリプトは退役(2026-09-23、ADR 0030)。最後の安全網は旧 `~/ws/claude-settings/` + `tools/setup.sh` の再実行 |
 | `betterleaks`(ローカル層)/ `gitleaks-action`(CI)が偽陽性 | 両者とも `.gitleaks.toml`(Betterleaks は gitleaks 互換設定をそのまま読む)の `allowlist.regexes` か `paths` に追加 |
 | 既存プロジェクト取り込み後に挙動が変 | `tools/unadopt-project.sh <project>` で撤回 → バックアップから復元 |
 
