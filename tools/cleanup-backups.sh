@@ -21,12 +21,6 @@ Note on `--keep N`:
   mtime is *strictly older* than N * 24h. With `--keep 30` a file modified
   30.5 days ago is selected; one modified 29.5 days ago is not. There is
   about a one-day fence-post offset compared to the `-le 30 days` reading.
-
-Note on migration backups:
-  ~/.claude-system-backups/migration-* directories are intentionally
-  preserved by the migration scripts and are not subject to this cleanup
-  on top-level invocation, since `find ... -type f` skips directories of
-  that name. Files inside migration-* are still subject to `-mtime +N`.
 EOF
 }
 
@@ -65,11 +59,7 @@ while IFS= read -r -d '' f; do
     rm -f "$f"
     cs_success "deleted: $f"
   fi
-# Skip migration-* directories entirely. They are permanent backups created
-# by tools/migrate/from-claude-settings.sh for Phase 10 rollback purposes
-# and must not be expired by this routine cleanup.
 done < <(find "$CS_BACKUP_ROOT" \
-            -type d -name 'migration-*' -prune -o \
             -type f -mtime +"$KEEP_DAYS" -print0 \
             2>/dev/null)
 

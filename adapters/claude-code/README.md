@@ -70,7 +70,7 @@ adapters/claude-code/
 └── settings.json                                              (cp 配置、マシン固有値の差し込みのため symlink にしない)
 ```
 
-この構成への切り替えは 2026-05-04 に完了済み。張り直し手順はルート [`README.md`](../../README.md) の「シンボリックリンク切り替え」、ロールバックは `tools/migrate/rollback-from-claude-system.sh`。
+この構成への切り替えは 2026-05-04 に完了済み。張り直し手順はルート [`README.md`](../../README.md) の「シンボリックリンク切り替え」。ロールバックスクリプトは退役(2026-09-23、ADR 0030)。最後の安全網は旧 `~/ws/claude-settings/` + `tools/setup.sh` の再実行。
 
 ## Claude Code 仕様変更時の影響範囲マップ
 
