@@ -12,12 +12,12 @@
   "bashOutputMaxChars": 30000,
   "respectGitignore": true,
   "language": "japanese",
-  "// model": "Fable 5.1 が主モデル: 日常のコーディング/エージェント用途で最上位の品質。[1m] を明示指定して 1M 窓を確定。fallbackModel は過負荷・不達時の縮退先(配列・最大 3 件)で、先頭に既定 Opus(Opus 5.5、2.1.280 で既定化・1M)、後段に 1 世代前の既知良品 Opus 5 を残す 2 段構成: 過負荷時は既定 Opus も同時に混みうるため。effort は最難作業(オーケストレーション + 難所推論)への校正として xhigh(ADR 0013)。/effort はモデル別に modelSettings.<model>.effortLevel へ保存し、top-level effortLevel は Opus 5.5 以降の新モデルには効かない(2.1.280)ため、主モデルと fallback 先頭は modelSettings で pin し、top-level は per-model 保存を持たない旧モデル(fallback 後段の Opus 5 等)向けに残す。配置済み settings に /effort が書いた値は次回 sync で本 template の値に戻る(ADR 0029)",
+  "// model": "Fable 5.1 が主モデル: 日常のコーディング/エージェント用途で最上位の品質。[1m] を明示指定して 1M 窓を確定。fallbackModel は過負荷・不達時の縮退先(配列・最大 3 件)で、先頭に既定 Opus(Opus 5.5、2.1.280 で既定化・1M)、後段に 1 世代前の既知良品 Opus 5 を残す 2 段構成: 過負荷時は既定 Opus も同時に混みうるため。effort は最難作業(オーケストレーション + 難所推論)への校正として xhigh(ADR 0013)。/effort はモデル別に modelSettings.<model>.effortLevel へ保存し、top-level effortLevel は Opus 5.5 以降の新モデルには効かない(2.1.280)ため、主モデルと fallback 先頭は modelSettings で pin し、top-level は per-model 保存を持たない旧モデル(fallback 後段の Opus 5 等)向けに残す。配置済み settings に /effort が書いた値は次回 sync で本 template の値に戻る(ADR 0029)。【試行 2026-09-23〜2026-10-07】主モデルの effort を high にして測る(ADR 0031、TODO 28)。決定(索引: メインループは xhigh)は変えない期限付き例外。指標は中断率(notify-stop-failure / セッション数)・委譲の完走率(subagent-log の exit_code)・実失敗率(failure-log の probe 除外)・体感。期限で差が無ければ high を新既定として索引を書き換え(ADR)、悪化なら xhigh に戻す",
   "model": "claude-fable-5-1[1m]",
   "fallbackModel": ["claude-opus-5-5[1m]", "claude-opus-5[1m]"],
   "effortLevel": "xhigh",
   "modelSettings": {
-    "claude-fable-5-1": {"effortLevel": "xhigh"},
+    "claude-fable-5-1": {"effortLevel": "high"},
     "claude-opus-5-5": {"effortLevel": "xhigh"}
   },
   "// syncClaudeAi": "claude.ai アカウントで有効化した skill / plugin を端末セッションへ同期する機能(2.1.275)は無効化する。同期物は // auditedPluginVersions の棚卸しの外から入り(2026-09-23 の /skill-doctor で anthropic-skills:* 8 本、全て 0 回、listing 約 1,750 tokens/turn)、~/.claude/skills が本リポジトリへの symlink であるため ~/.claude/skills/synced/ への書き込みが repo 内に第三者ファイルとして落ちた(.gitignore で隔離)。false にすると同期を止め、既同期分は次回起動で .trash へ退避される。真実源は claude.ai 側にあり flag を戻せば再同期されるため可逆(ADR 0029)",
