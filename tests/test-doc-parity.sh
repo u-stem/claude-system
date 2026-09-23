@@ -121,6 +121,21 @@ else
   echo "FAIL: failure message names the missing script" >&2
 fi
 
+# The README's own rules allow a source column of the form
+# "注記: CHANGELOG 2026-09-23" (a decision changed by a note, not an ADR). The
+# year inside that date must not be read as ADR 2026. First hit on 2026-09-23,
+# the first time the form was used for real.
+make_fixture "$FIX"
+/usr/bin/sed -i '' -e 's/^| x | y | z | w | 0001 |$/| x | y | z | w | 0001 \/ 注記: CHANGELOG 2026-09-23 |/' \
+  "$FIX/meta/decisions/README.md"
+pass_case "dated CHANGELOG note in a source column is not read as an ADR number" "$CHECK" --root "$FIX"
+
+# Stripping the date must not hide a real dangling ADR number next to it.
+make_fixture "$FIX"
+/usr/bin/sed -i '' -e 's/^| x | y | z | w | 0001 |$/| x | y | z | w | 0009 \/ 注記: CHANGELOG 2026-09-23 |/' \
+  "$FIX/meta/decisions/README.md"
+fail_case "dangling ADR number beside a dated note is still caught" "$CHECK" --root "$FIX"
+
 # --- stale phase wording -------------------------------------------------------
 make_fixture "$FIX"
 printf '%s\n' '# guide' 'Phase 10 で `~/.claude/` に切り替える。' > "$FIX/principles/guide.md"

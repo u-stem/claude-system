@@ -279,7 +279,9 @@ check_adr_overturns_annotated() {
 
 # Every 出典 (source) named in the README's 現行の決定 tables must resolve to
 # an ADR file that exists. Entries with no 4-digit number (a bare 注記 or
-# CHANGELOG reference) name no ADR and are not checked.
+# CHANGELOG reference) name no ADR and are not checked. A YYYY-MM-DD date in
+# the column (the "注記: CHANGELOG 2026-09-23" form the README allows) is
+# stripped first so its year is not read as an ADR number.
 check_adr_source_columns_exist() {
   local dir="$ROOT/meta/decisions"
   [[ -d "$dir" ]] || return 0
@@ -291,6 +293,7 @@ check_adr_source_columns_exist() {
     [[ "$line" == '|'*'|'* ]] || continue
     last_col="${line%|}"
     last_col="${last_col##*|}"
+    last_col="$(/usr/bin/sed -E 's/[0-9]{4}-[0-9]{2}-[0-9]{2}//g' <<<"$last_col")"
     /usr/bin/grep -qE '[0-9]{4}' <<<"$last_col" || continue
     while IFS= read -r n; do
       [[ -n "$n" ]] || continue
