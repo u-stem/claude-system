@@ -50,7 +50,12 @@ err() { ERRORS=$((ERRORS + 1)); cs_error "$*"; }
 # ---------------------------------------------------------------------------
 
 TMPDIR_TEST="$(mktemp -d)"
-trap 'rm -rf "$TMPDIR_TEST"' EXIT
+# Isolate the hook's backup-root writes (hook-logs/, and log-failure.sh on a
+# non-zero exit_code) from the real ~/.claude-system-backups/hook-logs/ — see
+# hooks/_lib.sh:29-30, which honors CS_BACKUP_ROOT when already set.
+CS_BACKUP_ROOT_TEST="$(mktemp -d)"
+export CS_BACKUP_ROOT="$CS_BACKUP_ROOT_TEST"
+trap 'rm -rf "$TMPDIR_TEST" "$CS_BACKUP_ROOT_TEST"' EXIT
 
 # ---------------------------------------------------------------------------
 # Test 1: model backfilled from the PER-AGENT transcript, not the main
@@ -139,6 +144,12 @@ else
   MODEL2="$(printf '%s' "$RECORD2" | jq -r '.model')"
   [[ "$MODEL2" == "claude-fable-5" ]] \
     || err "Test 2 [model]: expected 'claude-fable-5', got '$MODEL2'"
+
+  # meta.json here has no taskKind/customAgentType — the direct Agent-tool
+  # launch shape, where .agentType already IS the definition name.
+  AGENT_DEF2="$(printf '%s' "$RECORD2" | jq -r '.agent_def')"
+  [[ "$AGENT_DEF2" == "Explore" ]] \
+    || err "Test 2 [agent_def, direct-launch shape]: expected 'Explore', got '$AGENT_DEF2'"
 fi
 
 # ---------------------------------------------------------------------------
@@ -172,6 +183,10 @@ else
   # Must NOT be backfilled from the main session transcript.
   [[ -z "$MODEL3" || "$MODEL3" == "null" ]] \
     || err "Test 3 [model, no misattribution]: expected empty, got '$MODEL3'"
+
+  AGENT_DEF3="$(printf '%s' "$RECORD3" | jq -r '.agent_def')"
+  [[ -z "$AGENT_DEF3" || "$AGENT_DEF3" == "null" ]] \
+    || err "Test 3 [agent_def, no meta.json]: expected empty, got '$AGENT_DEF3'"
 fi
 
 # ---------------------------------------------------------------------------
@@ -296,6 +311,48 @@ else
   DEPTH6="$(printf '%s' "$RECORD6" | jq -r '.spawn_depth')"
   [[ "$DEPTH6" == "0" ]] \
     || err "Test 6 [spawn_depth, no meta.json]: expected '0', got '$DEPTH6'"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 7: agent_def resolved from the in-process teammate meta.json shape
+# ({"taskKind":"in_process_teammate","agentType":"<name>",
+#  "customAgentType":"<definition>"}) — customAgentType wins over agentType,
+# which here is only the team-assigned display name, not the definition.
+# ---------------------------------------------------------------------------
+
+AGENT_ID7="test-7"
+SESSION7="$TMPDIR_TEST/session7"
+mkdir -p "$SESSION7/subagents"
+
+MAIN_TRANSCRIPT7="$TMPDIR_TEST/session7.jsonl"
+printf '{"role":"assistant","model":"claude-opus-4-8","content":"main session turn"}\n' > "$MAIN_TRANSCRIPT7"
+
+AGENT_TRANSCRIPT7="$SESSION7/subagents/agent-${AGENT_ID7}.jsonl"
+printf '{"role":"assistant","model":"claude-sonnet-5","content":"teammate turn"}\n' > "$AGENT_TRANSCRIPT7"
+
+META7="$SESSION7/subagents/agent-${AGENT_ID7}.meta.json"
+printf '{"taskKind":"in_process_teammate","agentType":"impl-batch1","customAgentType":"implementer"}\n' > "$META7"
+
+PAYLOAD7="$(jq -nc \
+  --arg tp "$MAIN_TRANSCRIPT7" \
+  --arg aid "$AGENT_ID7" \
+  '{"agent_type":"impl-batch1","agent_id":$aid,"transcript_path":$tp,"hook_event_name":"SubagentStop"}')"
+
+LOG7="$TMPDIR_TEST/t7/.claude/subagent-log.jsonl"
+CLAUDE_PROJECT_DIR="$TMPDIR_TEST/t7" bash "$HOOK" <<< "$PAYLOAD7"
+
+if [[ ! -f "$LOG7" ]]; then
+  err "Test 7: log file not created at $(basename "$LOG7")"
+else
+  RECORD7="$(tail -1 "$LOG7")"
+
+  AGENT_TYPE7="$(printf '%s' "$RECORD7" | jq -r '.agent_type')"
+  [[ "$AGENT_TYPE7" == "impl-batch1" ]] \
+    || err "Test 7 [agent_type stays the team display name]: expected 'impl-batch1', got '$AGENT_TYPE7'"
+
+  AGENT_DEF7="$(printf '%s' "$RECORD7" | jq -r '.agent_def')"
+  [[ "$AGENT_DEF7" == "implementer" ]] \
+    || err "Test 7 [agent_def, teammate shape]: expected 'implementer', got '$AGENT_DEF7'"
 fi
 
 # ---------------------------------------------------------------------------

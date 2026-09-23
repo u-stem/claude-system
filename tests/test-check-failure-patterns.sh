@@ -250,7 +250,7 @@ printf '%s' "$REPORT4" | grep -q 'empty model rate (delegated): 1/1' \
   || err "Test 4 [delegated model rate]: expected 'empty model rate (delegated): 1/1', got: $REPORT4"
 
 # (internal) must not appear in the delegated breakdown.
-printf '%s' "$REPORT4" | sed -n '/by agent_type (delegated only)/,/by model/p' | grep -q '(internal)' \
+printf '%s' "$REPORT4" | sed -n '/by definition (agent_def, falls back to agent_type)/,/by model/p' | grep -q '(internal)' \
   && err "Test 4 [internal excluded]: '(internal)' leaked into the delegated agent_type breakdown"
 
 # effort distribution is surfaced for delegated agents (ADR 0013 needs this axis)
@@ -265,6 +265,30 @@ printf '%s' "$REPORT4_SINCE" | grep -q 'total: 2' \
 
 printf '%s' "$REPORT4_SINCE" | grep -q 'old e1' \
   && err "Test 4 [--since excludes older records]: unexpectedly found archived record 'old e1'"
+
+# ---------------------------------------------------------------------------
+# Test 4dup: loop-report.sh smoke test — a duplicated agent_id (the same
+# subagent completion recorded twice, observed in real logs) is counted only
+# once in the "by definition" breakdown, while the raw delegated total is not
+# deduped (that total is a record count, not a distinct-agent count).
+# ---------------------------------------------------------------------------
+
+PROJ4DUP="$TMPDIR_TEST/t4dup"
+mkdir -p "$PROJ4DUP/.claude"
+SUBLOG4DUP="$PROJ4DUP/.claude/subagent-log.jsonl"
+{
+  printf '{"ts":"2026-07-05T00:00:00Z","agent_type":"impl-batch1","agent_def":"implementer","agent_id":"dup-1","model":"x","exit_code":0}\n'
+  printf '{"ts":"2026-07-05T00:01:00Z","agent_type":"impl-batch1","agent_def":"implementer","agent_id":"dup-1","model":"x","exit_code":0}\n'
+} > "$SUBLOG4DUP"
+
+REPORT4DUP="$(bash "$LOOP_REPORT" --project "$PROJ4DUP")"
+
+printf '%s' "$REPORT4DUP" | grep -q 'delegated: 2 .*harness-internal: 0 .*legacy-empty: 0' \
+  || err "Test 4dup [raw total not deduped]: expected 'delegated: 2 harness-internal: 0 legacy-empty: 0', got: $REPORT4DUP"
+
+printf '%s' "$REPORT4DUP" | sed -n '/by definition (agent_def, falls back to agent_type)/,/by model/p' \
+  | grep -qE '^ *implementer +1$' \
+  || err "Test 4dup [dedup by agent_id]: expected the duplicated agent_id counted once ('implementer 1'), got: $REPORT4DUP"
 
 # ---------------------------------------------------------------------------
 # Summary

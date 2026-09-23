@@ -293,6 +293,43 @@ OUT_MULTI="$(HOME="$MULTI_HOME" "$SYSTEM_BASH" "$LOOP_REPORT" --all --json 2>/de
   || err "Test (x) [--all rollup]: expected both projects by name, got: $(printf '%s' "$OUT_MULTI" | jq -r '[.projects[].name] | join(",")')"
 
 # ---------------------------------------------------------------------------
+# Fixture D: `probe` classification (exit_code == 1 AND the left-most
+# pipeline/&&-segment's head token, after stripping a leading env/command
+# prefix, is grep/rg/diff/test/[). Used for (y) (z) (z2)
+# ---------------------------------------------------------------------------
+
+PROJD="$TMPDIR_TEST/probe-proj"
+mkdir -p "$PROJD/.claude"
+
+LOGD="$PROJD/.claude/failure-log.jsonl"
+{
+  # (y) positive: an exploratory grep that found nothing
+  printf '{"ts":"2026-08-01T00:00:00Z","category":"check","error":"e1","exit_code":1,"cmd":"grep -q foo file"}\n'
+  # (z) negative: same command shape, but a different exit code — grep failing
+  # for a REAL reason (e.g. a bad regex) is exit 2, not "found nothing"
+  printf '{"ts":"2026-08-02T00:00:00Z","category":"check","error":"e2","exit_code":2,"cmd":"grep -E ( foo"}\n'
+  # (z2) negative: exit 1, but the command head is not in the probe set
+  printf '{"ts":"2026-08-03T00:00:00Z","category":"test","error":"e3","exit_code":1,"cmd":"bun test"}\n'
+} > "$LOGD"
+
+OUT_D="$(bash "$LOOP_REPORT" --project "$PROJD" --json)"
+
+# (y) positive case is flagged
+[[ "$(printf '%s' "$OUT_D" | jq -r '.projects[0].entries[0].probe')" == "true" ]] \
+  || err "Test (y) [probe positive]: expected true for 'grep -q foo file' exit 1, got: $(printf '%s' "$OUT_D" | jq -r '.projects[0].entries[0].probe')"
+
+# (z) negative case (wrong exit code) is not flagged
+[[ "$(printf '%s' "$OUT_D" | jq -r '.projects[0].entries[1].probe')" == "false" ]] \
+  || err "Test (z) [probe negative, exit code]: expected false for grep exit 2, got: $(printf '%s' "$OUT_D" | jq -r '.projects[0].entries[1].probe')"
+
+# (z2) negative case (command not in the probe set) is not flagged, and the
+# record is still present (probe classification never drops a record)
+[[ "$(printf '%s' "$OUT_D" | jq -r '.projects[0].entries[2].probe')" == "false" ]] \
+  || err "Test (z2) [probe negative, command]: expected false for 'bun test' exit 1, got: $(printf '%s' "$OUT_D" | jq -r '.projects[0].entries[2].probe')"
+[[ "$(printf '%s' "$OUT_D" | jq -r '.projects[0].entries | length')" == "3" ]] \
+  || err "Test (z2) [probe never drops records]: expected 3 entries, got: $(printf '%s' "$OUT_D" | jq -r '.projects[0].entries | length')"
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 

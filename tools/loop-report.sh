@@ -163,13 +163,53 @@ merge_failure_log() {
   fi
 }
 
+# Shared jq definitions for the "probe" classification (ADR 0012 §exploratory
+# noise): an exploratory command that exits 1 by design (a `grep` that found
+# nothing, a `diff` that found a difference, a `test`/`[` that evaluated
+# false) is not the same signal as a real failure, but it is still real data
+# (unlike `intent`, which the AGENT declares; this is inferred from the
+# command shape alone, so it never touches the `intent` field or excludes a
+# record from the existing category distribution — it is an additional,
+# separately-reported axis).
+#
+# cmd_head resolves the head token of the left-most pipeline/&&-segment of
+# `.cmd`, after stripping leading whitespace and a single leading `env`/
+# `command` prefix word (not a general shell parse — e.g. `env FOO=1 grep`
+# is not unwrapped further, matching the literal spec: "whitespace and a
+# leading env/command prefix").
+JQ_PROBE_DEF='
+def cmd_head:
+  (.cmd // "")
+  | sub("^[ \t]+"; "")
+  | . as $s
+  | ($s | index("|")) as $pi
+  | ($s | index("&&")) as $ai
+  | (if ($pi == null and $ai == null) then $s
+     elif ($pi == null) then $s[0:$ai]
+     elif ($ai == null) then $s[0:$pi]
+     else $s[0:([$pi,$ai] | min)]
+     end)
+  | sub("^[ \t]+"; "") | sub("[ \t]+$"; "")
+  | [splits("[ \t]+")]
+  | map(select(length > 0))
+  | if (.[0] // "") == "env" or (.[0] // "") == "command" then (.[1] // "") else (.[0] // "") end;
+def is_probe:
+  ((.exit_code // null) == 1) and
+  ((cmd_head) as $h | ($h == "grep" or $h == "rg" or $h == "diff" or $h == "test" or $h == "["));
+'
+
 # Build one entry object per the cc-loop-draft/1 schema (ADR 0028), scrubbing
 # any $HOME literal (both the plain form and the scratchpad dash form used
 # under $TMPDIR) so a host path never leaves the machine. Home paths are all
 # this removes: secrets, third-party identifiers and project names stay.
+# probe (ADR 0012 §exploratory noise, see JQ_PROBE_DEF above) is computed on
+# the ORIGINAL, unscrubbed/untruncated .cmd — each object-construction key
+# below starts fresh from `.`, so scrub_literal/scrub_tails on the `cmd` key
+# do not affect this one. Additive to the cc-loop-draft/1 schema: existing
+# consumers reading the other fields are unaffected.
 json_failure_entries() {
   local file="$1"
-  jq -c --arg home "$HOME" --arg homedash "${HOME//\//-}" '
+  jq -c --arg home "$HOME" --arg homedash "${HOME//\//-}" "$JQ_PROBE_DEF"'
     # A field that other hooks already truncated (e.g. log-bash-failure.sh
     # cuts `cmd` to 200 chars before this feature existed), or one the 300/200
     # cut below shortens, can end mid-way through $HOME, so the exact-literal
@@ -222,7 +262,8 @@ json_failure_entries() {
       error: ((.error // "") | tostring | scrub_literal | .[0:300] | scrub_tails),
       exit_code: (.exit_code | if type == "number" then . else null end),
       cmd: ((.cmd // "") | tostring | scrub_literal | .[0:200] | scrub_tails),
-      intent: (.intent // "real")
+      intent: (.intent // "real"),
+      probe: is_probe
     }
   ' "$file"
 }
@@ -318,6 +359,12 @@ emit_failure_report() {
   real_n="$(jq -rs 'map(select((.intent // "real") == "real")) | length' "$file")"
   expected_n="$(jq -rs 'map(select(.intent == "expected")) | length' "$file")"
   echo "  by intent: real: $real_n  deliberate (negative tests): $expected_n"
+  # probe (JQ_PROBE_DEF above): a shape-inferred axis, separate from intent and
+  # never excluded from the category distribution below — every probe record
+  # is still counted there too.
+  local probe_n
+  probe_n="$(jq -c "$JQ_PROBE_DEF"'select(is_probe)' "$file" 2>/dev/null | wc -l | tr -d ' ')"
+  echo "  probe (exploratory exit 1): ${probe_n:-0}"
   echo "  by category (desc, real only):"
   jq -r 'select((.intent // "real") == "real") | .category // "unknown"' "$file" | sort | uniq -c | sort -rn | \
     while read -r count cat; do
@@ -417,8 +464,25 @@ emit_subagent_report() {
     return
   fi
 
-  echo "  by agent_type (delegated only):"
-  jq -r '.agent_type' "$delegated_file" | \
+  # agent_def is the definition name (implementer/code-reviewer/...); for an
+  # in-process teammate, agent_type is only the team-assigned display name
+  # (e.g. "impl-batch1"), so agent_def (when present) is the more meaningful
+  # axis. Falls back to agent_type on records predating agent_def (2026-09-23)
+  # or when a teammate's definition could not be resolved.
+  #
+  # A single agent completion can be recorded more than once under the same
+  # agent_id (observed duplication in subagent-log.jsonl); group_by(agent_id)
+  # keeps only the first record per non-empty agent_id so a repeated
+  # completion is not double-counted here. Records with no agent_id (older
+  # logs) are never deduplicated against each other — group_by collapses them
+  # into one group by key but this expands that group back out in full.
+  echo "  by definition (agent_def, falls back to agent_type):"
+  jq -rs '
+    group_by(.agent_id // "")
+    | [.[] as $g | if (($g[0].agent_id // "") == "") then $g[] else $g[0] end]
+    | .[]
+    | if (.agent_def // "") != "" then .agent_def else .agent_type end
+  ' "$delegated_file" | \
     sort | uniq -c | sort -rn | while read -r count v; do
       printf '    %-20s %s\n' "$v" "$count"
     done
@@ -443,8 +507,9 @@ emit_subagent_report() {
   # Field validity windows — these fields were added over time, so a rate taken
   # across all history understates coverage. Verified 2026-08-09.
   echo "  field validity: model from 2026-06, spawn_depth from 2026-07-25 (ADR 0022),"
-  echo "                  agent_type complete from 2026-08; parent_agent_id is empty"
-  echo "                  by design while delegation stays single-layer (ADR 0015)"
+  echo "                  agent_type complete from 2026-08, agent_def from 2026-09-23;"
+  echo "                  parent_agent_id is empty by design while delegation stays"
+  echo "                  single-layer (ADR 0015)"
   # Nested-delegation visibility (ADR 0022): spawn_depth is backfilled from
   # the per-agent transcript's sidecar meta.json and is absent/0 on records
   # predating that field, so this section is additive and safe on old logs.

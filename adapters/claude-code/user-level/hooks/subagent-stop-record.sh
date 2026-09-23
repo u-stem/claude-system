@@ -3,8 +3,8 @@
 # completion. Project-local log so transcripts stay scoped to the project.
 #
 # Maps to ADR 0012 (token economy mechanization) §measurement-point.
-# Output schema: {ts, agent_type, model, effort, agent_id, parent_agent_id,
-#                 spawn_depth, transcript_path, exit_code}
+# Output schema: {ts, agent_type, agent_def, model, effort, agent_id,
+#                 parent_agent_id, spawn_depth, transcript_path, exit_code}
 #
 # parent_agent_id / spawn_depth are backfilled from the sidecar meta.json
 # (<agent_transcript%.jsonl>.meta.json) rather than the SubagentStop payload,
@@ -34,6 +34,20 @@
 # transcript file; for those, agent_type is recorded as "(internal)" when the
 # payload didn't supply one, and model is left empty rather than misattributed
 # from the main session (which may run a different model than the subagent).
+#
+# agent_def is the definition name (what code-reviewer/implementer/etc. the
+# agent WAS, as opposed to agent_type which for an in-process teammate is the
+# team-assigned display name, e.g. "impl-batch1"). Backfilled from the sidecar
+# meta.json, which has two observed shapes:
+#   - in-process teammate: {"taskKind":"in_process_teammate",
+#     "agentType":"<name>","customAgentType":"<definition>"}
+#   - direct Agent-tool launch: {"agentType":"<definition>"} (no taskKind, no
+#     customAgentType — .agentType IS already the definition name here)
+# Resolution: customAgentType if present; else, when taskKind is not
+# "in_process_teammate", agentType (the direct-launch case); else the literal
+# "(teammate:no-def)" marker for a teammate whose definition could not be
+# determined. Empty when meta.json is absent (harness-internal agent). No
+# name-convention guessing (e.g. "impl-*" -> implementer) is applied.
 #
 # Transcript absolute paths are kept only in the structured JSONL record;
 # any stderr messages use basename only (output hygiene per ADR 0001).
@@ -80,6 +94,15 @@ fi
 # JSONL record's number field.
 [[ "$spawn_depth" =~ ^[0-9]+$ ]] || spawn_depth=0
 
+# Backfill agent_def from the sidecar meta.json (see the schema comment above
+# for the two observed shapes). Empty when meta.json is absent.
+agent_def=""
+if [[ -f "$meta_path" ]]; then
+  agent_def="$(jq -r \
+    '.customAgentType // (if (.taskKind // "") != "in_process_teammate" then (.agentType // "") else "(teammate:no-def)" end)' \
+    "$meta_path" 2>/dev/null || true)"
+fi
+
 # Backfill model from the per-agent transcript: assistant turns carry a
 # "model":"..." literal (verified: subagent model frontmatter is honored; the
 # alias resolves to the current generation, e.g. sonnet -> claude-sonnet-5 as
@@ -113,9 +136,10 @@ else
 fi
 
 ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-printf '{"ts":"%s","agent_type":%s,"model":%s,"effort":%s,"agent_id":%s,"parent_agent_id":%s,"spawn_depth":%s,"transcript_path":%s,"exit_code":%s}\n' \
+printf '{"ts":"%s","agent_type":%s,"agent_def":%s,"model":%s,"effort":%s,"agent_id":%s,"parent_agent_id":%s,"spawn_depth":%s,"transcript_path":%s,"exit_code":%s}\n' \
   "$ts" \
   "$(printf '%s' "$agent_type" | jq -Rs .)" \
+  "$(printf '%s' "$agent_def"  | jq -Rs .)" \
   "$(printf '%s' "$model"      | jq -Rs .)" \
   "$(printf '%s' "$effort"     | jq -Rs .)" \
   "$(printf '%s' "$agent_id"   | jq -Rs .)" \
