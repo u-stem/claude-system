@@ -2,6 +2,40 @@
 
 このリポジトリの変更履歴。Phase 単位でセクション化する。
 
+## 無駄と最適化余地の棚卸し(2026-09-23)
+
+運用データを横断的に測り、観測と委譲の構造を剪定した([ADR 0030](./decisions/0030-observation-and-delegation-pruning.md))。
+
+**測ったこと**
+
+- 追跡 197 ファイル・1.26 MB、孤児ファイル無し
+- 毎ターン固定コンテキスト: user-level CLAUDE.md 約 2.1k tok、repo CLAUDE.md 約 2.5k tok、plugin 一覧 約 720 tok。安定 prefix はキャッシュ読みで実効約 1/10
+- Stop 毎ターンの `doctor.sh --fast`(約 1 秒・150 fork・betterleaks 走査)の出力 `last-doctor.log` は読み手ゼロだった
+- `tests/test-pre-bash-guard.sh` 等 4 本が実 `hook-logs/` を汚しており、`pre-bash-guard.log` 1,789 行のうち 546 行が fixture 由来だった
+- `subagent-log` の `agent_type` は teammate 名で、定義名は meta.json にのみ記録され、`agent_id` の重複が 95 件あった
+- failure-log 75 件の約 7 割が `grep` / `ls` / `diff` の探索的 exit 1 だった
+- `subagent-stop-audit` の記録 659 行は全て skip、findings 74 件は CLAUDE.md が引用する `~/ws/claude-settings/` の文字列一致だった
+- 使用実績(meta.json 解決、全期間 / 直近 30 日): code-reviewer 267 / 13、implementer 58 / 13、research-summarizer 40 / 3、devil-advocate 38 / 4、security-auditor 33 / 4、doc-writer 5 / 0、refactor-planner 1 / 0、組み込み Plan 19。rework-log 397 件に読み手が無く、月次レトロは 2026-07 の 1 回で停止していた
+- バックアップ 1.4 GB(移行複製)、`settings.json.backup-*` 18 本
+- 矛盾 3 件とコミット言語の混在 3 箇所を確認した
+
+**変えたこと**
+
+ADR 0030 の 3 決定: Stop 毎ターンの doctor を SessionStart 1 回 + 前回 WARN / ERROR の文脈注入へ移行、`refactor-planner` を廃止し計画役を組み込み `Plan` へ、ロールバック経路(`tools/migrate/{from-claude-settings,rollback-from-claude-system}.sh` と移行複製 1.4 GB)を退役。同時にテスト 4 本の実ログ汚染修正、`agent_def`(meta.json の定義名)の記録と重複除去、failure-log の `probe` 区分、`subagent-stop-audit` の誤検知修正、settings バックアップの 5 本回転、CLAUDE.md 2 本の縮約、コミット言語の日本語説明への統一、矛盾 3 件の修正を行った。
+
+**反証で直したこと(devil-advocate)**
+
+- `cleanup-backups.sh` は `migration-*` を意図的に保護し rollback script が依存していた。「cleanup で消す」案は誤りで、経路ごと退役する判断に直した
+- `intent: expected` を探索ノイズの分類に流用する案は負テストの意味を壊すと確認し、集計側の `probe` 区分に直した
+- `pre-bash-guard.sh` の `[[ =~ ]]` 化は多行コマンドで `^` が端点のみになり deny を取りこぼすと確認し、見送りに直した
+- CLAUDE.md §8 の括弧書きと §5 は規則として実効していると確認し、削減対象から外した
+- `impl-*` のような名前規約を implementer への帰属根拠にする案は general-purpose teammate を誤帰属すると確認し、使わない判断にした
+- mtime による間引き案は読み手不在そのものを解決しないと確認し、SessionStart への注入に直した
+
+**見送ったこと**
+
+superpowers 撤去(5 skill 現役)、rework hook 撤去(2026-10 判断を待つ)、凍結記録のアーカイブ(コンテキストに載らない)、`doc-writer` の同時廃止(5 回、判定は 2026-12 に揃える)、探索ノイズを記録側で落とす変更(`grep -q && next` のスキップ事実や `test -f` 失敗を失う)、doctor の検査を tests スクリプト呼び出しへ委譲(fork 増、未計測)、CLAUDE.md の大幅縮約(規則脱落のリスクが上回る)、探索行の記録方式変更。
+
 ## ハーネス同期 2.1.280(2026-09-23)
 
 実インストール版 2.1.280 への追随と、claude.ai アカウント同期の停止を同時に行った([ADR 0029](./decisions/0029-harness-sync-2.1.280.md))。

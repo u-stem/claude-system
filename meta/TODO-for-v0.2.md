@@ -19,7 +19,7 @@ Phase 9(`v0.1.0-rc1` リリース候補化)で消化しきれなかった、ま�
 | 7 | claude-system 自身の Issue 駆動運用 | v0.2 開発開始時 |
 | 8 | drawzzz 取り込み | トリガー待ち(再開時) |
 | 9 | マシン横断のメモリ同期 | 検討(別マシン時) |
-| 10 | レトロ連動の自動化 | トリガー待ち(月次レトロ 3 ヶ月後) |
+| 10 | レトロ連動の自動化 | トリガー待ち(月次レトロ 3 ヶ月後。08 / 09 未実施) |
 | 11 | principles / practices 層の見直し履歴 | 継続保留(四半期見直し定例化後) |
 | 18 | `git tag v0.1.0` の発行可否 | 運用者判断待ち(ADR 0025) |
 | 20 | Betterleaks の CI 置換 | 条件待ち(保守された Action の確認) |
@@ -389,6 +389,7 @@ drawzzz 再開時:
 - クロック起算: **2026-07**(初回レトロ実走、[ADR 0019](./decisions/0019-loop-engineering-phased-adoption.md))。手動運用の道具(`tools/loop-report.sh`)は同 ADR で整備済み。自動起動の判断は本項目に委ねたまま
 - 機構候補はワークフローエンジン(セルフホスト n8n、[ADR 0028](./decisions/0028-n8n-workflow-engine-boundary.md))。判断時期は変えない。実装するときは項目 26 の 1 として brainstorming から始め、集計はホスト側で行って結果 1 ファイルだけを渡す
 - 材料(2026-09-06): 実データ 26 件の分類は 23 秒(25 シグネチャ)。category `unknown` は 20 件あり、そのうちラベル other と組む 14 件は主に探索コマンドの非ゼロ終了だった。記録規則の見直し候補
+- 材料(2026-09-23): 月次レトロは 2026-07 の 1 回のみで 08 / 09 は未実施。2026-10 判断の前提(手動 3 か月)は未成立。rework-log 397 件は読み手ゼロ。`loop-report.sh` は `agent_def` 別集計と `probe` 区分を持つようになった([ADR 0030](./decisions/0030-observation-and-delegation-pruning.md))。判断時期は変えないが、判断材料のレトロを 2026-10 までに 1 回は回すこと
 
 ---
 
@@ -411,6 +412,7 @@ drawzzz 再開時:
 | 17 | MCP 登録経路の二重管理整理 | [ADR 0018](./decisions/0018-harness-sync-2.1.197.md) の code review follow-up。playwright を `servers.template.json` から除去し settings.json inline に一本化(常時=インライン / opt-in・secret=宣言の役割分担を確立)、runner を `bunx` に統一。実環境では未登録のため二重ロードの実害は発生前に解消。README「MCP 登録経路」節に方針を明記 |
 | 19 | Betterleaks の並行運用検証 | [ADR 0027](./decisions/0027-fable-5-1-sync-and-pruning.md)。Betterleaks 1.8.1 を既存 `.gitleaks.toml` のまま gitleaks 8.30.1 と突き合わせ、陽性対照 2 種・履歴 16 件・作業木 0 件のすべてで一致。ローカル層を置換し CI は項目 20 へ |
 | 22 | セルフホスト n8n の導入計画 | [ADR 0028](./decisions/0028-n8n-workflow-engine-boundary.md)。切り分け(セッション外・イベント起点はワークフローエンジン)/ 境界(`cc-*` webhook と compose のみ、`.env` は Read deny + 指示)/ 配置(真実源は Private repo)を決定し、基盤(compose / Postgres / バックアップ・復旧 / smoke)を Private repo に構築。用途別導入は項目 26 |
+| — | ロールバック経路(tools/migrate)の退役 | [ADR 0030](./decisions/0030-observation-and-delegation-pruning.md)。切替から 4.5 か月無事故、移行複製 1.4 GB を廃棄。最後の安全網は旧 `~/ws/claude-settings/` + `tools/setup.sh` |
 
 ---
 
