@@ -56,6 +56,7 @@ Checks:
   - settings auto-sync wiring and drift (tools/sync-settings.sh --check, ADR 0017)
   - machine-overrides file free of policy keys (model/effortLevel/fallbackModel, ADR 0022)
   - plugins enabled in the template are actually installed (ADR 0023)
+  - CLAUDE.md length (user-level and repo-root, fixed per-turn attention cost)
 EOF
 }
 
@@ -497,6 +498,23 @@ else
                "$PLUGIN_TEMPLATE" 2>/dev/null || true)
   fi
 fi
+
+# ---------------------------------------------------------------------------
+# 14. CLAUDE.md length
+#
+# 200 lines is the official guideline and also a proxy for the fixed
+# per-turn attention cost every session pays to read this file.
+# ---------------------------------------------------------------------------
+cs_step "CLAUDE.md length"
+for claude_md in adapters/claude-code/user-level/CLAUDE.md CLAUDE.md; do
+  [[ -f "$claude_md" ]] || { warn "$claude_md not found"; continue; }
+  lines="$(wc -l < "$claude_md" | tr -d ' ')"
+  if [[ "$lines" -gt 200 ]]; then
+    warn "$claude_md: $lines lines (>200; official guideline, and a proxy for the fixed per-turn attention cost)"
+  else
+    ok "$claude_md: $lines lines"
+  fi
+done
 
 # ---------------------------------------------------------------------------
 # Summary

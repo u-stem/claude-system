@@ -24,6 +24,7 @@ effort: high
   - 新規追加された依存パッケージのリスト
 - 重点軸(任意): `injection` / `authn-authz` / `secrets` / `supply-chain` / `data-handling` のいずれか / すべて
 - 既知の例外・受容済みリスク
+- 計画の要点(任意、3 行以内)
 
 ## 手順
 
@@ -69,6 +70,7 @@ effort: high
 ```
 ## Security Audit Result
 - 重大度別件数: Critical=<n> / High=<n> / Medium=<n> / Low=<n>
+- plan-deviation: N 件(計画要点が渡されたときのみ。逸脱が正当なら理由を添える)
 
 ### Critical
 1. <file:line> [<軸>] - <脆弱性>: <説明>

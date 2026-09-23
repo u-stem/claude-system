@@ -31,6 +31,7 @@ claude-system の機械層をハーネスの現行版に追随させる調査手
 
 - prompt cache / auto-compact / effort の新オプション。claude.ai サブスクリプションでは `promptCacheTtl` と `ENABLE_PROMPT_CACHING_1H` は no-op(API key / Bedrock / Vertex / Foundry 向け)
 - モデル世代が変わったら `practices/model-selection.md` 手順 8 に従い subagent の tier を再評価する(2026-09-06: 反証役と最終ゲートを `fable` に)
+- モデル世代が変わったら、各 hook / 委譲段(反復レビュー、最終ゲート)/ effort pin が前提にしている「モデルにできないこと」を列挙し、system card や公式評価でその前提が崩れていないか確認する。崩れた部品は簡素化候補(ADR 0031)
 
 ## 4. ガードレール
 
