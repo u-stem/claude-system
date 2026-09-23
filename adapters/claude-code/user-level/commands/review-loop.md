@@ -21,7 +21,7 @@ description: レビュー→修正→レビューの反復ループ(立て直し
 |------|------|----------------|------|
 | ループ本体のレビュー | `code-reviewer` subagent を**毎ラウンド新規起動**(B) | sonnet / high | 最多用ゆえ安定完走を優先。opus+xhigh の中断(parse-error)露出を避ける |
 | 修正の解消確認 | 直前ラウンドの `code-reviewer` を **SendMessage で継続**(A) | 同上(継続) | 「指摘 X はこの修正で解消したか / 回帰がないか」の追跡 |
-| 修正の適用 | メイン(または `refactor-planner` で方針立案) | — | レビューと修正の担当を分け独立性を保つ |
+| 修正の適用 | メイン(または組み込み `Plan` で方針立案) | — | レビューと修正の担当を分け独立性を保つ |
 | 最終ゲート | `security-auditor` subagent を新規起動(B + 強い水準) | fable / high | 収束後の小さくなった差分に一度だけ。能力由来の盲点を掬う |
 
 セキュリティが主目的の低頻度・致命的レビューは、反復より単発の天井が効くため最初から `security-auditor`(fable/high)を当ててよい。
@@ -38,7 +38,7 @@ description: レビュー→修正→レビューの反復ループ(立て直し
    - 戻りは**重大度別の指摘リストのみ**(探索ログ・全文をメインに載せない / [`delegation-orchestration`](../../../../practices/delegation-orchestration.md) 参照)。
 
 3. **修正を適用する**
-   - 重大 → 必須修正。軽微 → 方針判断。修正はメインで行い、設計変更を伴うなら `refactor-planner`(opus/high)で先に方針を立てる。
+   - 重大 → 必須修正。軽微 → 方針判断。修正はメインで行い、設計変更を伴うなら組み込み `Plan` で先に方針を立てる(model / effort は選べないため、計画の深さは依頼文で指定する)。
 
 4. **修正の解消確認だけ継続(A)**
    - 特定の指摘の追跡が要る一点に限り、そのラウンドの `code-reviewer` を `SendMessage` で継続させ「指摘 X は解消したか / 回帰はないか」を問う。
@@ -78,5 +78,6 @@ Workflow はトークン消費が大きいため、ユーザーが明示的に�
 - practice: [`iterative-review`](../../../../practices/iterative-review.md)(本コマンドの設計元)
 - practice: [`model-selection`](../../../../practices/model-selection.md)(水準配分)
 - 組み込みコマンド: `/code-review`(単発簡易レビュー)。100 行超 / 5 ファイル超、または設計・API・データ契約の変更なら本コマンド(反復)か `code-reviewer` subagent(詳細単発)に切り替える
-- subagent: `code-reviewer`(sonnet/high) / `security-auditor`(fable/high) / `refactor-planner`(opus/high)
+- subagent: `code-reviewer`(sonnet/high) / `security-auditor`(fable/high)
+- 組み込みコマンド: `Plan`(方針立案)
 - ADR: [`0013-role-based-effort-modulation`](../../../../meta/decisions/0013-role-based-effort-modulation.md)

@@ -10,7 +10,7 @@ effort: high
 
 ## 役割
 
-**確定済みの計画・仕様に従ってコードを実装**する独立コンテキストの実作業ロール。設計判断は親 / `refactor-planner` が担い、本 subagent は決まった方針を忠実に実装に落とす。
+**確定済みの計画・仕様に従ってコードを実装**する独立コンテキストの実作業ロール。設計判断は親 / 組み込み `Plan` が担い、本 subagent は決まった方針を忠実に実装に落とす。
 一般的な実装は複雑度プロファイルが中位のため `model: sonnet`、完走確実性を優先して `effort: high`(ADR 0013 の頻度 × 検証可能性 × 致命度)。コード writer ゆえ `tools` に Edit/Write/Bash を含む唯一の実装 subagent。
 
 委譲の根拠は [`practices/delegation-orchestration.md`](~/ws/claude-system/practices/delegation-orchestration.md)([ADR 0011](~/ws/claude-system/meta/decisions/0011-delegation-orchestration-protocol.md))。メインがオーケストレーションに徹し、実装の往復と中間出力を本 subagent に閉じ込める。
@@ -20,7 +20,7 @@ effort: high
 親エージェントから以下を受け取る(**設計が確定していることが前提**):
 
 - 実装対象と完了条件(何を満たせば完了か、受け入れ基準)
-- 確定した方針 / 計画(`refactor-planner` の段階ステップ等。曖昧なら親に問い返す)
+- 確定した方針 / 計画(組み込み `Plan` の段階ステップ等。曖昧なら親に問い返す)
 - 既存パターン・規約(プロジェクトのスタイル、参照すべき近接コード)
 - テスト方針(TDD: 先にテスト / バグ修正: 再現テスト先行)
 - 触ってよい範囲(指定外ファイルの「ついで」編集を防ぐ境界)
@@ -78,7 +78,7 @@ effort: high
 
 ## 関連 skill / subagent との違い
 
-- **`refactor-planner` subagent** は計画のみで実装しない。本 subagent は**その計画を実装する**(計画 → 実装の相補。順次起動が有効)
+- **組み込み `Plan`** は計画のみで実装しない。本 subagent は**その計画を実装する**(計画 → 実装の相補。順次起動が有効。計画の深さは依頼文で指定する)
 - **`code-reviewer` subagent** は実装後のレビュー。本 subagent の成果物を別コンテキストの reviewer が検証する流れ(実装 → レビュー)
 - **`doc-writer` subagent** はドキュメント追従。本 subagent はコード本体。コード変更に伴う doc は `doc-writer` に委譲するか親が同コミットで更新する
 - **`check` / `testing-*` skill** は検証の作法。本 subagent はそれに従って `Bash` で検証を実行する
@@ -96,4 +96,3 @@ effort: high
 - [`practices/testing-strategy.md`](~/ws/claude-system/practices/testing-strategy.md) — TDD / 緑前提
 - [`practices/model-selection.md`](~/ws/claude-system/practices/model-selection.md) — `model: sonnet` の根拠(一般的実装は中位)
 - [`meta/decisions/0013-role-based-effort-modulation.md`](~/ws/claude-system/meta/decisions/0013-role-based-effort-modulation.md) — effort 校正(`effort: high` の根拠)
-- [`adapters/claude-code/subagents/refactor-planner.md`](~/ws/claude-system/adapters/claude-code/subagents/refactor-planner.md) — 計画立案側

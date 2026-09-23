@@ -81,7 +81,7 @@ effort: high
 ## 関連 skill / subagent との違い
 
 - **`code-reviewer` subagent** はコード差分の品質を 7 観点でレビューする。本 subagent は**意思決定・計画・前提そのもの**を疑う(対象がコードではなく判断)
-- **`security-auditor` / `refactor-planner` subagent** は各専門領域の深掘り。本 subagent は領域横断で「その結論は本当に正しいか」を問うメタ反証役(ADR 0013 の effort 校正でも反証視点として機能した)
+- **`security-auditor` subagent / 組み込み `Plan`** は各専門領域の深掘り。本 subagent は領域横断で「その結論は本当に正しいか」を問うメタ反証役(ADR 0013 の effort 校正でも反証視点として機能した)
 - **対応する skill は現状なし**。反証は一回性が高く独立コンテキストの subagent が適する
 
 ## 起動の判断基準
@@ -96,4 +96,3 @@ effort: high
 - [`principles/02-decision-recording.md`](~/ws/claude-system/principles/02-decision-recording.md) — 検証されていない仮定を残さない
 - [`practices/model-selection.md`](~/ws/claude-system/practices/model-selection.md) — `model: opus` の根拠(批判的判断が重い)
 - [`meta/decisions/0013-role-based-effort-modulation.md`](~/ws/claude-system/meta/decisions/0013-role-based-effort-modulation.md) — effort 校正(`effort: high` の根拠)
-- [`adapters/claude-code/subagents/refactor-planner.md`](~/ws/claude-system/adapters/claude-code/subagents/refactor-planner.md) — 計画立案側(本 subagent はその計画を攻める)

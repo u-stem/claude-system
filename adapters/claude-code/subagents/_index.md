@@ -47,9 +47,8 @@ model / effort 校正の根拠は [ADR 0013](~/ws/claude-system/meta/decisions/0
 | [`code-reviewer`](./code-reviewer.md) | コードレビューを独立コンテキストで深掘りする | Read, Grep, Glob, Bash | sonnet | high | 旧 `code-reviewer.md` を簡素化(7 観点維持、出力フォーマット強化) |
 | [`security-auditor`](./security-auditor.md) | セキュリティ観点でコード・依存・設定を独立に監査する | Read, Grep, Glob, Bash | fable | high | 旧 `security-reviewer.md` を改名 + 監査範囲拡張(supply-chain 含む) |
 | [`doc-writer`](./doc-writer.md) | コード変更に伴うドキュメント更新を提案・適用する | Read, Write, Edit, Grep, Glob | haiku | medium | 旧 `doc-writer.md` を継承 + apply モード追加 |
-| [`refactor-planner`](./refactor-planner.md) | リファクタリング計画を立案する(実装はしない) | Read, Grep, Glob | opus | high | 旧 `refactor-planner.md` を継承 + 出力フォーマット強化 |
 | [`research-summarizer`](./research-summarizer.md) | 外部資料を WebSearch / WebFetch で調査し要約を返す | WebSearch, WebFetch, Read | sonnet | high | **新規**(v3 マスタープラン由来。組み込み `Explore` と内外で対比) |
-| [`implementer`](./implementer.md) | 確定した計画に従いコードを実装する | Read, Grep, Glob, Edit, Write, Bash | sonnet | high | **新規**(唯一のコード writer。`refactor-planner` の計画を実装) |
+| [`implementer`](./implementer.md) | 確定した計画に従いコードを実装する | Read, Grep, Glob, Edit, Write, Bash | sonnet | high | **新規**(唯一のコード writer。組み込み `Plan` の計画を実装) |
 | [`devil-advocate`](./devil-advocate.md) | 意思決定・計画・主張を反証し代替案を出す | Read, Grep, Glob | fable | high | **新規**(反証専門。ADR 0013 校正で使った反証視点を常設化) |
 
 内部探索は subagent 化せず組み込み `Explore` に委ねる(CLAUDE.md を読まないため安価。`Bash` を持つ点は `pre-bash-guard.sh` が subagent 由来の呼び出しを防衛する)。校正の含意: `code-reviewer` は最多用ロールゆえ opus+high の parse-error 露出を避け sonnet+high とし、opus 級の検出力は反復レビュー(毎回新規エージェント)+ 最終ゲートで別途確保する([`practices/iterative-review.md`](~/ws/claude-system/practices/iterative-review.md))。反証役(`devil-advocate`)と最終ゲート(`security-auditor`)は低頻度 + 致命度最大のため主モデル世代の上位側(現行: `fable`)を当てる。`effort` 上限はモデル依存(haiku は xhigh/max 不可)で、値は未検証前提を含むため配置後に parse-error 発生率を監視する。
@@ -60,7 +59,7 @@ model / effort 校正の根拠は [ADR 0013](~/ws/claude-system/meta/decisions/0
 |------|--------------|--------------------|-----------|------|------|
 | `code-reviewer` | ◯ | ◯ | ◯ | **採用** | 全予告で一致 |
 | `doc-writer` | ◯ | ◯ | ◯ | **採用** | 全予告で一致 |
-| `refactor-planner` | ◯ | ◯ | ◯ | **採用** | 全予告で一致 |
+| `refactor-planner` | ◯ | ◯ | ◯ | 採用 → 廃止(2026-09-23) | 全期間 1 回・組み込み `Plan` が 19 回担っていた(ADR 0030) |
 | `security-reviewer` / `security-auditor` | ◯ | ◯(改名) | ◯ | **採用(改名)** | 監査(audit)の役割語に合わせて `auditor` へ改名 |
 | 内部探索 subagent | ◯ | — | ◯ | **採用 → 後に廃止** | 当初は委譲頻度の高さから専用 subagent としたが、CLAUDE.md を読まず起動が軽い組み込み `Explore` へ移行(`research-summarizer` と内外で相補) |
 | `research-summarizer` | — | ◯ | — | **採用** | 外部調査専門、原典 URL 付き要約 |
@@ -77,9 +76,8 @@ model / effort 校正の根拠は [ADR 0013](~/ws/claude-system/meta/decisions/0
 | セキュリティ | `security-auditor` | (なし、組み込み `/security-review` と連動) | 組み込みコマンド = 著者向けセルフチェック / subagent = レビューア向け、別コンテキストで Critical/High/Medium 分類 |
 | 依存関係 | (`security-auditor` 内で対応) | `dependency-review` | skill = 依存追加時の著者作業 / subagent = 既存依存の総点検と `bun audit` 実行 |
 | ドキュメント追従 | `doc-writer` | `japanese-tech-writing` | skill = 文章作法、subagent = コード差分追従の提案 / 適用。出力文も skill の作法に従う |
-| リファクタ | `refactor-planner` | (なし、将来 `refactor` skill 追加余地) | subagent = 計画専門、実装しない。段階的ステップ + テスト戦略まで出力 |
 | コードベース探索 | (なし、組み込み `Explore`) | (なし、将来 `investigate` skill 追加余地) | 組み込みコマンド = 大量探索を別コンテキストで実行、要約のみ親に返す |
-| 実装(コード書き) | `implementer` | (なし、`testing-*` で作法) | subagent = 確定計画をコードに落とす唯一の writer。設計判断はしない(親 / `refactor-planner` が担う) |
+| 実装(コード書き) | `implementer` | (なし、`testing-*` で作法) | subagent = 確定計画をコードに落とす唯一の writer。設計判断はしない(親 / 組み込み `Plan` が担う) |
 | 反証 / 意思決定検証 | `devil-advocate` | (なし) | subagent = 計画・決定・主張を別コンテキストから攻める。コード品質ではなく判断そのものを疑う |
 | 外部調査 | `research-summarizer` | (なし) | subagent = WebSearch / WebFetch 主体、原典 URL 付き要約。本人手の Web 検索を圧縮 |
 | ADR 起票 | (なし) | `adr-writing` | skill のみで完結 |
@@ -102,7 +100,7 @@ model / effort 校正の根拠は [ADR 0013](~/ws/claude-system/meta/decisions/0
 
 (上は例示のためインデント、実 subagent ファイルは行頭空白なし)
 
-`omitClaudeMd`(2.1.271、user / project / local の CLAUDE.md を一括で外す)は任意フィールドだが未使用。実装役・文書追従役が層別編集ルールと出力衛生の指示層を失うため(ADR 0029)。§2 / §4 を subagent 本文へ内包する設計に改めるとき、書き込み権を持たない `research-summarizer` から pilot する
+`omitClaudeMd`(2.1.271、user / project / local の CLAUDE.md を一括で外す)は任意フィールドだが未使用。実装役・文書追従役が層別編集ルールと出力衛生の指示層を失うため(ADR 0029)。§2 / §3 を subagent 本文へ内包する設計に改めるとき、書き込み権を持たない `research-summarizer` から pilot する
 
 ## v3 で追加した規約
 
@@ -119,7 +117,6 @@ model / effort 校正の根拠は [ADR 0013](~/ws/claude-system/meta/decisions/0
 | `code-reviewer` | Read, Grep, Glob, Bash | Edit, Write | レビュー専門、コード書き換えはしない |
 | `security-auditor` | Read, Grep, Glob, Bash | Edit, Write | 監査専門、修正はしない |
 | `doc-writer` | Read, Write, Edit, Grep, Glob | Bash | doc に集中、shell 副作用は不要 |
-| `refactor-planner` | Read, Grep, Glob | Edit, Write, Bash | 計画専門、実装はしない |
 | `research-summarizer` | WebSearch, WebFetch, Read | Edit, Write, Grep, Glob, Bash | 外部 Web 専門、ローカルへの書き込み禁止 |
 | `implementer` | Read, Grep, Glob, Edit, Write, Bash | (なし) | 実装担当。コード writer ゆえ Edit/Write/Bash を許可する唯一の subagent |
 | `devil-advocate` | Read, Grep, Glob | Edit, Write, Bash | 反証専門、判断材料を返すのみでコードは編集しない |

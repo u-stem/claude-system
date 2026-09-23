@@ -25,7 +25,7 @@ description: 委譲チェーン(計画→反証→実装→レビュー→ゲー
 | 段 | 委譲先 | model / effort | 省略の目安 |
 |----|--------|----------------|-----------|
 | 1. 探索 | 組み込み `Explore`(内部)/ `research-summarizer`(外部) | — / sonnet/high | 対象が既知で前提情報が揃っているなら省略 |
-| 2. 計画 | `refactor-planner` | opus/high | 設計が自明な小変更なら省略(メインが方針を決める) |
+| 2. 計画 | 組み込み `Plan` | — | 設計が自明な小変更なら省略(メインが方針を決める)。model / effort は選べないため、計画の深さは依頼文で指定する |
 | 3. 反証 | `devil-advocate` | fable/high | 可逆・低致命なら省略。重い / 不可逆判断の前は必須 |
 | 4. 実装 | `implementer` | sonnet/high | 必須(唯一のコード writer) |
 | 5. レビュー | `code-reviewer`(反復は `/review-loop`) | sonnet/high | 必須。設計級は `/review-loop` で反復収束 |
@@ -43,7 +43,7 @@ description: 委譲チェーン(計画→反証→実装→レビュー→ゲー
    - 前提情報が不足するなら組み込み `Explore` / `research-summarizer` に委譲し、構造化要約だけ受け取る。
 
 3. **計画 → 反証**
-   - 設計が重いなら `refactor-planner` に段階的計画を立てさせる。
+   - 設計が重いなら組み込み `Plan` に段階的計画を立てさせる(model / effort は選べないため、計画の深さは依頼文で指定する)。
    - 重い / 不可逆な判断を含むなら、その計画を `devil-advocate` に渡して反証させる(前提の崩れ・代替案・非対称リスク)。
    - メインは反証を踏まえ計画を確定する(採用 / 条件付き / 再考)。**最終判断はメインが持つ**。
 
@@ -76,6 +76,6 @@ description: 委譲チェーン(計画→反証→実装→レビュー→ゲー
 
 - practice: [`delegation-orchestration`](../../../../practices/delegation-orchestration.md)(連鎖の規律・委譲ファースト)
 - practice: [`iterative-review`](../../../../practices/iterative-review.md) / command: `/review-loop`(レビュー段の反復)
-- 組み込みコマンド: `Explore`(内部探索)
-- subagent: `research-summarizer` / `refactor-planner` / `devil-advocate` / `implementer` / `code-reviewer` / `security-auditor` / `doc-writer`
+- 組み込みコマンド: `Explore`(内部探索)/ `Plan`(計画)
+- subagent: `research-summarizer` / `devil-advocate` / `implementer` / `code-reviewer` / `security-auditor` / `doc-writer`
 - ADR: [`0015-delegation-chain-and-mandatory-delegation`](../../../../meta/decisions/0015-delegation-chain-and-mandatory-delegation.md) / [`0011-delegation-orchestration-protocol`](../../../../meta/decisions/0011-delegation-orchestration-protocol.md)
