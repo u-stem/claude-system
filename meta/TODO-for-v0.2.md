@@ -29,6 +29,8 @@ Phase 9(`v0.1.0-rc1` リリース候補化)で消化しきれなかった、ま�
 | 25 | pre-push での秘密検査(Betterleaks)| 検討(同上) |
 | 26 | n8n 用途別導入(運用ループ → プロダクト運用 → 個人) | 順次(各々 brainstorming から、ADR 0028) |
 | 27 | superpowers 6.4.1 への更新と持ち込み能力の棚卸し | 日付待ち(2026-09-26 以降、7 日ルール) |
+| 28 | 主モデル effort の試行(high、2026-09-23〜10-07) | 進行中(判定 2026-10-07) |
+| 29 | 主モデル試行 2(次期 Opus へ 2 週間切替) | 日付待ち(2026-10-07 以降、28 の後) |
 | 12 | migrate スクリプトの壊れた symlink 耐性 | **解決済み** → クローズ記録 |
 | 13 | settings.json 配置の責務整合 | **解決済み** → クローズ記録 |
 | 14 | ADR 0011 実装(委譲オーケストレーション) | **解決済み** → クローズ記録 |
@@ -142,6 +144,39 @@ v6.4.1 は 2026-09-19 公開(v6.4.0 は未出荷)。7 日ルールにより 2026
 ### やること
 
 更新後は `// auditedPluginVersions` を更新し、hooks / skills の数を 6.3.0 時点(skills 14 / hooks 1 event)と比較して差分を記録する。
+
+---
+
+## 28. 主モデル effort の試行(進行中、判定 2026-10-07)
+
+[ADR 0031](./decisions/0031-effort-trial-and-research-notes.md) の決定 1。
+
+### 期間と変更箇所
+
+2026-09-23〜2026-10-07 の期限付き例外。`adapters/claude-code/user-level/settings.json.template` の主モデル(`claude-fable-5-1`)の `modelSettings.<model>.effortLevel` を `xhigh` から `high` にする。
+
+### 指標と baseline(2026-09-09〜09-23)
+
+- 中断率: StopFailure 通知 6 件 / Stop 記録 15 行(2026-09-23 以降は `session-start-doctor.log` の行数で数える)
+- 委譲の完走率: subagent-log 78 件で非ゼロ終了 0
+- failure-log の実失敗: 14 件(probe 1 件を除外)
+- 体感: 以前 `/effort high` が書かれていた期間に運用者は差を感じなかった
+
+### 判定手順
+
+`bash tools/loop-report.sh` と `hook-logs/notify-stop-failure.log` / `session-start-doctor.log` の行数を比較し、体感を `meta/retrospectives/` に 1 段落記録する。
+
+### 解除手順
+
+差が無ければ索引「委譲とモデル」の effort 行と本 ADR を新 ADR で更新し high を新既定にする。悪化すれば template を `xhigh` に戻し、索引に注記する。
+
+---
+
+## 29. 主モデル試行 2(次期 Opus へ 2 週間切替、日付待ち)
+
+[ADR 0031](./decisions/0031-effort-trial-and-research-notes.md) の決定 2。項目 28 の判定後、2026-10-07 以降に開始する。
+
+`model` を `claude-opus-5-5[1m]` へ 2 週間切り替え、項目 28 と同じ指標で測る。fallback は `["claude-fable-5-1[1m]", "claude-opus-5[1m]"]` へ入れ替える案を実行時に判断する。判定後は索引「委譲とモデル」の主モデル行を ADR で更新する。
 
 ---
 

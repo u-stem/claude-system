@@ -2,6 +2,32 @@
 
 このリポジトリの変更履歴。Phase 単位でセクション化する。
 
+## 研究の取り込み(2026-09-23)
+
+外部研究とハーネス一次資料を委譲・effort・practices の運用に取り込んだ([ADR 0031](./decisions/0031-effort-trial-and-research-notes.md))。
+
+**測ったこと**
+
+- research-summarizer 2 本(査読論文・他ラボ 2025-09〜2026-09、Anthropic 一次資料 2026)を調査した。査読済みはほぼ無く arXiv と system card が中心(MAST は会議採択の可能性あり、未確認)
+- 出典: https://arxiv.org/pdf/2605.10039 (指示ファイル遵守、1,650 セッション: 長さ・位置に有意差なし、生成量で低下) / https://arxiv.org/abs/2503.13657 (MAST: 失敗は検証欠落に集中) / https://arxiv.org/abs/2511.15755 (オーケストレータの検証効果、トークン +285%、単一ドメイン) / https://arxiv.org/html/2604.10739v1 (overthinking) / https://arxiv.org/html/2604.12147v1 (plan compliance、16,991 trajectory) / https://arxiv.org/html/2509.16941v1 (SWE-Bench Pro) / https://arxiv.org/pdf/2509.25926 (型付き権限分離) / https://arxiv.org/html/2608.04828 (Skill-Use) / https://www.anthropic.com/engineering/infrastructure-noise (3pt 未満はノイズ) / https://www.anthropic.com/engineering/harness-design-long-running-apps (部品は仮定を符号化) / https://www.anthropic.com/engineering/claude-code-auto-mode (承認 93%) / https://www.anthropic.com/claude-opus-5-5 (medium effort で精度維持、Terminal-Bench 4.0 66.4 vs 55.8) / https://www.anthropic.com/claude-fable-and-mythos-5-1 (既定 High、監査の可視性限界)
+- 既に符号化済みと確認: compaction、planner / generator / evaluator 分離、多層防御、段階的開示、2 層メモリ
+
+**変えたこと**
+
+ADR 0031 の内容: 主モデル effort を 2026-09-23〜10-07 の期限付き例外として high で試行(指標 4 つと baseline を TODO 28 に記録)、試行 2(次期 Opus へ 2 週間切替)を 2026-10-07 以降に予約(TODO 29)、研究知見を practices 5 本(session-handoff / delegation-orchestration / iterative-review / model-selection / skill-design-guide)へ定性的注記として反映、`/team` の最終ゲートへ計画要点の逸脱検査、doctor へ CLAUDE.md 200 行の目安検査、update-check へ部品の仮定の再検証手順を追加した。
+
+**反証で直したこと(devil-advocate)**
+
+- 委譲先 5 役の `effort` 削除案は、外すとセッション値 xhigh を継承し逆効果になると確認して撤回した
+- 主モデルの試行は `/effort` や overrides では sync と doctor に上書きされるため、template の期限付き例外として書く方式に直した
+- 逸脱検査は差分レビュー役ではなく司令役・最終ゲートに置く案に直した(計画が入力に無いレビュー役では空振りする)
+- practices 本体に数値・URL・銘柄名を書く案を撤回し、本 CHANGELOG に集約した
+- 主モデル再評価の抜けを見つけ、索引「委譲とモデル」主モデル行のトリガーに次期 Opus の公式評価差分を追記した
+
+**見送ったこと**
+
+不採用欄の要約(ADR 0031 参照): 委譲先 `effort:` 削除、差分レビュー役への plan-deviation 観点、0 回 skill の説明文書き直しと再計測、practices への数値・URL・銘柄名の直書き、principles の改訂、型付き権限分離の自作、planner・generator・evaluator の 3 役常設、主モデルの即時切り替え。
+
 ## 無駄と最適化余地の棚卸し(2026-09-23)
 
 運用データを横断的に測り、観測と委譲の構造を剪定した([ADR 0030](./decisions/0030-observation-and-delegation-pruning.md))。
