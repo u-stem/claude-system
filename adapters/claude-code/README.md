@@ -6,7 +6,7 @@
 
 ## 前提バージョン
 
-[`./VERSION`](./VERSION) を参照(現在: 2.1.263)。
+[`./VERSION`](./VERSION) を参照(現在: 2.1.280)。
 
 VERSION 更新時のチェックリストは [Claude Code 仕様変更時の影響範囲マップ](#claude-code-仕様変更時の影響範囲マップ) に従う。この行と `VERSION` の一致は `tests/check-doc-parity.sh` が機械検査する(ADR 0022 → 0023 間で 2 重にずれた前科があるため / ADR 0026)。
 
@@ -19,7 +19,7 @@ VERSION 更新時のチェックリストは [Claude Code 仕様変更時の影�
 | skill(段階的開示で読まれる能力単位) | `user-level/skills/` | commit / ADR / Next.js+Supabase 等の能力単位 |
 | subagent(独立コンテキストの補助エージェント) | `subagents/` | code-reviewer・doc-writer・security-auditor 等 |
 | 組み込み `Explore` / `/code-review` / `/security-review` | ハーネス組み込み(本リポジトリにファイル実体なし) | 内部探索・簡易レビュー・セキュリティセルフチェック。CLAUDE.md を読まないため軽量 |
-| settings.json(permissions / hooks / env / enabledPlugins / attribution) | `user-level/settings.json.template` | permissions.deny で物理ブロック、hooks で機械的防御 |
+| settings.json(permissions / hooks / env / modelSettings / enabledPlugins / syncClaudeAi* / attribution) | `user-level/settings.json.template` | permissions.deny で物理ブロック、hooks で機械的防御 |
 | permissions.deny / allow | settings.json 内 | LLM の自制に頼らず物理的に書き込みを拒否 / permission prompt の抑制 |
 | attribution(`commit` / `pr`) | settings.json 内 | commit/PR から claude.ai セッション URL(harness 自動 attribution)を抑止(ADR 0002 / 0018) |
 | hooks(SessionStart / PreToolUse / PostToolUse / PostToolUseFailure / Stop / StopFailure / SubagentStop) | `user-level/hooks/` | typosquatting 防御・失敗フィードバックループ・dispatcher パターン |
@@ -82,13 +82,13 @@ Claude Code がアップデートされた場合、以下を順に確認する:
 | `hooks.<event>` の matcher / フィールド構文 | `user-level/settings.json.template`, `user-level/hooks/*.sh`(Phase 7b) | 各 hook event のスキーマ差分確認 → 対応 hook の入出力契約の更新 |
 | 利用可能な hook event 種別 | 同上 | 新 event 追加時は guardrail 設計を再評価(PostToolUseFailure は v2.1.206 で存在を実測確認、導入バージョンは未特定。log-bash-failure.sh が依存) |
 | skill の frontmatter 仕様 | `user-level/skills/*/SKILL.md` | name / description のフィールドが廃止・追加されていないか |
-| subagent の frontmatter 仕様 | `subagents/*.md`(Phase 5) | name / description / tools / model / effort のフィールド整合 |
+| subagent の frontmatter 仕様 | `subagents/*.md`(Phase 5) | name / description / tools / model / effort のフィールド整合。`omitClaudeMd`(2.1.271)は不採用: user / project / local の CLAUDE.md を一括で外し指示層が消える(ADR 0029) |
 | slash command の frontmatter 仕様 | `user-level/commands/*.md` | name / description のフィールド整合(`tools/doctor.sh` が検査)。ADR 0021 以降の走査記録が対象にしていた行を本表に追加(ADR 0026) |
-| プラグイン管理(`enabledPlugins` / `extraKnownMarketplaces`) | `user-level/settings.json.template`, `tools/setup-plugins.sh` | **上流の存続確認だけで終わらせない**。①採用プラグインが marketplace に存続しているか ②**宣言と実体が一致しているか**(`tools/doctor.sh` の「declared plugins vs installed」/ `tools/setup-plugins.sh --dry-run`)③更新時は持ち込み能力(hooks / subagent / skill)の増減を棚卸し。`enabledPlugins` は宣言にすぎず導入は別操作(ADR 0023。この行が①だけだったため 3 か月の乖離を 2 世代の ADR が見逃した) |
+| プラグイン管理(`enabledPlugins` / `extraKnownMarketplaces`) | `user-level/settings.json.template`, `tools/setup-plugins.sh` | **上流の存続確認だけで終わらせない**。①採用プラグインが marketplace に存続しているか ②**宣言と実体が一致しているか**(`tools/doctor.sh` の「declared plugins vs installed」/ `tools/setup-plugins.sh --dry-run`)③更新時は持ち込み能力(hooks / subagent / skill)の増減を棚卸し。`enabledPlugins` は宣言にすぎず導入は別操作(ADR 0023。この行が①だけだったため 3 か月の乖離を 2 世代の ADR が見逃した)。④claude.ai 同期(`syncClaudeAiSkills` / `syncClaudeAiPlugins`)は template で `false`。`~/.claude/skills` が本リポジトリへの symlink のため、同期の書き込みは repo 内 `skills/synced/` に落ちる(`.gitignore` で隔離、ADR 0029) |
 | attribution / commit・PR 添付情報の構文 | `user-level/settings.json.template` の `attribution` | セッション URL 抑止方式の変更確認(安定スキーマは `commit` / `pr` のみ、`additionalProperties: false`) |
 | `~/.claude/` 配下のディレクトリ構造 | `tools/sync.sh` の symlink 配置 | リンク先パスの妥当性、`tools/setup.sh` の更新 |
 | env 変数(`CLAUDE_CODE_*`) | settings.json `env` セクション | 廃止・改名された変数の特定 |
-| デフォルトモデル / effort | settings.json `model`(`claude-fable-5-1[1m]`)/ `fallbackModel`(`["claude-opus-5[1m]"]`)/ `effortLevel`(`xhigh`) | `practices/model-selection.md` の指針と整合、モデル世代交代時は subagent の `model` tier も再評価(`update-check` 手順 8) |
+| デフォルトモデル / effort | settings.json `model`(`claude-fable-5-1[1m]`)/ `fallbackModel`(`["claude-opus-5-5[1m]", "claude-opus-5[1m]"]`)/ `effortLevel`(`xhigh`、旧モデル向け)/ `modelSettings.<model>.effortLevel`(`xhigh`、主モデルと fallback 先頭) | `practices/model-selection.md` の指針と整合、モデル世代交代時は subagent の `model` tier も再評価(`update-check` 手順 8) |
 
 ## 移行プレイブック(VERSION を上げるとき)
 

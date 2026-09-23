@@ -13,3 +13,7 @@ adapters/claude-code/user-level/settings.json
 projects/*
 !projects/.gitkeep
 !projects/_README.md
+
+# claude.ai 同期(syncClaudeAiSkills)が ~/.claude/skills 経由(本リポジトリへの symlink)で書く残骸
+adapters/claude-code/user-level/skills/synced/
+adapters/claude-code/user-level/skills/.trash/

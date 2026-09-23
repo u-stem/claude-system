@@ -102,6 +102,8 @@ model / effort 校正の根拠は [ADR 0013](~/ws/claude-system/meta/decisions/0
 
 (上は例示のためインデント、実 subagent ファイルは行頭空白なし)
 
+`omitClaudeMd`(2.1.271、user / project / local の CLAUDE.md を一括で外す)は任意フィールドだが未使用。実装役・文書追従役が層別編集ルールと出力衛生の指示層を失うため(ADR 0029)。§2 / §4 を subagent 本文へ内包する設計に改めるとき、書き込み権を持たない `research-summarizer` から pilot する
+
 ## v3 で追加した規約
 
 - `tools` フィールドの**最小権限原則**を徹底(編集権限がない subagent は Edit/Write を含めない)

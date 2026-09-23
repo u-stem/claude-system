@@ -10,5 +10,6 @@
 | 2026-07-25 | claude-opus-5[1m] | 2.1.220 | ADR 0022 | Opus 5 へ乗り換え(性能と価格)。effort xhigh が初めて実効化 |
 | 2026-08-13 | claude-opus-5[1m] | 2.1.229 | ADR 0026 | ハーネス同期のみ |
 | 2026-09-06 | claude-fable-5-1[1m] | 2.1.263 | ADR 0027 | Fable 5.1 GA(2026-09-01)。反証役と最終ゲートの subagent も fable。fallback は claude-opus-5[1m] |
+| 2026-09-23 | claude-fable-5-1[1m] | 2.1.280 | ADR 0029 | ハーネス同期。fallback を `["claude-opus-5-5[1m]", "claude-opus-5[1m]"]` の 2 段に、effort pin を `modelSettings` へ。claude.ai skill / plugin 同期をオフ |
 
 `git log` の author / committer は global git config を継承する設計のため、モデル情報は含まれない。ハーネス pin と実インストール版の差は `tools/check-claude-version.sh` が検出する。

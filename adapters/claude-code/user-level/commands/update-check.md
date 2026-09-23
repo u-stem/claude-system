@@ -10,7 +10,7 @@ claude-system の機械層をハーネスの現行版に追随させる調査手
 ## 0. 先に計測する
 
 - `claude --version` と `adapters/claude-code/VERSION` の差分。上流 CHANGELOG はローカルキャッシュ `~/.claude/cache/changelog.md` にあるので、差分範囲を全文読む(要約に頼らない)
-- `claude -p /skill-doctor` で自前 skill / command と plugin skill の使用回数と listing コストを取る。180 日 0 回のものは削除候補(2026-09-06 の剪定基準)
+- `claude -p /skill-doctor` で自前 skill / command と plugin skill の使用回数と listing コストを取る。180 日 0 回のものは削除候補(2026-09-06 の剪定基準)。macOS に `timeout` は無いので `claude -p` はラッパー無しで実行する
 - `bash tools/doctor.sh` と `bash tools/loop-report.sh` で drift と委譲の実態を見る
 
 ## 1. Claude Code 本体
@@ -25,6 +25,7 @@ claude-system の機械層をハーネスの現行版に追随させる調査手
 - 更新したら持ち込み能力(skills / hooks / agents / MCP)を棚卸しして `// auditedPluginVersions` を更新する。プラグイン由来の hook は `permissions.deny` の統治外
 - **公開日は自分で確認する**: `practices/supply-chain-hygiene.md` の 7 日ルールを機械的に守るのは `bun add` 系だけ(`check-package-age.sh`)。`claude plugin install` / `bunx` / `brew` 経路は手動で守る
 - superpowers の重複 skill 7 本を個別に無効化する案は 2026-09-06 に閉じた。`/skill-doctor` で 5 本が現役と判明し、`skillOverrides` は plugin skill を対象外、`Skill(name)` deny は description を listing に残すため利得がない。再評価トリガー: 使用回数が 0 に落ちた skill が出たとき
+- claude.ai 同期(`syncClaudeAiSkills` / `syncClaudeAiPlugins`)は template で `false`。`/skill-doctor` に `claude.ai sync` 行が出る、または repo 内に `skills/synced/` が現れたら drift(ADR 0029)
 
 ## 3. パフォーマンス / コスト
 
