@@ -28,6 +28,7 @@ Phase 9(`v0.1.0-rc1` リリース候補化)で消化しきれなかった、ま�
 | 24 | 外向き送信(curl POST / gh api -X)の deny と組み込み Explore の事後監査 | 検討(同上) |
 | 25 | pre-push での秘密検査(Betterleaks)| 検討(同上) |
 | 26 | n8n 用途別導入(運用ループ → プロダクト運用 → 個人) | 順次(各々 brainstorming から、ADR 0028) |
+| 27 | superpowers 6.4.1 への更新と持ち込み能力の棚卸し | 日付待ち(2026-09-26 以降、7 日ルール) |
 | 12 | migrate スクリプトの壊れた symlink 耐性 | **解決済み** → クローズ記録 |
 | 13 | settings.json 配置の責務整合 | **解決済み** → クローズ記録 |
 | 14 | ADR 0011 実装(委譲オーケストレーション) | **解決済み** → クローズ記録 |
@@ -122,6 +123,25 @@ Phase 9(`v0.1.0-rc1` リリース候補化)で消化しきれなかった、ま�
    進捗(2026-09-06): 観測側の初フローを Private 側に実装(failure-log の原因分類・プロジェクト跨ぎ再発の検出・昇格候補ドラフト、明示起動のみ)。ホスト側は `tools/loop-report.sh --json` が集計と `$HOME` の秘匿を担う。自動起動の判断は項目 10 のまま
 2. プロダクト運用(Supabase / Vercel / GitHub)。inbound webhook が要るなら外部公開(Tunnel)の可否をこの spec で決める
 3. 個人ワークフロー(メール / カレンダー / メモ)。通知チャネルの選定を含む
+
+---
+
+## 27. superpowers 6.4.1 への更新(2026-09-26 以降)
+
+### 経緯
+
+v6.4.1 は 2026-09-19 公開(v6.4.0 は未出荷)。7 日ルールにより 2026-09-26 以降に更新可能になる。marketplace.json はまだ 6.3.0 を指すため、`claude plugin marketplace update superpowers-marketplace` を先に実行してから `claude plugin update` する。
+
+### 棚卸し観点
+
+- 新 skill `diagnosing-superpowers`: transcript 走査と GitHub issue ドラフト生成を行う。外向き操作の候補のため、承認経路を確認してから有効化する
+- `executing-plans` の再構築: `task-start` / `task-done` helper を導入し、途中確認を廃止して最後に 1 回レビューする構成に変わっている
+- controller を 1 層下の subagent で動かす opt-in: 単層委譲(ADR 0015 / 0027)との整合を確認する。opt-in のままなら現状の決定に影響しない
+- AGENTS.md の正典化: `## 6. AGENTS.md の扱い` の追記と合わせて確認する
+
+### やること
+
+更新後は `// auditedPluginVersions` を更新し、hooks / skills の数を 6.3.0 時点(skills 14 / hooks 1 event)と比較して差分を記録する。
 
 ---
 
@@ -273,6 +293,8 @@ Phase 9 検証では重複の実害は確認できなかったため継続保留
 
 kairous は `AGENTS.md`(120 行)を Codex CLI 互換のために保持。
 Claude Code が直接これを読むかは現時点で不確定。
+
+2026-09-23 追記: Claude Code 2.1.277 が AGENTS.md をネイティブに読むようになった。既定 `claude-md-or-agents-md` では CLAUDE.md(`CLAUDE.md` / `.claude/CLAUDE.md` / `CLAUDE.local.md` のいずれか)が作業ディレクトリ以上にあれば AGENTS.md は無視されるため、kairous のように両方を持つプロジェクトの挙動は変わらない。両方を読ませる `claude-md-and-agents-md` は採らない([ADR 0029](./decisions/0029-harness-sync-2.1.280.md))。トリガーは変えない。
 
 ### 将来の検討
 

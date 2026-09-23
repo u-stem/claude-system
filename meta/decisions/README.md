@@ -24,7 +24,7 @@ claude-system で**今この瞬間に生きている決定**を 1 画面に集�
 | 追跡ファイルに GitHub handle と個人 email の literal を書かない(例外: LICENSE の Copyright holder、GitHub URL の path、commit 履歴、明示プレースホルダ) | 書かなければ allowlist も検出緩和も要らない | handle 例外の境界に迷うケース | allowlist 化、handle 完全禁止、検出 paths 除外 | 0006 |
 | Public 成果物から Private リソースへの直接リンクを作らない。旧設計から昇華した内容の出典は抽象的に書き、旧設定との関係は `meta/migration-from-claude-settings.md` に集約 | 第三者にはリンクが切れ、境界が曖昧化する | なし | 都度の個別判断 | 0002 |
 | `/Users/<name>/` と `-Users-<name>-` を編集時 warn + commit 時 block の 2 段で検出。パターンは `hooks/_lib.sh` の単一ソース | 規範だけでは混入を偶然にしか見つけられない | multi-OS 展開 | block 統一、warn 統一 | 0008 |
-| 会話索引(episodic-memory)は全プロジェクト横断のまま、検索結果を Public 成果物へ転記しない | 除外設定が無く Private の会話がヒットする | 索引側に除外機構が付いたとき | 索引の分割 | 0023 |
+| 会話索引(episodic-memory)は全プロジェクト横断のまま、検索結果を Public 成果物へ転記しない。1.6.0 以降は subagent 会話(sidechain)も検索対象で、tool 結果として読んだファイル本文までヒット面が広がる | 除外設定が無く Private の会話がヒットする | 索引側に除外機構が付いたとき | 索引の分割 | 0023 / 注記: CHANGELOG 2026-09-23 |
 
 ### 構造と記録
 
@@ -51,11 +51,11 @@ claude-system で**今この瞬間に生きている決定**を 1 画面に集�
 | 決定 | 根拠 | 再評価トリガー | 退けた案 | 出典 |
 |---|---|---|---|---|
 | メインは司令役。委譲トリガーは 5 クエリ超 / 10 ファイル以上 / 大量出力 / 独立並列。返却は構造化結論のみ | 中間出力が戻れば圧縮の利得を失う | なし | なし | 0011 |
-| 単層連鎖(探索→計画→反証→実装→レビュー→最終ゲート→文書追従)。自前 subagent の `tools` に `Agent` を含めず構造的に保証。委譲ファーストは指示レベル、hook で強制しない | 物理強制は軽微作業の損益を壊す。観測の一元化 | 多段委譲を採るときは 0015 の改訂とセット | Edit/Write ブロック hook、`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=1` | 0027 / 0022 / 0015 |
+| 単層連鎖(探索→計画→反証→実装→レビュー→最終ゲート→文書追従)。自前 subagent の `tools` に `Agent` を含めず構造的に保証。委譲ファーストは指示レベル、hook で強制しない | 物理強制は軽微作業の損益を壊す。観測の一元化 | 多段委譲を採るときは 0015 の改訂とセット。`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=1` を退けた根拠(組み込み `/code-review` の fan-out)は 2.1.274 で tuned settings の無いモデルが inline レビューに変わり弱まった。fan-out が無いことを確認できたら再評価 | Edit/Write ブロック hook、`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=1` | 0027 / 0022 / 0015 |
 | 探索は組み込み `Explore`(CLAUDE.md を読まず安価)。越権監査は組み込みエージェントに効かず、防衛は `pre-bash-guard.sh` とハーネスの tool 制限 | 自前 explorer は同役割で CLAUDE.md 17KB を毎回読んでいた | なし | explorer 維持、組み込み向け allowlist | 0027 |
-| 主モデル `claude-fable-5-1[1m]`、fallback `["claude-opus-5[1m]"]`。反証役と最終ゲートは `model: fable`、他は alias(opus / sonnet / haiku) | 新世代での再評価(model-selection 手順 8)。高重要・低頻度は上位側 | 次世代の公開、`subagent-log.jsonl` の品質信号 | 全 alias 据え置き、上位 3 役 fable | 0027(0016 / 0022 を覆す) |
-| メインループ effort は単一 `xhigh`。ロール別 effort は委譲先の `model` / `effort` で実現し固定テーブルにしない。subagent は `high` 以下 | 頻度 × 検証可能性 × 致命度。xhigh 以上の parse-error 安全性は subagent で未検証 | per-task effort 機構、opus 系ロールで parse-error 頻発 | 手動上下のみ、固定テーブル | 0013 / 0022 |
-| ツール呼び出し parse-error は上流事象。層 0(機械タスクを軽量へ)+ 層 A(StopFailure 通知)+ `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=70`。層 B(外部 watchdog)は保留 | 根絶不能。1M 高占有 + 強い thinking が誘発 | 上流の恒久修正、StopFailure が出力を honor | 設定で根絶、Stop hook 回復、無制限 auto-continue | 0014 |
+| 主モデル `claude-fable-5-1[1m]`、fallback `["claude-opus-5-5[1m]", "claude-opus-5[1m]"]`(先頭は既定 Opus、後段は既知良品)。反証役と最終ゲートは `model: fable`、他は alias(opus / sonnet / haiku。`opus` は 2.1.280 で Opus 5.5 に解決) | 新世代での再評価(model-selection 手順 8)。高重要・低頻度は上位側 | 次世代の公開、`subagent-log.jsonl` の品質信号 | 全 alias 据え置き、上位 3 役 fable、fallback を Opus 5 単独(0027) | 0029(0027 決定 1 を覆す) |
+| メインループ effort は単一 `xhigh`。ロール別 effort は委譲先の `model` / `effort` で実現し固定テーブルにしない。subagent は `high` 以下。pin は `modelSettings.<model>.effortLevel`(主モデルと fallback 先頭)+ top-level `effortLevel`(旧モデル向け)。`/effort` は per-model に保存するため配置済み値は次回 sync で戻る | 頻度 × 検証可能性 × 致命度。xhigh 以上の parse-error 安全性は subagent で未検証 | per-task effort 機構、opus 系ロールで parse-error 頻発 | 手動上下のみ、固定テーブル | 0013 / 0022 / 注記: settings.json.template |
+| ツール呼び出し parse-error は上流事象。層 0(機械タスクを軽量へ)+ 層 A(StopFailure 通知)+ `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=70`。層 B(外部 watchdog)は保留 | 根絶不能。1M 高占有 + 強い thinking が誘発 | 上流の恒久修正、StopFailure が出力を honor。`AUTOCOMPACT_PCT_OVERRIDE=70` は 2.1.273 まで advisor turn を約 2 倍計上する誤計測下で校正された可能性がある。修正後の parse-error 頻度を `failure-log` で再観測してから閾値を動かす | 設定で根絶、Stop hook 回復、無制限 auto-continue | 0014 |
 | 可逆は自律実行、不可逆・外向きは確認。Workflow / loop / scheduled はオプトイン。この線引きは hook で機械強制しない | 並列・背景実行が安価になった世代以降の前提。文脈依存の判断は二値判定になじまない | なし | 線引きの hook 化(false-positive で運用を阻害) | 0010 / 0009 |
 
 ### ハーネス設定
@@ -67,7 +67,7 @@ claude-system で**今この瞬間に生きている決定**を 1 画面に集�
 | `attribution: {commit:"", pr:""}` でセッション URL の自動付与を抑止 | Public repo にセッション URL を混入させない。2026-09-06 の 5 コミットに trailer / URL が無いことで実挙動を確認 | なし | なし | 0018 |
 | env は `SUBPROCESS_ENV_SCRUB` / `AUTOCOMPACT_PCT_OVERRIDE=70` / `EXPERIMENTAL_AGENT_TEAMS` の 3 つ。`ENABLE_PROMPT_CACHING_1H` は削除 | サブスクリプションでは 1h TTL が既定で no-op | AGENT_TEAMS の GA | `promptCacheTtl`(同じく no-op) | 0027 |
 | MCP は採用しない(ブラウザは `claude-in-chrome`、GitHub は `gh` CLI)。宣言系統(`setup-mcp.sh` / `servers.template.json` / inline `mcpServers`)は撤去 | 一度も実機に届いていなかった。`mcpServers` は settings の無効キー | CLI で代替できない外部連携が要るとき | opt-in 宣言の維持、宣言↔実体検査の設計 | 0027(0026 §4 / 0018 §1 を覆す) |
-| 不採用の settings: `disableBundledSkills` / `requiredMinimumVersion` / `CLAUDE_CODE_SUBAGENT_MODEL` / `sandbox.network.strictAllowlist` / `crossSessionInbound` / `outputStyle` / `timeFormat` / `PreModelSwitch` hook / `CLAUDE_CODE_ENABLE_TODO_TOOLS` / `autoMode.classifyAllShell`(allow-list を打ち消す)/ `workflowSizeGuideline` / `DirectoryAdded` / `git commit --amend` の deny(正当な用途を止める) | 個人運用に不要、または前提と衝突 | strictAllowlist は列挙粒度の改善、crossSessionInbound は複数マシン運用の開始 | なし | 0027 / 0026 / 0022 / 0018 / 0016 |
+| 不採用の settings: `omitClaudeMd`(subagent frontmatter)/ `bashEditDiffEnabled` / `maxEffortLevel` / AGENTS.md モード(`claude-md-or-agents-md` 既定)/ `disableBundledSkills` / `requiredMinimumVersion` / `CLAUDE_CODE_SUBAGENT_MODEL` / `sandbox.network.strictAllowlist` / `crossSessionInbound` / `outputStyle` / `timeFormat` / `PreModelSwitch` hook / `CLAUDE_CODE_ENABLE_TODO_TOOLS` / `autoMode.classifyAllShell`(allow-list を打ち消す)/ `workflowSizeGuideline` / `DirectoryAdded` / `git commit --amend` の deny(正当な用途を止める) | 個人運用に不要、または前提と衝突 | strictAllowlist は列挙粒度の改善、crossSessionInbound は複数マシン運用の開始 | なし | 0029 / 0027 / 0026 / 0022 / 0018 / 0016 |
 | doctor は `claude` CLI を呼ばない(毎ターンの Stop hook から走る) | 入れ子セッションの起動を避ける | なし | CLI 経由の宣言↔実体検査 | 0023 |
 | ハーネス pin は実インストール版に一致させ(`adapters/claude-code/VERSION`)、README の散文と `check-doc-parity.sh` で対にする | 2 回ずれた | なし | pin をテスト済み全版の列挙にする | 0026 |
 
@@ -97,9 +97,10 @@ claude-system で**今この瞬間に生きている決定**を 1 画面に集�
 | 決定 | 根拠 | 再評価トリガー | 退けた案 | 出典 |
 |---|---|---|---|---|
 | 依存は公開後 7 日待つ。機械ブロックは `bun add` 系のみで、plugin / bunx / brew は公開日を手動確認 | タイポスクワットと乗っ取り | なし | なし | 0026 / 0023 |
-| プラグインは superpowers / episodic-memory / elements-of-style の 3 件。`// auditedPluginVersions` と実インストールの一致を doctor が検査し、更新時は持ち込み能力を棚卸しする。episodic-memory の更新時は監視下で `npm install` を実行し lockfile を固定し直す | 宣言と実体が 3 か月乖離していた。ラッパーが `npm install` を自走する | 持ち込み能力(hook / MCP / agent)の増減 | Context7、Frontend Design | 0023 / 0021 |
+| プラグインは superpowers / episodic-memory / elements-of-style の 3 件。`// auditedPluginVersions` と実インストールの一致を doctor が検査し、更新時は持ち込み能力を棚卸しする。episodic-memory の更新時は監視下で `npm install` を実行し lockfile を固定し直す。監査版: superpowers 6.3.0 / episodic-memory 1.6.0 / elements-of-style 1.0.0 | 宣言と実体が 3 か月乖離していた。ラッパーが `npm install` を自走する | 持ち込み能力(hook / MCP / agent)の増減 | Context7、Frontend Design | 注記: CHANGELOG 2026-09-23 / 0023 / 0021 |
+| claude.ai アカウントの skill / plugin 同期は `syncClaudeAiSkills: false` / `syncClaudeAiPlugins: false` で無効化。残骸置き場 `skills/synced/` `skills/.trash/` は `.gitignore` で隔離 | 棚卸しの外から 8 skill が実機に入り、symlink 越しに repo へ第三者ファイルが落ちた | claude.ai 側の skill を端末で使いたくなったとき(同期物にも棚卸しを課す) | 同期を許容し `/skills` で個別オフ(再同期で戻る) | 0029 |
 | superpowers の重複 skill は無効化しない。常時コンテキストは削減しない | 使用実績で 5 本が現役。`skillOverrides` は plugin 対象外、`Skill(name)` deny は description を残す | 使用回数 0 の skill が出たとき(0024 §4 の条件付き約束は閉じた) | `Skill(name)` deny | 0027 / 0024 |
-| 自前 skill / command は使用実績で剪定する(180 日 0 回は削除候補)。frontmatter は `name` / `description` のみ | `/skill-doctor` で 13 件が 0 回だった | 次回 update-check の `/skill-doctor` | 全件維持 | 0027 |
+| 自前 skill / command は使用実績で剪定する(180 日 0 回は削除候補)。frontmatter は `name` / `description` のみ | `/skill-doctor` で 13 件が 0 回だった | 2026-12 の update-check の `/skill-doctor` で `nextjs-supabase-base` / `nextjs-supabase-rls` / `project-tech-stack-decision` / `review-loop` / `team` が引き続き 0 回なら削除(2026-09-23 は 17 日窓のため維持) | 全件維持、`nextjs-supabase-*` を `project-templates/nextjs-supabase/.claude/skills/` へ移して listing コストを 0 にする案(削除時の代替として保持) | 0027 / 注記: CHANGELOG 2026-09-23 |
 | 移行スクリプトは再実行可能に保ち、構造変更 = migrate / 値配置 = sync と責務分離 | dangling symlink で移行が中断した実例 | なし | 移行側で値も配置 | 0007 |
 
 ## ADR 一覧(0001〜0026 は凍結)
@@ -132,5 +133,6 @@ claude-system で**今この瞬間に生きている決定**を 1 画面に集�
 | [0024](./0024-observation-and-restraint-optimization.md) | 観測と抑止の最適化(§4 は 0027 が閉じた) | Accepted | 2026-08-09 |
 | [0025](./0025-symlink-switchover-record-and-release-tagging.md) | symlink 切り替え記録とリリースタグ | Accepted | 2026-08-09 |
 | [0026](./0026-harness-sync-2.1.229.md) | ハーネス同期 2.1.229(§4 は 0027 が撤去で解決) | Accepted | 2026-08-13 |
-| [0027](./0027-fable-5-1-sync-and-pruning.md) | Fable 5.1 同期と使用実績に基づく剪定 | Accepted | 2026-09-06 |
+| [0027](./0027-fable-5-1-sync-and-pruning.md) | Fable 5.1 同期と使用実績に基づく剪定(fallback は 0029 が置換) | Accepted | 2026-09-06 |
 | [0028](./0028-n8n-workflow-engine-boundary.md) | ワークフローエンジン(セルフホスト n8n)の切り分け・境界・配置 | Accepted | 2026-09-06 |
+| [0029](./0029-harness-sync-2.1.280.md) | ハーネス同期 2.1.280(Opus 5.5 と claude.ai 同期のオプトアウト) | Accepted | 2026-09-23 |

@@ -2,6 +2,38 @@
 
 このリポジトリの変更履歴。Phase 単位でセクション化する。
 
+## ハーネス同期 2.1.280(2026-09-23)
+
+実インストール版 2.1.280 への追随と、claude.ai アカウント同期の停止を同時に行った([ADR 0029](./decisions/0029-harness-sync-2.1.280.md))。
+
+**測ったこと**
+
+- 上流 CHANGELOG 2.1.265〜2.1.280 全文と影響範囲マップ 11 行を走査した。構文変更なし、subagent frontmatter に `omitClaudeMd` が追加、plugin に `syncClaudeAi*` が追加、モデルは Opus 5.5 が既定 Opus になり `opus` alias が 5.5 に解決、top-level `effortLevel` は新モデルに効かないことを確認した
+- `tools/doctor.sh`(full)は 54 checks・warn 1(drift: `/effort` が `modelSettings.claude-fable-5-1.effortLevel: high` を書いていた)
+- `/skill-doctor` で claude.ai 同期 skill 8 本が全て 0 回・約 1,750 tokens/turn、自前 skill は 0 回 4 本 + `team` 1 回だった
+- 同期先が symlink 越しに repo 内 `skills/synced/` へ 350 エントリ落ちていたことを確認した
+- plugin 上流: superpowers 6.4.1 は公開 4 日で 7 日ルールにより待ち、episodic-memory 1.6.0 は公開 15 日、持ち込み能力(SessionStart hook 1 / MCP 1 / agent 1 / skill 1)と dependencies は 1.4.2 と同一だった
+- `loop-report.sh` で委譲 130 件・nested なしを確認した
+- 実機: 新セッションの `/skill-doctor` から同期 skill が消え、残骸は harness が `skills/.trash/` へ移した(`git clean -X` で除去)。`claude-opus-5-5[1m]` は受理。組み込み `Explore` の `git push --dry-run` は `pre-bash-guard.log` に `deny subagent push (agent_type: Explore)` として記録された。episodic-memory 1.6.0 の監視下 `npm install` の lockfile 差分は transitive のみ(新規 3 名 / 削除 7 名、トップレベル依存の増減なし)
+
+**変えたこと**
+
+ADR 0029 の内容: pin を 2.1.280 へ、`fallbackModel` を 2 段配列へ、effort pin を `modelSettings` へ、claude.ai 同期を `syncClaudeAiSkills` / `syncClaudeAiPlugins` で無効化し `.gitignore` で隔離、episodic-memory を 1.6.0 へ、0 回 skill 5 本の削除判定を 2026-12 へ、TODO 27(superpowers 6.4.1 更新)を新設、TODO 6 に AGENTS.md ネイティブ対応の注記を追加、決定索引の 8 行を更新した。
+
+**反証で直したこと(devil-advocate)**
+
+- 同期残骸が既に repo に落ちていた事実を見落としていた。追加調査で `skills/synced/` の 350 エントリを確認し `.gitignore` 隔離を決定に加えた
+- fallback を Opus 5.5 単独としていた案を、過負荷時に既定 Opus も混みうる根拠で 2 段配列へ直した
+- top-level `effortLevel` を単純削除する案を、fallback 後段の旧モデル(Opus 5)にはそちらしか効かないと確認して撤回した
+- `omitClaudeMd` を採用する案を、user / project / local を一括で外すと実装役・文書追従役が層別編集ルールと出力衛生の指示層を失うと確認して撤回した
+- `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=1` と `AUTOCOMPACT_PCT_OVERRIDE=70` の再評価トリガーに、2.1.274 以降の inline レビュー化と旧誤計測の可能性をそれぞれ追記した
+- 「slash command に変更なし」の根拠を添えた: 2.1.271 の inline `!` の扱いの変更は、当方 3 command に `!` 行が無い(grep 0 件)ため影響しない
+
+**直したこと**
+
+- `update-check` の手順文に、macOS に `timeout` コマンドが無い旨を追記した
+- `tests/check-doc-parity.sh` が出典欄の「注記: CHANGELOG 2026-09-23」の年号を ADR 番号と誤認していた(索引の規約が定める表記の初使用)。日付を先に除いてから 4 桁を拾うよう直し、`tests/test-doc-parity.sh` に再現 2 件を足した
+
 ## 観測ループ第一弾: `loop-report.sh --json` の実装と実データ計測(2026-09-06)
 
 TODO-for-v0.2 項目 26 の 1(claude-system 運用ループ)の最初のフローを実データで検証した。ホスト側の契約は本リポジトリの `tools/loop-report.sh --json`、失敗ログの原因分類とドラフト生成はワークフローエンジン側(Private 側)が担う([ADR 0028](./decisions/0028-n8n-workflow-engine-boundary.md))。
