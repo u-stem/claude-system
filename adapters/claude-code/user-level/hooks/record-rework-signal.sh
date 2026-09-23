@@ -30,8 +30,25 @@ source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 INPUT="$(hk_read_input)"
 [[ -z "$INPUT" ]] && exit 0
 
-file_path="$(printf '%s' "$INPUT" | jq -r '.tool_input.file_path // .tool_input.path // empty' 2>/dev/null || true)"
-[[ -z "$file_path" ]] && exit 0
+# One jq call for all five fields instead of five, each spawning its own jq
+# process — a subagent's edit stream used to fork jq once per field per hook
+# invocation for no reason.
+#
+# Joined with U+001F (ASCII Unit Separator), not @tsv's real tab: `read -r`
+# treats a literal tab as "IFS whitespace" (the same class as space/newline)
+# REGARDLESS of what IFS is set to, so `IFS=$'\t' read` collapses runs of
+# tabs and strips a leading one — verified empirically, e.g. field_path
+# empty + 4 more empty fields (a legitimate, common shape for this payload)
+# comes back as "\t\t\t\t", whose leading run of 4 delimiters gets eaten,
+# silently shifting every field left by one. U+001F is not in that
+# whitespace class, so each occurrence delimits exactly one field, empty
+# fields included. The only field where a control character is a realistic
+# input is file_path, and U+001F does not appear in real paths.
+fields="$(printf '%s' "$INPUT" | jq -r \
+  '[.tool_input.file_path // .tool_input.path // "", .session_id // "", .agent_type // "", .agent_id // "", .tool_name // ""] | join("\u001f")' \
+  2>/dev/null || true)"
+IFS=$'\x1f' read -r file_path session_id agent_type agent_id tool_name <<< "$fields"
+[[ -z "${file_path:-}" ]] && exit 0
 
 # Store the path relative to the project. An absolute path embeds /Users/<name>,
 # which ADR 0008 forbids in tree artifacts and .gitleaks.toml blocks at commit
@@ -42,11 +59,6 @@ case "$file_path" in
   "$PROJECT_ROOT"/*) rel_path="${file_path#"$PROJECT_ROOT"/}" ;;
   *)                 rel_path="(outside project)" ;;
 esac
-
-session_id="$(printf '%s' "$INPUT" | jq -r '.session_id // empty' 2>/dev/null || true)"
-agent_type="$(printf '%s' "$INPUT" | jq -r '.agent_type // empty' 2>/dev/null || true)"
-agent_id="$(printf '%s' "$INPUT" | jq -r '.agent_id // empty' 2>/dev/null || true)"
-tool_name="$(printf '%s' "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || true)"
 
 log_file="${PROJECT_ROOT}/.claude/rework-log.jsonl"
 mkdir -p "$(dirname "$log_file")" 2>/dev/null || exit 0

@@ -9,3 +9,7 @@
 ディレクトリ構造を残すために `.gitkeep` と本 `_README.md` のみを git 管理する(ルート `.gitignore` の除外指定参照)。
 
 詳細は Phase 8 で整備される。
+
+## 運用記録
+
+`tools/unadopt-project.sh` が離脱ログをここに追記する(1 行 1 件)。

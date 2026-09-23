@@ -15,7 +15,7 @@
 |------|------|------|------------------|
 | [`nextjs-supabase/`](./nextjs-supabase/) | Next.js + Supabase Web プロジェクト(主要スタック) | **完成** | `CLAUDE.md.template` / `README.md.template` / `.gitignore` / `.gitleaks.toml` / `.pre-commit-config.yaml` / `docs/adr/{README.md, 0001-architecture-overview.md.template}` / `_TEMPLATE_USAGE.md` |
 | [`pixi-game/`](./pixi-game/) | ゲーム系プロジェクト(PixiJS / 他エンジンへの転用も可) | **skeleton** | `CLAUDE.md.template` / `.gitignore` / `.gitleaks.toml` / `_TEMPLATE_USAGE.md`(本格採用時に肉付け) |
-| [`board-game-doc/`](./board-game-doc/) | 板ゲー設計プロジェクト(物理 / デジタル両用) | **完成** | `CLAUDE.md.template` / `.gitignore` / `.gitleaks.toml` / `docs/{rulebook,balance-tests,playtest-logs}/.gitkeep` / `_TEMPLATE_USAGE.md` |
+| [`board-game-doc/`](./board-game-doc/) | 板ゲー設計プロジェクト(物理 / デジタル両用) | **暫定** | `CLAUDE.md.template` / `.gitignore` / `.gitleaks.toml` / `docs/{rulebook,balance-tests,playtest-logs}/.gitkeep` / `_TEMPLATE_USAGE.md` |
 
 ## テンプレート成熟度
 

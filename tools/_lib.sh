@@ -116,6 +116,50 @@ cs_backup_glob_for_project() {
   echo "$CS_BACKUP_ROOT/${proj}-${basename}.backup-*"
 }
 
+# cs_rotate_backups <glob-pattern> <keep-count> [--dry-run]
+#
+# Keeps the <keep-count> most-recently-modified files matching <glob-pattern>
+# and removes the rest. <glob-pattern> is a literal directory + `-name` glob
+# (e.g. "$CS_BACKUP_ROOT/settings.json.backup-*"), matched with `find
+# -maxdepth 1` rather than shell globbing so an empty match doesn't leave a
+# literal unexpanded pattern for the loop to choke on.
+#
+# Uses `stat -f %m` (BSD) rather than `ls -t`: `ls -t` output is meant for
+# terminal display, not scripting (word-splits on whitespace in filenames and
+# has no stable field separator for machine parsing).
+#
+# With --dry-run, prints what would be removed via cs_info and removes
+# nothing — callers get an observable preview of the same selection logic
+# that would run for real.
+cs_rotate_backups() {
+  local pattern="$1" keep="$2" dry_run="${3:-}"
+  local dir base
+  dir="$(dirname "$pattern")"
+  base="$(basename "$pattern")"
+  [[ -d "$dir" ]] || return 0
+
+  local entries
+  entries="$(find "$dir" -maxdepth 1 -type f -name "$base" -exec stat -f '%m %N' {} \; 2>/dev/null | sort -rn)"
+  [[ -n "$entries" ]] || return 0
+
+  local total
+  total="$(printf '%s\n' "$entries" | wc -l | tr -d ' ')"
+  [[ "$total" -gt "$keep" ]] || return 0
+
+  local i=0 f line
+  while IFS= read -r line; do
+    i=$((i + 1))
+    [[ "$i" -gt "$keep" ]] || continue
+    f="${line#* }"
+    if [[ "$dry_run" == "--dry-run" ]]; then
+      cs_info "would remove old backup: $f"
+    else
+      rm -f "$f"
+      cs_info "removed old backup: $f"
+    fi
+  done <<< "$entries"
+}
+
 # ---------------------------------------------------------------------------
 # Validation
 # ---------------------------------------------------------------------------
@@ -226,21 +270,28 @@ cs_stat_mtime() {
 # code LC_ALL=en_US.UTF-8, which macOS ships but a CI image may not generate —
 # and the failure is silent and wrong rather than loud: 12 of 16 skill
 # descriptions would be reported as "over 50 chars" on a runner without it.
-# Result is cached; `locale charmap` is a process spawn and this runs per skill.
+#
+# Result is cached in the exported CS_UTF8_LOCALE env var, not a plain shell
+# variable: callers invoke this via `$(...)` command substitution (see
+# cs_str_chars below), which forks a subshell, so a local/global cache set
+# inside that subshell never survives back to the caller — every skill re-ran
+# `locale charmap` regardless. Exporting makes the cache visible to child
+# processes too, so a whole `bash tools/doctor.sh` run pays the lookup once.
 cs_utf8_locale() {
-  if [[ -n "${_CS_UTF8_LOCALE_CACHE+x}" ]]; then
-    printf '%s' "$_CS_UTF8_LOCALE_CACHE"
+  if [[ -n "${CS_UTF8_LOCALE+x}" ]]; then
+    printf '%s' "$CS_UTF8_LOCALE"
     return 0
   fi
-  _CS_UTF8_LOCALE_CACHE=""
+  CS_UTF8_LOCALE=""
   local loc
   for loc in en_US.UTF-8 C.UTF-8 en_US.utf8 C.utf8; do
     if LC_ALL="$loc" locale charmap 2>/dev/null | grep -qi 'utf-\{0,1\}8'; then
-      _CS_UTF8_LOCALE_CACHE="$loc"
+      CS_UTF8_LOCALE="$loc"
       break
     fi
   done
-  printf '%s' "$_CS_UTF8_LOCALE_CACHE"
+  export CS_UTF8_LOCALE
+  printf '%s' "$CS_UTF8_LOCALE"
 }
 
 # cs_str_chars <string> — print the character count on stdout.

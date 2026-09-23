@@ -123,6 +123,10 @@ case "$MODE" in
       bk="$(cs_backup_path_for "$TARGET")"
       cp "$TARGET" "$bk"
       cs_info "Backup: $bk"
+      # Keep the 5 most recent settings.json backups (enable-guardrails.sh
+      # only ever needs the latest one, and this file accumulates one entry
+      # per drifted apply with nothing else ever pruning it).
+      cs_rotate_backups "$CS_BACKUP_ROOT/settings.json.backup-*" 5
     fi
     tmp="$(mktemp "$HOME/.claude/.settings.json.render.XXXXXX")"
     printf '%s\n' "$rendered" > "$tmp"

@@ -17,7 +17,7 @@ Usage:
 Steps:
   1. Restore the most recent CLAUDE.md backup from ~/.claude-system-backups/.
   2. Remove $CS_ROOT/projects/<name>/.
-  3. Append a one-line entry to meta/migration-inventory.md.
+  3. Append a one-line entry to projects/_README.md (## 運用記録 section).
 EOF
 }
 
@@ -62,14 +62,17 @@ if [[ -d "$PROJECTS_ENTRY" ]]; then
   fi
 fi
 
-# 3. Append to migration-inventory.md
-INV="$CS_ROOT/meta/migration-inventory.md"
-if [[ -f "$INV" ]]; then
-  {
-    echo
-    echo "- $(date +%Y-%m-%d): unadopted \`$PROJ_NAME\` (path: $PROJ_PATH)"
-  } >> "$INV"
-  cs_info "Logged to $INV"
+# 3. Append to projects/_README.md's ## 運用記録 section (create it if missing).
+LOG="$CS_ROOT/projects/_README.md"
+if [[ -f "$LOG" ]]; then
+  if ! grep -q '^## 運用記録$' "$LOG"; then
+    {
+      echo
+      echo "## 運用記録"
+    } >> "$LOG"
+  fi
+  echo "- $(date +%Y-%m-%d): unadopted \`$PROJ_NAME\` (path: $PROJ_PATH)" >> "$LOG"
+  cs_info "Logged to $LOG"
 fi
 
 cs_step "Done"

@@ -77,6 +77,29 @@ check "re-apply is idempotent" test "$before" = "$after"
 check "apply creates a backup of the previous file" \
   bash -c 'ls "$1"/.claude-system-backups/settings.json.backup-* >/dev/null 2>&1' _ "$TMP_HOME"
 
+# --- backup rotation ---------------------------------------------------------
+# apply's backup step keeps only the 5 most recent settings.json backups
+# (cs_rotate_backups in tools/_lib.sh). Pre-seed 5 old backups with distinct,
+# controlled mtimes (touch -t, so this doesn't depend on real wall-clock time
+# or need to sleep between applies), then trigger one more real backup via a
+# drifting --apply. 6 total -> 5 kept, and the newest survives.
+BACKUP_DIR="$TMP_HOME/.claude-system-backups"
+mkdir -p "$BACKUP_DIR"
+rm -f "$BACKUP_DIR"/settings.json.backup-*
+for n in 1 2 3 4 5; do
+  old="$BACKUP_DIR/settings.json.backup-seed-$n"
+  : > "$old"
+  # touch -t [[CC]YY]MMDDhhmm[.SS] — each seed one minute apart, all in the past.
+  touch -t "202501010${n}00.00" "$old"
+done
+printf '%s\n' '{"effortLevel": "high"}' > "$OVERRIDES"
+run --apply >/dev/null
+check "rotation prunes down to 5 backups" \
+  bash -c '[[ "$(find "$1" -maxdepth 1 -name "settings.json.backup-*" -type f | wc -l | tr -d " ")" == "5" ]]' _ "$BACKUP_DIR"
+newest="$(find "$BACKUP_DIR" -maxdepth 1 -name 'settings.json.backup-*' -type f -exec stat -f '%m %N' {} \; | sort -rn | head -1 | cut -d' ' -f2-)"
+check "rotation keeps the newest backup, not a seeded one" \
+  bash -c '[[ "$1" != *seed* ]]' _ "$newest"
+
 # --- summary -----------------------------------------------------------------
 echo "test-sync-settings: pass=$PASS fail=$FAIL"
 [[ "$FAIL" -eq 0 ]]

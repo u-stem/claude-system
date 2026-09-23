@@ -12,11 +12,27 @@
 #                                                          the actual audit target)
 #
 # Verifies:
-#   (a) claude-settings reference in the PER-AGENT transcript -> finding
-#       recorded, with detail set to the per-agent transcript's basename
+#   (a) a path-shaped claude-settings reference inside a Write/Edit tool_use's
+#       tool_input, in the PER-AGENT transcript -> finding recorded, with
+#       detail set to the per-agent transcript's basename
 #   (b) no per-agent transcript on disk (harness-internal helper agent) ->
 #       zero findings, hook exits 0 (main session transcript is never audited
 #       as a fallback, even though it is readable and "dirty")
+#   (f) an assistant TEXT block quoting the user-level CLAUDE.md's
+#       "~/ws/claude-settings/ is read-only" instruction -> NOT a finding.
+#       Every subagent reads that instruction, so a bare substring match on
+#       "claude-settings" produced 74 identical false positives in a 2026-09
+#       audit run; restricting the check to Write/Edit tool_input fixes it.
+#   (g) the same path-shaped reference, but inside a Write tool_use's
+#       .input.content (as opposed to .input.file_path in case (a)) ->
+#       finding recorded. Confirms all three scanned tool_input fields work,
+#       not just file_path.
+#
+# Test (a) and test (g) both use the real Claude Code transcript shape
+# (.type/.message.content[]/.type=="tool_use") rather than the flattened
+# fixture shape used elsewhere in this file, because the private-resource-
+# link check now parses that structure specifically (see subagent-stop-
+# audit.sh's rationale comment above its check #2).
 #
 # CS_BACKUP_ROOT is overridden per test to isolate audit logs from the real
 # ~/.claude-system-backups directory (see hooks/_lib.sh HOOK_LOG_DIR).
@@ -44,7 +60,8 @@ TMPDIR_TEST="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR_TEST"' EXIT
 
 # ---------------------------------------------------------------------------
-# Test A: per-agent transcript contains a private-resource-link ("claude-settings")
+# Test A: per-agent transcript contains a path-shaped private-resource-link
+# ("~/ws/claude-settings/...") inside a Write tool_use's .input.file_path
 # -> finding recorded, detail is the per-agent transcript's basename
 # ---------------------------------------------------------------------------
 
@@ -57,7 +74,15 @@ MAIN_TRANSCRIPT_A="$TMPDIR_TEST/session-a.jsonl"
 printf '{"role":"user","content":"see claude-settings for the archive"}\n' > "$MAIN_TRANSCRIPT_A"
 
 AGENT_TRANSCRIPT_A="$SESSION_A/subagents/agent-${AGENT_ID_A}.jsonl"
-printf '{"role":"assistant","content":"reading claude-settings backup"}\n' > "$AGENT_TRANSCRIPT_A"
+jq -nc '{
+  type: "assistant",
+  message: {
+    role: "assistant",
+    content: [
+      {type: "tool_use", name: "Write", input: {file_path: "~/ws/claude-settings/notes.md", content: "backup notes"}}
+    ]
+  }
+}' > "$AGENT_TRANSCRIPT_A"
 
 PAYLOAD_A="$(jq -nc \
   --arg tp "$MAIN_TRANSCRIPT_A" \
@@ -137,7 +162,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# Test D: tool-overreach — refactor-planner uses Bash (not in [Read, Grep, Glob]),
+# Test D: tool-overreach — devil-advocate uses Bash (not in [Read, Grep, Glob]),
 # detected from the PER-AGENT transcript
 # ---------------------------------------------------------------------------
 
@@ -149,13 +174,13 @@ MAIN_TRANSCRIPT_D="$TMPDIR_TEST/session-d.jsonl"
 printf '{"role":"user","content":"main session, unrelated"}\n' > "$MAIN_TRANSCRIPT_D"
 
 AGENT_TRANSCRIPT_D="$SESSION_D/subagents/agent-${AGENT_ID_D}.jsonl"
-# "tool":"Bash" matches the grep pattern in the hook; refactor-planner does not declare Bash.
+# "tool":"Bash" matches the grep pattern in the hook; devil-advocate does not declare Bash.
 printf '{"role":"assistant","content":"running command","tool":"Bash"}\n' > "$AGENT_TRANSCRIPT_D"
 
 PAYLOAD_D="$(jq -nc \
   --arg tp "$MAIN_TRANSCRIPT_D" \
   --arg aid "$AGENT_ID_D" \
-  '{"agent_type":"refactor-planner","agent_id":$aid,"transcript_path":$tp,"hook_event_name":"SubagentStop"}')"
+  '{"agent_type":"devil-advocate","agent_id":$aid,"transcript_path":$tp,"hook_event_name":"SubagentStop"}')"
 
 CS_BACKUP_ROOT="$TMPDIR_TEST/backup-d" bash "$HOOK" <<< "$PAYLOAD_D"
 
@@ -180,13 +205,13 @@ MAIN_TRANSCRIPT_E="$TMPDIR_TEST/session-e.jsonl"
 printf '{"role":"user","content":"main session, unrelated"}\n' > "$MAIN_TRANSCRIPT_E"
 
 AGENT_TRANSCRIPT_E="$SESSION_E/subagents/agent-${AGENT_ID_E}.jsonl"
-# "tool":"Read" is in refactor-planner's declared [Read, Grep, Glob]. No email or private links.
+# "tool":"Read" is in devil-advocate's declared [Read, Grep, Glob]. No email or private links.
 printf '{"role":"assistant","content":"reading file","tool":"Read"}\n' > "$AGENT_TRANSCRIPT_E"
 
 PAYLOAD_E="$(jq -nc \
   --arg tp "$MAIN_TRANSCRIPT_E" \
   --arg aid "$AGENT_ID_E" \
-  '{"agent_type":"refactor-planner","agent_id":$aid,"transcript_path":$tp,"hook_event_name":"SubagentStop"}')"
+  '{"agent_type":"devil-advocate","agent_id":$aid,"transcript_path":$tp,"hook_event_name":"SubagentStop"}')"
 
 CS_BACKUP_ROOT="$TMPDIR_TEST/backup-e" bash "$HOOK" <<< "$PAYLOAD_E"
 
@@ -195,6 +220,83 @@ if [[ -f "$AUDIT_E" ]]; then
   FINDING_COUNT_E="$(wc -l < "$AUDIT_E" | tr -d ' ')"
   [[ "$FINDING_COUNT_E" -eq 0 ]] \
     || err "Test E: expected zero findings for clean transcript, got ${FINDING_COUNT_E} finding(s)"
+fi
+
+# ---------------------------------------------------------------------------
+# Test F: assistant TEXT block quoting the CLAUDE.md instruction
+# ("~/ws/claude-settings/ is Read-only") -> NOT a finding. This is prose the
+# subagent read/said, not something it wrote into a Write/Edit tool_input.
+# ---------------------------------------------------------------------------
+
+AGENT_ID_F="test-f"
+SESSION_F="$TMPDIR_TEST/session-f"
+mkdir -p "$SESSION_F/subagents"
+
+MAIN_TRANSCRIPT_F="$TMPDIR_TEST/session-f.jsonl"
+printf '{"role":"user","content":"main session, unrelated"}\n' > "$MAIN_TRANSCRIPT_F"
+
+AGENT_TRANSCRIPT_F="$SESSION_F/subagents/agent-${AGENT_ID_F}.jsonl"
+jq -nc '{
+  type: "assistant",
+  message: {
+    role: "assistant",
+    content: [
+      {type: "text", text: "Per the user-level CLAUDE.md, ~/ws/claude-settings/ is Read-only; I will not write there."}
+    ]
+  }
+}' > "$AGENT_TRANSCRIPT_F"
+
+PAYLOAD_F="$(jq -nc \
+  --arg tp "$MAIN_TRANSCRIPT_F" \
+  --arg aid "$AGENT_ID_F" \
+  '{"agent_type":"test-agent-noop","agent_id":$aid,"transcript_path":$tp,"hook_event_name":"SubagentStop"}')"
+
+CS_BACKUP_ROOT="$TMPDIR_TEST/backup-f" bash "$HOOK" <<< "$PAYLOAD_F"
+
+AUDIT_F="$TMPDIR_TEST/backup-f/hook-logs/subagent-audit.jsonl"
+if [[ -f "$AUDIT_F" ]]; then
+  FINDING_COUNT_F="$(wc -l < "$AUDIT_F" | tr -d ' ')"
+  [[ "$FINDING_COUNT_F" -eq 0 ]] \
+    || err "Test F: expected zero findings for a CLAUDE.md quote in assistant text, got ${FINDING_COUNT_F} finding(s)"
+fi
+
+# ---------------------------------------------------------------------------
+# Test G: path-shaped private link inside a Write tool_use's .input.content
+# (as opposed to .input.file_path in Test A) -> finding recorded
+# ---------------------------------------------------------------------------
+
+AGENT_ID_G="test-g"
+SESSION_G="$TMPDIR_TEST/session-g"
+mkdir -p "$SESSION_G/subagents"
+
+MAIN_TRANSCRIPT_G="$TMPDIR_TEST/session-g.jsonl"
+printf '{"role":"user","content":"main session, unrelated"}\n' > "$MAIN_TRANSCRIPT_G"
+
+AGENT_TRANSCRIPT_G="$SESSION_G/subagents/agent-${AGENT_ID_G}.jsonl"
+jq -nc '{
+  type: "assistant",
+  message: {
+    role: "assistant",
+    content: [
+      {type: "tool_use", name: "Write", input: {file_path: "/tmp/summary.md", content: "See ~/ws/claude-settings/settings.json for the original."}}
+    ]
+  }
+}' > "$AGENT_TRANSCRIPT_G"
+
+PAYLOAD_G="$(jq -nc \
+  --arg tp "$MAIN_TRANSCRIPT_G" \
+  --arg aid "$AGENT_ID_G" \
+  '{"agent_type":"test-agent-noop","agent_id":$aid,"transcript_path":$tp,"hook_event_name":"SubagentStop"}')"
+
+CS_BACKUP_ROOT="$TMPDIR_TEST/backup-g" bash "$HOOK" <<< "$PAYLOAD_G"
+
+AUDIT_G="$TMPDIR_TEST/backup-g/hook-logs/subagent-audit.jsonl"
+if [[ ! -f "$AUDIT_G" ]]; then
+  err "Test G: audit log not created — private-resource-link inside Write .input.content was not detected"
+else
+  KIND_G="$(grep -o '"kind":"[^"]*"' "$AUDIT_G" | sed 's/"kind":"//;s/"//' | head -1)"
+  [[ "$KIND_G" == "private-resource-link" ]] \
+    || err "Test G [kind]: expected 'private-resource-link', got '$KIND_G'"
 fi
 
 # ---------------------------------------------------------------------------

@@ -54,12 +54,13 @@ emit_finding() {
     >> "$audit_log"
 }
 
-# Skip if the transcript file is missing or unreadable. Audit is best-effort,
-# but log the skip so a future SubagentStop schema change cannot silently
-# disable the whole audit again (basename only — output hygiene, ADR 0001).
+# Skip if the transcript file is missing or unreadable. Audit is best-effort.
+# This is the ordinary path for harness-internal helper agents, which have no
+# per-agent transcript on disk at all — most SubagentStop invocations take it
+# — so it is not logged: a 2026-09 audit run showed the diagnostic log at
+# 100% skip lines (659/659), all this same expected no-op. Only deny / finding
+# / actual-error paths are worth a diagnostic entry.
 if [[ -z "$transcript_path" || ! -r "$transcript_path" ]]; then
-  hk_log subagent-stop-audit \
-    "skip: transcript empty/unreadable agent=${agent_type:-?} tp=${transcript_path:+$(basename "$transcript_path")}"
   exit 0
 fi
 
@@ -72,7 +73,33 @@ if /usr/bin/grep -qE '[A-Za-z0-9._%+-]+@(gmail\.com|icloud\.com|outlook\.com)' "
 fi
 
 # 2. ADR 0002: claude-settings / private-host references.
-if /usr/bin/grep -qE 'claude-settings|github\.com/[^/]+/private|gitlab\.[^/]+/private' "$transcript_path"; then
+#
+# Two restrictions were added after a 2026-09 audit run produced 74 findings
+# that were all the same false positive:
+#
+# (a) Path-shaped only. A bare "claude-settings" substring also matches every
+#     subagent transcript that quotes the user-level CLAUDE.md, which tells
+#     every subagent that `~/ws/claude-settings/` is Read-only — prose
+#     instruction, not a leaked link. Requiring one of the three concrete
+#     path/URL shapes (home-relative, absolute macOS home, or a GitHub blob
+#     URL) keeps the check aimed at an actual reference while dropping the
+#     instruction-quoting noise.
+# (b) Write/Edit tool_input only. Even a path-shaped match is not a leak when
+#     it is the assistant *reading about* the path (its own reasoning text,
+#     or a Read tool result echoing a file's contents) — ADR 0002 is about
+#     what a subagent *writes into a public artifact*, not what it read or
+#     said. So only .input.content / .input.new_string / .input.file_path of
+#     a Write or Edit tool_use block count.
+private_link_pattern='(~/ws/claude-settings|/Users/[^/]+/ws/claude-settings|github\.com/[^/]+/claude-settings)'
+write_edit_fields="$(jq -r '
+    select(.type == "assistant")
+    | .message.content[]?
+    | select(.type == "tool_use" and (.name == "Write" or .name == "Edit"))
+    | [(.input.content // ""), (.input.new_string // ""), (.input.file_path // "")]
+    | join("\n")
+  ' "$transcript_path" 2>/dev/null || true)"
+if [[ -n "$write_edit_fields" ]] \
+   && printf '%s' "$write_edit_fields" | /usr/bin/grep -qE "$private_link_pattern"; then
   emit_finding private-resource-link "$(basename "$transcript_path")"
 fi
 
