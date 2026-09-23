@@ -37,19 +37,13 @@
 - 新規ファイルとコミットメッセージは書く前に上記の literal を自分で grep する。機械検出は最終防衛線であって代替ではない
 
 
-## 3. 運用者プロファイル
+## 3. 言語規約
 
-- 個人開発者、日本拠点。複数のプロダクトを並行運用
-- 主要スタック: TypeScript / Next.js / Supabase / Vercel
-- 副次関心: 創作・ゲーム設計
-
-## 4. 言語規約
-
-- 対話は日本語。コード / コメント / コミットメッセージは英語(混在させない、迷ったら英語)
+- 日本拠点(JST)。対話は日本語。コード / コメントは英語(混在させない、迷ったら英語)。コミットメッセージは `<type>: <日本語説明>`(共通の技術規約を参照)
 - 技術文書 / README は日本語(個人プロジェクト)、英語(OSS)
 - 絵文字は明示要求がある場合のみ。称賛・謝罪・装飾を足さない
 
-## 5. 共通の技術規約
+## 4. 共通の技術規約
 
 - パッケージ管理: JS/TS は `bun`(→ `pnpm` → `npm`)、Python は `uv`。一度きりの操作はスクリプト化しない
 - TypeScript: `strict` 必須、`as` 禁止(型ガード関数を除く)、Parse-don't-validate
@@ -57,7 +51,7 @@
 - Git: Conventional Commits(`<type>: <日本語説明>`、type は feat / fix / docs / refactor / test / chore)
 - コード変更に伴う doc 更新は同じコミットで行う
 
-## 6. 作業フロー
+## 5. 作業フロー
 
 1. 仕様を明確にし、既存コードのパターンを確認する
 2. 可逆な操作は自律実行し、不可逆・外向きの操作(push / 公開 / 削除 / 外部送信)だけ事前確認する
@@ -70,17 +64,17 @@
 実作業は subagent に委譲し、メインは分解・選定・統合・不可逆操作の判断に徹する。軽微・可逆・1 点参照はメイン直接実行でよい。
 
 - 探索 → 組み込み `Explore`(内部)/ `research-summarizer`(外部)
-- 計画 → `refactor-planner`、反証 → `devil-advocate`、実装 → `implementer`、レビュー → `code-reviewer`(反復は `/review-loop`)、最終ゲート → `security-auditor`、文書追従 → `doc-writer`。固定順序で回すなら `/team`
+- 計画 → 組み込み `Plan`(CLAUDE.md を読まない軽量な計画役)、反証 → `devil-advocate`、実装 → `implementer`、レビュー → `code-reviewer`(反復は `/review-loop`)、最終ゲート → `security-auditor`、文書追従 → `doc-writer`。固定順序で回すなら `/team`
 - 連鎖はメイン主導の単層(自前 subagent の `tools` に `Agent` を含めない)
 - 委譲先には返却の形(構造化した結論と `file:line`)を指定し、ファイル全文や探索ログを戻させない
 
-## 7. 問い直しの基準
+## 6. 問い直しの基準
 
 - 解釈の違いで成果物が変わるときだけ問い、選択肢を提示する
 - 可逆な判断は仮定を明示して進める。「たぶん大丈夫」を確認なしで残さない
 - 影響範囲が大きい操作と破壊的操作は必ず確認する
 
-## 8. 禁止事項
+## 7. 禁止事項
 
 - 認証情報・API キー・個人情報のコミット
 - 指定外ファイルの「ついで」変更
@@ -91,9 +85,8 @@
 - 保護対象への書き込み: `~/ws/claude-settings/`(Read のみ可)、`*.backup-*`、`~/.claude/` の symlink 切替。Edit / Write は settings と hook が deny するが、Bash 経由の書き込みと symlink 切替は指示でしか守れない
 - `--no-verify` と `cd` は settings / hook が機械的に deny する
 
-## 9. メモリ運用
+## 8. メモリ運用
 
 - auto memory は「覚えておいて」(ユーザー情報・設計判断・フィードバック)、episodic-memory は「前に話した X は?」(過去会話の検索)。Memory MCP は使わない
-- episodic-memory は plugin の実インストールが要る(`tools/setup-plugins.sh`。未導入は `tools/doctor.sh` が WARN)
 
 根本原則は `~/ws/claude-system/principles/`、リポジトリ自体の編集規約は `~/ws/claude-system/CLAUDE.md`。

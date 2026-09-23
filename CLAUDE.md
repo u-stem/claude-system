@@ -16,7 +16,7 @@
 - **冪等性**: 全スクリプトは再実行しても安全であること
 - **shell スクリプトは bash 前提、`set -euo pipefail` を必ず付与**
 - **macOS BSD コマンド前提**(GNU 互換不要、ただし bash は Homebrew 5.x を許容)
-- **ADR 0001(個人特定情報)・ADR 0002(Public/Private 境界)を遵守**。本名・呼称・新規連絡先・Private リソースへの URL を成果物に含めない
+- **[ADR 0001](./meta/decisions/0001-anonymity-policy.md)(個人特定情報)・[ADR 0002](./meta/decisions/0002-public-private-boundary.md)(Public/Private 境界)を遵守**。本名・呼称・新規連絡先・Private リソースへの URL を成果物に含めない(用語は[用語集](./meta/glossary.md)参照)
 
 ## 編集時の慎重度
 
@@ -69,23 +69,12 @@
 
 - README, CLAUDE.md, principles/practices/adapters の文書: **日本語**
 - shell スクリプト・コード内のコメント: **英語**
-- コミットメッセージ: **英語**(Conventional Commits)
+- コミットメッセージ: `<type>(<scope>): <日本語説明>`(Conventional Commits、user-level CLAUDE.md の技術規約と `commit-conventional` skill に従う)
 - ADR: 日本語(後から読み返すのは本人のため)
 
 ## コミット規約
 
-Conventional Commits:
-
-| type | 用途 |
-|------|------|
-| `feat:` | 新しい principle / practice / skill / subagent / hook / template 等 |
-| `fix:` | 修正 |
-| `docs:` | ドキュメントのみ |
-| `refactor:` | リファクタリング |
-| `chore:` | ビルド、CI、雑務 |
-| `test:` | テスト追加・修正 |
-
-各 Phase で**複数コミットに分割推奨**(後から判断単位を読み取るため)。
+type と書式は user-level CLAUDE.md と `adapters/claude-code/user-level/skills/commit-conventional/SKILL.md` に一本化。各 Phase / 作業で複数コミットに分割推奨。
 
 ## 必須検証
 
@@ -93,7 +82,7 @@ Conventional Commits:
 
 - `principles/` `practices/` 編集時: 禁止語チェック(`bash tests/lint-principles-language.sh`。`meta/forbidden-words.txt` のコメント行を読み飛ばすのはこのスクリプトだけなので、生の grep ループを使わない)
 - 設定テンプレート編集時: `jq` で JSON 妥当性、`betterleaks dir <path> --config .gitleaks.toml --redact` で機密漏洩チェック
-- 全般: `tools/doctor.sh`(full)で整合性確認。毎ターンの Stop hook は `--fast` を回す
+- 全般: `tools/doctor.sh`(full)で整合性確認。SessionStart hook が `--fast` を回し、前回の WARN / ERROR を文脈に注入する(ADR 0030)
 
 検証なしで「完了」と書かない([`principles/02-decision-recording.md`](./principles/02-decision-recording.md) - 検証されていない仮定を残さない)。
 
@@ -104,16 +93,4 @@ Phase 7b のフック有効化以降は `tools/disable-guardrails.sh` で一時�
 
 ## Phase 進行と現在地
 
-初期構築(Phase 0-10)は完了済み([`meta/decisions/0005-bootstrap-completion-and-deferral.md`](./meta/decisions/0005-bootstrap-completion-and-deferral.md))。このリポジトリ自体が bootstrap の成果物であり、以降は v0.2 へ向けた継続改善フェーズにある。
-
-- 継続課題・持ち越し事項: [`meta/TODO-for-v0.2.md`](./meta/TODO-for-v0.2.md)
-- 完了履歴(Phase 0-10 の時系列): [`meta/CHANGELOG.md`](./meta/CHANGELOG.md)
-- 初期構築時の Phase 仕様(`~/.claude-system-bootstrap/`)は bootstrap 完了をもって役割を終えた歴史的資料。新規作業の判断単位は決定索引(`meta/decisions/README.md`)+ 短い ADR + CHANGELOG で記録する
-- 完了報告は user-level [`CLAUDE.md`](./adapters/claude-code/user-level/CLAUDE.md) の「完了時の必須報告フォーマット」に従う(`git diff --stat` の証跡を必ず添付)
-
-## 関連
-
-- [`adapters/claude-code/user-level/CLAUDE.md`](./adapters/claude-code/user-level/CLAUDE.md) — ユーザーレベル共通指示(日常開発で読まれる側)
-- [`meta/decisions/0001-anonymity-policy.md`](./meta/decisions/0001-anonymity-policy.md)
-- [`meta/decisions/0002-public-private-boundary.md`](./meta/decisions/0002-public-private-boundary.md)
-- [`meta/glossary.md`](./meta/glossary.md) — 用語集
+初期構築(Phase 0-10)は完了([`meta/decisions/0005-bootstrap-completion-and-deferral.md`](./meta/decisions/0005-bootstrap-completion-and-deferral.md))。現在は v0.2 へ向けた継続改善フェーズにある。継続課題は [`meta/TODO-for-v0.2.md`](./meta/TODO-for-v0.2.md)、履歴は [`meta/CHANGELOG.md`](./meta/CHANGELOG.md)、完了報告は user-level [`CLAUDE.md`](./adapters/claude-code/user-level/CLAUDE.md) の必須報告フォーマット(`git diff --stat` を添付)に従う。

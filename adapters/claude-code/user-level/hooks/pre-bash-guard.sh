@@ -111,7 +111,7 @@ _pbg_invokes_git_push() {
 # Subagents must not push. v2.1.221 changed background/agent sessions to commit
 # and push on their own to "preserve work"; on 2026-08-09 that published 10
 # commits straight to a public main from this repo without the operator asking.
-# The user-level CLAUDE.md §8 prohibition did not stop it — a subagent has no
+# The user-level CLAUDE.md §7 prohibition did not stop it — a subagent has no
 # one to ask, so a written rule is the wrong layer. Enforce it here instead.
 # Commit is still allowed: work committed locally is not lost, it just isn't
 # published. The main session is unaffected (no agent_type) and can still push.
